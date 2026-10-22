@@ -1,6 +1,29 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><title>Tower Power icon</title>
 <style>html,body{margin:0;background:transparent}svg{display:block;width:1024px;height:1024px}</style></head>
-<body><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><defs><clipPath id="c"><rect x="100" y="100" width="824" height="824" rx="185"/></clipPath>
-<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0e2a1c"/><stop offset="1" stop-color="#04100a"/></linearGradient></defs>
-<g clip-path="url(#c)"><rect width="1024" height="1024" fill="url(#bg)"/><g fill="none" stroke="#1f5a3c" stroke-width="10"><circle cx="512" cy="512" r="140"/><circle cx="512" cy="512" r="280"/></g><path d="M512 512 L900 300 A450 450 0 0 1 940 520 Z" fill="#7ee0a8" opacity=".18"/><rect x="392" y="496" width="240" height="32" rx="8" fill="#3a5a48"/><path d="M700 330 l-110 -60 l30 60 l-30 60 z" fill="#8fd8ff" transform="rotate(25 640 330)"/><g fill="#d3ead9" opacity=".5"><circle cx="760" cy="240" r="9"/><circle cx="800" cy="210" r="8"/><circle cx="840" cy="185" r="7"/></g><path d="M330 700 l-90 -50 l25 50 l-25 50 z" fill="#f2c94c"/></g></svg></body></html>
+<body><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+<defs>
+  <clipPath id="c"><rect x="100" y="100" width="824" height="824" rx="185"/></clipPath>
+  <radialGradient id="bg" cx="512" cy="512" r="560" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#0f3322"/><stop offset="1" stop-color="#03100a"/></radialGradient>
+  <linearGradient id="sweep" x1="512" y1="512" x2="900" y2="250" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#7ee0a8" stop-opacity=".05"/><stop offset="1" stop-color="#7ee0a8" stop-opacity=".38"/></linearGradient>
+  <linearGradient id="plane" x1="0" y1="-170" x2="0" y2="150" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#e9fbff"/><stop offset="1" stop-color="#8fd8ff"/></linearGradient>
+  <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="14" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".12"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/></linearGradient>
+</defs>
+<g clip-path="url(#c)">
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <!-- range rings and cross hairs -->
+  <g fill="none" stroke="#1f5a3c" stroke-width="6"><circle cx="512" cy="512" r="130"/><circle cx="512" cy="512" r="260"/><circle cx="512" cy="512" r="390"/></g>
+  <g stroke="#173f2b" stroke-width="4"><path d="M512 100V924M100 512H924"/></g>
+  <!-- sweep wedge with its bright leading edge -->
+  <path d="M512 512 L 960 300 A 500 500 0 0 0 820 120 Z" fill="url(#sweep)"/>
+  <path d="M512 512 L 960 300" stroke="#9af0bf" stroke-width="6" opacity=".7"/>
+  <!-- trail of earlier radar returns -->
+  <g fill="#bfe9d0"><circle cx="300" cy="760" r="9" opacity=".2"/><circle cx="342" cy="716" r="10" opacity=".3"/><circle cx="384" cy="672" r="11" opacity=".42"/><circle cx="426" cy="628" r="12" opacity=".55"/></g>
+  <!-- the airplane, top-down, heading northeast -->
+  <g transform="translate(560 470) rotate(45) scale(1.15)" filter="url(#glow)">
+    <path fill="url(#plane)" d="
+      M0 -175 C 16 -175 24 -150 24 -120 L 24 -30 L 190 40 L 190 70 L 24 35 L 20 100 L 78 135 L 78 157 L 14 145 L 0 160 L -14 145 L -78 157 L -78 135 L -20 100 L -24 35 L -190 70 L -190 40 L -24 -30 L -24 -120 C -24 -150 -16 -175 0 -175 Z"/>
+  </g>
+  <rect width="1024" height="1024" fill="url(#shine)"/>
+</g></svg></body></html>
