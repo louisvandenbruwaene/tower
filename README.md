@@ -2,6 +2,8 @@
 
 Air traffic control on a radar. Arrivals (blue) come in high and must be brought down low and landed. Departures (gold) wait at the runway, take off and leave high over their named fix. Two planes on the same level that get too close cost a strike. Three strikes end the shift.
 
+Type `demo` to watch a built-in controller play a short shift. It types into the real prompt (first letters + Tab) and a banner says why it gives each order: one plane down to land at a time, the others circling at different levels, departures released only when their climb-out path is clear.
+
 Prototype, played only by typing words: no mouse, no numbers. Every word autocompletes (Tab or →, ↑↓ pick a suggestion), and any unique prefix works. Esc pauses. One self-contained HTML file, no build step: open [`index.html`](index.html).
 
 ```
