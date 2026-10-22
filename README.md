@@ -1,6 +1,6 @@
 # Tower Power
 
-Air traffic control on a radar, played only by typing words. Arrivals (blue) come in high and must be brought down low and landed. Departures (gold) take off, climb to high and fly to their exit point by themselves. Two planes on the same level getting too close cost a strike. Three strikes and you replay the level.
+Air traffic control on a radar, played only by typing words. Arrivals (blue) come in high and must be brought down low into one of the two landing circles off the runway ends, facing the runway; they then land toward the middle. Departures (gold) take off, climb to high and fly to their exit point by themselves. Two planes on the same level getting too close cost a strike. Three strikes and you replay the level.
 
 Every command is `plane action [direction]`, in any capitals:
 
@@ -10,7 +10,8 @@ heron turn softleft       # 45°; hardleft / hardright = 90°
 heron turn maple          # straight to an edge point
 heron descend low         # climb / descend, to low · mid · high (no word = one level)
 heron hold                # circle on the spot
-heron land                # low and inside the dashed ring
+heron turn runway         # to the nearest landing circle, lining up with the runway
+heron land                # low, in a landing circle, facing the runway (or cleared on the way there)
 wren takeoff              # or: wren takeoff north
 ```
 
