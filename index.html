@@ -177,7 +177,7 @@ const DIRS=[...Object.keys(HEADINGS),...Object.keys(RELATIVE),'runway'];
 const runwayFor=d=>Math.cos(rad(HEADINGS[d]))<-.01?'west':'east';
 const LV=['low','mid','high'],ALTCH='LMH';
 const NAMES='heron wren kite swift raven egret finch gull ibis jay lark owl puffin quail robin stork tern crane dove magpie osprey petrel snipe teal falcon grebe hawk vulture plover condor'.split(' ');
-const SEP=38,CRASH=10,TURN=55*Math.PI/180,CLIMB=.22,SPEED={slow:15,normal:21,fast:28};
+const SEP=38,CRASH=10,TURN=55*Math.PI/180,CLIMB=2/(2/.22+5),SPEED={slow:15,normal:21,fast:28};
 // early levels run the whole world in slow motion and suggest every move (coach)
 const LEVELS=[
   {name:'first landing',arr:2,dep:0,max:1,scale:.4,gap:2,coach:true},
