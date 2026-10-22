@@ -18,10 +18,12 @@ body{display:flex;flex-direction:column}
 #help{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.72);overflow:auto}
 #help .card{max-width:780px;max-height:calc(100% - 24px);overflow:auto;box-sizing:border-box;font-size:14px;margin:12px;padding:14px 24px;background:var(--bg);border:1px solid var(--chipon);border-radius:10px;line-height:1.5}
 #help h2{margin:0 0 6px;color:var(--acc)} #help p{margin:8px 0} #help table{border-collapse:collapse;margin:8px 0} #help td{padding:2px 14px 2px 0;vertical-align:top}
+#demo{position:absolute;top:10px;left:50%;transform:translateX(-50%);display:none;max-width:min(760px,calc(100% - 32px));box-sizing:border-box;padding:8px 16px;background:var(--chip);border:1px solid var(--chipon);border-radius:8px;font-size:15px;line-height:1.45}
+#demo small{color:var(--dim)} #demo b{color:var(--acc)}
 #help td:first-child{color:var(--acc);white-space:nowrap} #help .go{color:var(--dim);margin-top:12px}
 </style></head><body>
 <div id="bar"><span>score <b id="score">0</b></span><span>strikes <b id="strikes"></b></span><span>best <b id="best">0</b></span><span>ready <span id="ready"></span></span></div>
-<div id="view"><canvas id="cv"></canvas><div id="over"></div><div id="help"><div class="card">
+<div id="view"><canvas id="cv"></canvas><div id="demo"></div><div id="over"></div><div id="help"><div class="card">
 <h2>Tower</h2>
 <p>You are the air traffic controller. Every plane has a name. Type the name, then one or more orders.</p>
 <table>
@@ -40,7 +42,7 @@ body{display:flex;flex-direction:column}
 <tr><td>abort</td><td>cancel a landing and climb to mid</td></tr>
 </table>
 <p>Example: <b>heron west low</b>. The first letters are enough (<b>he w lo</b>). <b>Tab</b> or <b>→</b> completes a word. The green line above the prompt says what the plane you are typing needs next. <b>↑</b> repeats an earlier line, <b>Esc</b> pauses, <b>help</b> shows this card.</p>
-<p class="go">Enter to start</p></div></div></div>
+<p class="go">Enter to start · type <b>demo</b> to first watch a good controller play (Esc stops it)</p></div></div></div>
 <div id="term"><div id="sug"></div><div id="hint"></div><div id="out"></div>
 <div class="row"><span>›</span><input id="cmd" autocomplete="off" spellcheck="false" autofocus></div></div>
 <script>
@@ -62,6 +64,7 @@ function typedHead(){const w=cmd.value.toLowerCase().trim().split(/\s+/)[0];if(!
   if(o.includes(w))return w;const m=o.filter(x=>x.startsWith(w));return m.length===1?m[0]:null}
 cmd.addEventListener('input',()=>{T.sel=0;refreshSug()});
 cmd.addEventListener('keydown',e=>{
+  if(D.on&&e.isTrusted){e.preventDefault();if(e.key==='Escape')stopDemo();return}
   const atEnd=cmd.selectionStart===cmd.value.length;
   if((e.key==='Tab'||(e.key==='ArrowRight'&&atEnd))&&T.cands.length){e.preventDefault();
     const{done,part}=parts();cmd.value=cmd.value.slice(0,cmd.value.length-part.length)+T.cands[T.sel]+' ';T.sel=0;refreshSug();return}
@@ -91,22 +94,24 @@ newGame();
 
 function freshName(){const used=S.planes.map(p=>p.name.slice(0,2));
   const pool=NAMES.filter(n=>!used.includes(n.slice(0,2))&&!S.planes.some(p=>p.name===n));return pool[Math.random()*pool.length|0]||'nomad'}
+function spawnDep(dest){S.planes.push({name:freshName(),kind:'dep',dest,state:'ready',x:AX-RW,y:AY,hdg:0,tgt:0,fix:null,alt:0,tgtAlt:0,spd:0,tgtSpd:SPEED.normal,trail:[],tt:0,age:0})}
+function spawnArr(x,y){const gx=AX+(Math.random()-.5)*300,gy=AY+(Math.random()-.5)*300,h=Math.atan2(gy-y,gx-x);
+  S.planes.push({name:freshName(),kind:'arr',state:'fly',x,y,hdg:h,tgt:h,fix:null,alt:2,tgtAlt:2,spd:SPEED.normal,tgtSpd:SPEED.normal,trail:[],tt:0,age:0})}
 function spawn(){
   const ready=S.planes.filter(p=>p.state==='ready').length;
-  if(Math.random()<.38&&ready<3){const fixes=Object.keys(FIXES);
-    S.planes.push({name:freshName(),kind:'dep',dest:fixes[Math.random()*6|0],state:'ready',x:AX-RW,y:AY,hdg:0,tgt:0,fix:null,alt:0,tgtAlt:0,spd:0,tgtSpd:SPEED.normal,trail:[],tt:0,age:0});return}
+  if(Math.random()<.38&&ready<3)return spawnDep(Object.keys(FIXES)[Math.random()*6|0]);
   for(let k=0;k<30;k++){const e=Math.random()*4|0,u=Math.random();
     const [x,y]=[[u*W,0],[W,u*H],[u*W,H],[0,u*H]][e];
-    if(S.planes.some(p=>Math.hypot(p.x-x,p.y-y)<150))continue;
-    const gx=AX+(Math.random()-.5)*300,gy=AY+(Math.random()-.5)*300,h=Math.atan2(gy-y,gx-x);
-    S.planes.push({name:freshName(),kind:'arr',state:'fly',x,y,hdg:h,tgt:h,fix:null,alt:2,tgtAlt:2,spd:SPEED.normal,tgtSpd:SPEED.normal,trail:[],tt:0,age:0});return}}
+    if(!S.planes.some(p=>Math.hypot(p.x-x,p.y-y)<150))return spawnArr(x,y)}}
 function strike(msg,x,y){if(S.over)return;S.strikes++;say('!'+msg);S.fx.push({x,y,t:0,c:'#ff6b5e',r:40});
-  if(S.strikes>=3){S.over=true;if(S.score>best){best=S.score;try{localStorage.setItem('tower-best',best)}catch(e){}}}}
+  if(S.strikes>=3){S.over=true;if(!S.demo&&S.score>best){best=S.score;try{localStorage.setItem('tower-best',best)}catch(e){}}}}
 function remove(p){S.planes=S.planes.filter(q=>q!==p)}
 
 function step(dt){
   S.t+=dt;S.next-=dt;
-  if(S.next<=0){spawn();S.next=Math.max(8,24-S.t/14)*(.75+Math.random()*.5)}
+  if(S.script){while(S.script.length&&S.script[0][0]<=S.t){const[,k,a,b]=S.script.shift();k==='arr'?spawnArr(a,b):spawnDep(a)}
+    if(!S.script.length){S.script=null;S.next=6}}
+  if(S.next<=0){spawn();S.next=Math.max(11,26-S.t/20)*(.75+Math.random()*.5)}
   for(const p of [...S.planes]){
     if(p.state==='ready')continue;
     p.age+=dt;
@@ -151,8 +156,8 @@ function orders(p,words){
   const o=[...Object.keys(HEADINGS),'left','right','to','hold','high','mid','low','slow','fast'];
   if(p.kind==='arr')o.push('land');return o}
 function options(words){
-  if(S.over)return words.length?[]:['restart'];
-  if(!words.length)return[...S.planes.map(p=>p.name),'pause','restart','help'];
+  if(S.over)return words.length?[]:['restart','demo'];
+  if(!words.length)return[...S.planes.map(p=>p.name),'pause','restart','help','demo'];
   const p=plane(words[0]);if(!p)return[];
   if(words[words.length-1]==='to')return Object.keys(FIXES);
   return orders(p,words.slice(1))}
@@ -161,6 +166,7 @@ function exec(words){
   if(w0==='restart'){newGame();return'new shift'}
   if(w0==='pause'){togglePause();return''}
   if(w0==='help'){showHelp(true);return''}
+  if(w0==='demo'){startDemo();return''}
   const p=plane(w0);if(!rest.length)return`!${w0} what?`;const said=[];
   for(let i=0;i<rest.length;i++){const w=rest[i];
     if(w in HEADINGS){p.tgt=rad(HEADINGS[w]);p.fix=null;if(p.state==='hold')p.state='fly'}
@@ -195,6 +201,96 @@ function hintFor(n){
   if(p.alt>.05)return`${p.name} is descending · land once its label shows L`;
   if(Math.hypot(p.x-AX,p.y-AY)>290)return`${p.name} is low but outside the ring → ${p.name} ${compass(AX-p.x,AY-p.y)}`;
   return`${p.name} can land now → ${p.name} land`}
+
+/* ---------- demo: a built-in controller plays, typing into the real prompt and saying why ---------- */
+// [time, kind, …]: a calm opening that shows a landing, a departure, a level split and a holding pattern
+const DEMO_SCRIPT=[[.5,'arr',150,0],[2,'dep','birch'],[10,'arr',1000,230],[18,'dep','larch'],[26,'arr',620,700],[38,'arr',1000,560],[41,'arr',0,520],[50,'dep','maple']];
+const D={on:false,steps:[],wait:0,cool:new Map()};
+const demoEl=document.getElementById('demo');
+function startDemo(){newGame();S.demo=true;S.next=1e9;S.script=DEMO_SCRIPT.map(r=>[...r]);
+  Object.assign(D,{on:true,steps:[],wait:1.5,cool:new Map()});cmd.value='';showDemo('Watching a controller. Every command is typed below, with the reason here.')}
+function stopDemo(){D.on=false;demoEl.style.display='none';cmd.value='';newGame();showHelp(true);say('')}
+function showDemo(why){demoEl.style.display='block';demoEl.innerHTML=`${why}<br><small>demo · esc to stop</small>`}
+// where a plane will be in t seconds if nothing changes; a circling plane is its circle's centre, widened by its radius
+const HOLD_R=SPEED.normal/(TURN*.7);
+function future(p,t,alt=p.tgtAlt){
+  const lvl=p.alt+Math.sign(alt-p.alt)*Math.min(Math.abs(alt-p.alt),CLIMB*t);
+  if(p.state==='hold')return[p.x-HOLD_R*Math.sin(p.hdg),p.y+HOLD_R*Math.cos(p.hdg),lvl,HOLD_R];
+  // landing: to the gate on the extended centreline, then along it; taking off: east down the runway, then out
+  const legs=p.state==='appr'?[[AX-p.dir*(RW+130),AY],[AX,AY]]:p.state==='final'?[[AX,AY]]:p.state==='roll'?[[AX+RW,AY]]:[];
+  const v=Math.max(p.spd,SPEED.normal*.8);let x=p.x,y=p.y,go=v*t,lv=lvl;
+  for(const[lx,ly]of legs){const d=Math.hypot(lx-x,ly-y);if(go<=d)return[x+(lx-x)*go/d,y+(ly-y)*go/d,p.state==='roll'?0:lvl,0];go-=d;x=lx;y=ly}
+  if(p.state==='roll')lv=Math.min(alt,CLIMB*go/v);          // climbing only starts at the end of the runway
+  if(p.state==='appr'||p.state==='final')return[AX,AY,0,0];
+  const h=p.fix?Math.atan2(FIXES[p.fix][1]-y,FIXES[p.fix][0]-x):p.tgt;
+  return[x+Math.cos(h)*go,y+Math.sin(h)*go,lv,0]}
+// the first level (from the wanted list) where this plane could circle without meeting anyone
+const holdLevel=(p,levels)=>levels.find(lv=>S.planes.every(o=>o===p||o.state==='ready'||!meets({...p,state:'hold'},o,lv)));
+function meets(a,b,altA=a.tgtAlt,altB=b.tgtAlt){
+  for(let t=0;t<=20;t+=.5){const[ax,ay,al,ar]=future(a,t,altA),[bx,by,bl,br]=future(b,t,altB);
+    if(Math.abs(al-bl)<.7&&Math.hypot(ax-bx,ay-by)<SEP+16+ar+br)return true}return false}
+const clearAt=(p,alt)=>S.planes.every(o=>o===p||o.state==='ready'||!meets(p,o,alt));
+const toward=p=>compass(AX-p.x,AY-p.y);
+const LV=['low','mid','high'],RING=250;
+function decide(){
+  const air=S.planes.filter(p=>p.state!=='ready'),free=p=>p.state==='fly'||p.state==='hold';
+  const runwayBusy=S.planes.some(p=>p.state==='appr'||p.state==='final'||p.state==='roll');
+  const once=(p,k,sec)=>{const key=p.name+k;if((D.cool.get(key)||0)>S.t)return false;D.cool.set(key,S.t+sec);return true};
+  const dist=p=>Math.hypot(p.x-AX,p.y-AY);
+  // the one arrival allowed down to low: whoever is low already, else the closest
+  const arrs=S.planes.filter(p=>p.kind==='arr'&&free(p)).sort((x,y)=>(x.tgtAlt-y.tgtAlt)||(dist(x)-dist(y)));
+  const next=arrs[0],landing=S.planes.some(p=>p.state==='appr'||p.state==='final');
+  // a departure is let go only if its whole climb-out misses everyone
+  const climbOut=p=>({...p,state:'roll',x:AX-RW,y:AY,hdg:0,tgt:0,spd:SPEED.normal*.8,fix:p.dest,alt:0,tgtAlt:2});
+  // 1. separation before anything else: give one of the two a different level
+  for(const a of air)for(const b of air){if(a===b||!meets(a,b))continue;
+    for(const p of [a,b].filter(free).sort((x,y)=>(y.kind==='dep')-(x.kind==='dep'))){const o=p===a?b:a;
+      const levels=p.kind==='dep'?[2,1]:p===next?[0,1,2]:[2,1];
+      for(const lv of levels)if(lv!==p.tgtAlt&&clearAt(p,lv)&&once(p,'sep',4))
+        return[[p.name,LV[lv]],`${p.name} and ${o.name} are heading for the same spot at the same level. ${p.name} goes ${LV[lv]}, so one passes over the other.`];
+      const nearEdge=p.x<70||p.x>W-70||p.y<70||p.y>H-70;
+      const hl=holdLevel(p,[p.tgtAlt,2,1,0]);
+      if(p.kind==='arr'&&p.state!=='hold'&&!nearEdge&&hl!==undefined&&once(p,'sep',4))return[hl===p.tgtAlt?[p.name,'hold']:[p.name,'hold',LV[hl]],`${p.name} would get too close to ${o.name}. It circles on the spot${hl===p.tgtAlt?'':' at '+LV[hl]} until the way is clear.`];
+      if(p.kind==='arr'&&nearEdge&&p.tgtSpd!==SPEED.slow&&once(p,'sep',4))return[[p.name,'slow'],`${p.name} would get too close to ${o.name}, but it is too near the edge to circle. Slow it down instead.`]}}
+  // 2. the next arrival comes down and lands
+  if(next){const p=next,dir=toward(p),off=Math.abs(wrap(rad(HEADINGS[dir])-p.hdg))>rad(30);
+    if(landing&&p.tgtAlt===2&&dist(p)<RING+60&&clearAt(p,1)&&once(p,'down',8))
+      return[[p.name,'mid'],`${p.name} is next to land, but the runway is still in use. Bring it down to mid for now, ready to go low.`];
+    const nh=landing&&p.state==='fly'&&dist(p)<RING?holdLevel(p,[p.tgtAlt,1,2]):undefined;
+    if(nh!==undefined&&once(p,'hold',6))
+      return[nh===p.tgtAlt?[p.name,'hold']:[p.name,'hold',LV[nh]],`${p.name} is next, but someone is still landing. It circles until the runway is free.`];
+    if(!landing&&p.tgtAlt>0&&clearAt(p,0)&&once(p,'down',8))
+      return[off&&p.state!=='hold'?[p.name,dir,'low']:[p.name,'low'],`${p.name} is next to land. ${off&&p.state!=='hold'?`Point it ${dir}, at the runway, and bring`:'Bring'} it down to low.`];
+    if(p.alt<.05&&p.tgtAlt===0&&dist(p)<270&&!runwayBusy&&once(p,'land',3))
+      return[[p.name,'land'],`${p.name} is low, inside the ring, and the runway is free: land. It lines up by itself.`]}
+  // 3. everyone else waits high, circling near the airport
+  for(const p of arrs){const dir=toward(p),off=Math.abs(wrap(rad(HEADINGS[dir])-p.hdg))>rad(30);
+    if(p!==next&&p.tgtSpd===SPEED.slow&&p.x>70&&p.x<W-70&&p.y>70&&p.y<H-70&&once(p,'spd',6))return[[p.name,'fast'],`${p.name} is clear of the edge: back to normal speed.`];
+    const hl=p!==next&&p.state==='fly'&&dist(p)<RING?holdLevel(p,[p.tgtAlt,2,1]):undefined;
+    if(hl!==undefined&&once(p,'hold',6))
+      return[hl===p.tgtAlt?[p.name,'hold']:[p.name,'hold',LV[hl]],`Only one plane lands at a time and ${next.name} is first. ${p.name} circles here, ${LV[hl]}${hl===p.tgtAlt?'':', above or below the others already circling'}, until its turn.`];
+    if(p.state==='fly'&&dist(p)>=RING&&off&&once(p,'aim',6))return[[p.name,dir],`${p.name} is not pointing at the airport. Turn it ${dir}.`]}
+  // 4. departures go when the runway is free, then climb out to their exit
+  for(const p of S.planes.filter(p=>p.kind==='dep')){
+    if(p.state==='ready'&&!runwayBusy&&!(next&&next.tgtAlt===0&&dist(next)<RING)&&air.every(o=>!meets(climbOut(p),o))&&once(p,'go',3))
+      return[[p.name,'takeoff','to',p.dest,'high'],`The runway is free. ${p.name} takes off, heads for ${p.dest} (its exit, the ▲ on the edge) and climbs high.`];
+    if(free(p)&&p.fix!==p.dest&&once(p,'fix',6))return[[p.name,'to',p.dest],`${p.name} is clear again. Send it back on its way to ${p.dest}.`];
+    if(free(p)&&p.tgtAlt<2&&clearAt(p,2)&&once(p,'up',6))return[[p.name,'high'],`${p.name} has room above it now. Climb to high: it may only leave at H.`]}
+  return null}
+// turn a command into keystrokes: the shortest unique start of each word, then Tab to complete it
+function keystrokes(words){const keys=[];let prev=[];
+  for(const w of words){const opts=options(prev);let k=1;
+    while(k<w.length&&opts.filter(o=>o.startsWith(w.slice(0,k))).length>1)k++;
+    for(const c of w.slice(0,k))keys.push(c);keys.push(k<w.length?'Tab':' ');prev=[...prev,w]}
+  keys.push('Enter');return keys}
+function demoTick(dt){
+  if(S.over||S.t>150){D.wait-=dt;if(D.wait<-3)startDemo();return}  // a short, clean shift, then again
+  if((D.wait-=dt)>0)return;
+  if(!D.steps.length){const plan=decide();if(!plan){D.wait=.3;return}
+    D.steps=keystrokes(plan[0]);showDemo(plan[1]);D.wait=.4;return}
+  const k=D.steps.shift(),key=x=>cmd.dispatchEvent(new KeyboardEvent('keydown',{key:x}));
+  if(k==='Tab'){key('Tab');D.wait=.25}else if(k==='Enter'){key('Enter');D.wait=1.4}
+  else{cmd.value+=k;cmd.dispatchEvent(new Event('input'));D.wait=.11}}
 
 /* ---------- drawing ---------- */
 const cv=document.getElementById('cv'),cx=cv.getContext('2d');let sc=1,ox=0,oy=0;
@@ -238,7 +334,7 @@ function draw(){
 const over=document.getElementById('over');
 let last=performance.now();
 function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;
-  if(!S.paused&&!S.over&&!helpOpen())step(dt);draw();
+  if(!S.paused&&!S.over&&!helpOpen())step(dt);if(D.on&&!S.paused)demoTick(dt);draw();
   const focus=typedHead();document.getElementById('ready').innerHTML=S.planes.filter(p=>p.state==='ready').map(p=>`<b style="color:${p.name===focus?'#fff':LABEL.dep}">${p.name} → ${p.dest}</b>`).join(' ')||'';
   document.getElementById('score').textContent=S.score;document.getElementById('best').textContent=best;
   document.getElementById('strikes').textContent='●'.repeat(S.strikes)+'○'.repeat(Math.max(0,3-S.strikes));
@@ -246,5 +342,5 @@ function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;
   over.innerHTML=S.over?`shift over<br><b>${S.score}</b><br><small>restart</small>`:'paused<br><small>esc</small>';
   requestAnimationFrame(frame)}
 requestAnimationFrame(frame);
-if(location.hash==='#dev')window.G={get S(){return S},step,exec,options,resolve};
+if(location.hash==='#dev')window.G={get S(){return S},step,exec,options,resolve,D,decide,demoTick};
 </script></body></html>
