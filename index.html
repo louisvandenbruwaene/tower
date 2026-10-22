@@ -511,8 +511,6 @@ function draw(){
     if(p.state==='fly'&&Math.abs(wrap(p.tgt-p.hdg))>.05){
       cx.setLineDash([3,4]);cx.strokeStyle='rgba(255,255,255,.4)';cx.beginPath();cx.moveTo(p.x,p.y);cx.lineTo(p.x+Math.cos(p.tgt)*45,p.y+Math.sin(p.tgt)*45);cx.stroke();cx.setLineDash([])}
     if(hot){cx.strokeStyle='#fff';cx.lineWidth=1.5;cx.beginPath();cx.arc(p.x,p.y,12+Math.sin(S.t*6)*1.5,0,7);cx.stroke();cx.lineWidth=1}
-    // heading line out of the nose, as on a real radar, so it is never unclear which way a plane points
-    cx.strokeStyle=col;cx.lineWidth=1.5;cx.globalAlpha=.8;cx.beginPath();cx.moveTo(p.x+Math.cos(p.hdg)*10,p.y+Math.sin(p.hdg)*10);cx.lineTo(p.x+Math.cos(p.hdg)*24,p.y+Math.sin(p.hdg)*24);cx.stroke();cx.globalAlpha=1;cx.lineWidth=1;
     // a small glowing airplane seen from above, a little bigger the higher it flies
     cx.save();cx.translate(p.x,p.y);cx.rotate(p.hdg+Math.PI/2);cx.scale(.065+lvl*.01,.065+lvl*.01);glow(col,10);cx.fillStyle=col;cx.fill(PLANE);cx.restore();glow('',0);
     // data block on a leader line; a level change fills the bar under it
