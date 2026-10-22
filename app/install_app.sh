@@ -1,9 +1,9 @@
 #!/bin/bash
-# Puts Tower in /Applications: a launcher that opens index.html in its own Brave window with no browser bars.
+# Puts Tower Power in /Applications: a launcher that opens index.html in its own Brave window with no browser bars.
 # The game folder path is baked in: re-run this script if the folder moves.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-APP="${1:-/Applications}/Tower.app"
+APP="${1:-/Applications}/Tower Power.app"
 [ -d "/Applications/Brave Browser.app" ] || { echo "Brave Browser not found in /Applications"; exit 1; }
 rm -rf "$APP"; mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$ROOT/app/icon.icns" "$APP/Contents/Resources/icon.icns"
@@ -17,9 +17,9 @@ cat > "$APP/Contents/Info.plist" <<PL
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
-  <key>CFBundleName</key><string>Tower</string>
-  <key>CFBundleDisplayName</key><string>Tower</string>
-  <key>CFBundleIdentifier</key><string>eu.vandenbruwaene.tower</string>
+  <key>CFBundleName</key><string>Tower Power</string>
+  <key>CFBundleDisplayName</key><string>Tower Power</string>
+  <key>CFBundleIdentifier</key><string>eu.vandenbruwaene.tower-power</string>
   <key>CFBundleExecutable</key><string>launch</string>
   <key>CFBundleIconFile</key><string>icon</string>
   <key>CFBundlePackageType</key><string>APPL</string>
