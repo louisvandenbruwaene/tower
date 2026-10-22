@@ -13,6 +13,8 @@ body{display:flex;flex-direction:column;background:radial-gradient(ellipse 70% 8
 @keyframes blink{50%{opacity:.35}}
 #lvl{font-weight:500;font-size:13px;padding:3px 12px;border:1px solid var(--chipon);border-radius:99px;background:var(--chip)}
 #todo{margin-left:auto;color:var(--dim);font-size:13px}
+#qm{width:26px;height:26px;padding:0;border-radius:50%;border:1px solid var(--chipon);background:var(--chip);color:var(--acc);font:600 14px var(--mono);cursor:pointer}
+#qm:hover{background:var(--chipon);box-shadow:0 0 12px rgba(126,224,168,.3)}
 main{flex:1;min-height:0;display:flex}
 /* radar */
 #view{flex:1;position:relative;min-width:0} canvas{position:absolute;inset:0;width:100%;height:100%}
@@ -52,7 +54,7 @@ main{flex:1;min-height:0;display:flex}
 #help td:first-child{color:var(--acc);white-space:nowrap} #help .go{color:var(--dim);margin-top:12px} #help code{color:var(--gold)}
 @media (max-width:760px){main{flex-direction:column}#term{width:auto;height:50%}}
 </style></head><body>
-<div id="bar"><span id="brand">TOWER POWER</span><b id="lvl"></b><span id="todo"></span></div>
+<div id="bar"><span id="brand">TOWER POWER</span><b id="lvl"></b><span id="todo"></span><button id="qm" title="help">?</button></div>
 <main>
 <div id="view"><canvas id="cv"></canvas><div id="demo"></div><div id="over"></div></div>
 <section id="term">
@@ -69,7 +71,7 @@ main{flex:1;min-height:0;display:flex}
 <div id="sug"></div>
 </section>
 </main>
-<div id="help"><div class="card">
+<div id="help" style="display:none"><div class="card">
 <h2>Tower Power</h2>
 <p>You are the air traffic controller. Every command has the same shape:</p>
 <p><code>plane&nbsp;&nbsp;action&nbsp;&nbsp;[direction]</code> &nbsp; the direction is only needed for some actions.</p>
@@ -91,7 +93,7 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>things take time</td><td>Changing level takes a while (bar under the label). Turning is gradual (dashed line = where it is turning to). The runway takes one plane at a time (it turns amber while busy).</td></tr>
 </table>
 <p>Faded text in the prompt is a suggestion: <b>→</b> takes all of it, <b>Tab</b> takes one word. Capitals don't matter. Typos are fixed for you (<b>nt</b> = north): the reply shows what was understood. The first levels are slow and suggest every move; later ones go faster and leave it to you. <b>demo</b> shows a good controller at work, <b>Esc</b> pauses, <b>help</b> shows this card.</p>
-<p class="go">Enter to start · or type <b>demo</b> first</p></div></div>
+<p class="go">Enter or Esc to close · click anywhere</p></div></div>
 <script>
 /* ---------- terminal: plane action [direction]; every word is read as its most likely meaning ---------- */
 const cmd=document.getElementById('cmd'),sugEl=document.getElementById('sug'),outEl=document.getElementById('out'),ghostEl=document.getElementById('ghost');
@@ -164,6 +166,9 @@ cmd.addEventListener('keydown',e=>{
     if(!v){onEmptyEnter();return}
     T.hist.push(v);T.hi=T.hist.length;cmd.value='';run(v);refreshSug()}});
 addEventListener('mousedown',e=>{e.preventDefault();cmd.focus()});
+// the help card only opens from the ? button (or typing help); any click closes it
+document.getElementById('qm').addEventListener('click',e=>{e.stopPropagation();showHelp(!helpOpen());refreshSug()});
+helpEl.addEventListener('click',()=>{showHelp(false);refreshSug()});
 setInterval(refreshSug,400);
 
 /* ---------- world ---------- */
@@ -435,7 +440,7 @@ const DEMO_SCRIPT=[[.5,'arr',-125],[2,'dep','northeast'],[10,'arr',-15],[18,'dep
 const demoEl=document.getElementById('demo');
 function startDemo(){startLevel(LEVELS.length-1,true);S.script=DEMO_SCRIPT.map(r=>[...r]);
   Object.assign(D,{on:true,steps:[],wait:1.5,cool:new Map()});cmd.value='';showDemo('Watching a controller. Every command is typed below, with the reason here.')}
-function stopDemo(){D.on=false;demoEl.style.display='none';cmd.value='';startLevel(+store('tower-level')||0);showHelp(true)}
+function stopDemo(){D.on=false;demoEl.style.display='none';cmd.value='';startLevel(+store('tower-level')||0)}
 function showDemo(why){demoEl.style.display='block';demoEl.innerHTML=`${why}<br><small>demo · esc to stop</small>`}
 // turn a command into keystrokes: the shortest unique start of each word, then Tab to complete it
 function keystrokes(words){const keys=[];let prev=[];
