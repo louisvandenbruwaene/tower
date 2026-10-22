@@ -76,7 +76,7 @@ main{flex:1;min-height:0;display:flex}
 <table>
 <tr><td>heron turn s</td><td>turn until it flies that way: <b>n ne e se s sw w nw</b></td></tr>
 <tr><td>heron turn l</td><td>turn 90° left · <b>sl sr</b> = 45° · <b>l r</b> = 90° · <b>hl hr</b> = 135°</td></tr>
-<tr><td>heron turn runway</td><td>fly to the nearest landing circle and line up with the runway there</td></tr>
+<tr><td>heron turn runway</td><td>fly straight to the centre of the nearest landing circle, then turn toward the runway once inside</td></tr>
 <tr><td>heron descend</td><td>down to low · <b>heron descend mid</b> stops at mid</td></tr>
 <tr><td>heron ascend</td><td>up to high · <b>heron ascend mid</b> stops at mid</td></tr>
 <tr><td>heron hold</td><td>circle on the spot until you give it a new turn</td></tr>
@@ -169,7 +169,7 @@ setInterval(refreshSug,400);
 /* ---------- world ---------- */
 const W=720,H=700,AX=360,AY=350,RW=60,RADAR=320,RING=250;  // airport centre, runway half length (east-west), your area, where waiting planes circle
 // a landing circle off each runway end, on its line; dir = the way a plane there must face (+1 east, -1 west)
-const GATES={west:{x:AX-RW-100,dir:1},east:{x:AX+RW+100,dir:-1}},GATE_R=50,ENTRY=60;
+const GATES={west:{x:AX-RW-100,dir:1},east:{x:AX+RW+100,dir:-1}},GATE_R=50;
 const HEADINGS={north:-90,northeast:-45,east:0,southeast:45,south:90,southwest:135,west:180,northwest:-135};
 const RELATIVE={softleft:-45,left:-90,hardleft:-135,softright:45,right:90,hardright:135};
 const DIRS=[...Object.keys(HEADINGS),...Object.keys(RELATIVE),'runway'];
@@ -217,7 +217,7 @@ const facing=(p,k)=>Math.abs(wrap(p.hdg-(GATES[k].dir>0?0:Math.PI)))<=rad(45);
 const lowNow=p=>p.tgtAlt===0&&p.alt<=.05;
 // the circle a plane is in, low and facing the runway: where it may land
 const landGate=p=>{const k=inGate(p);return k&&facing(p,k)&&lowNow(p)?k:null};
-const nearestGate=p=>Object.keys(GATES).sort((a,b)=>Math.hypot(GATES[a].x-GATES[a].dir*ENTRY-p.x,AY-p.y)-Math.hypot(GATES[b].x-GATES[b].dir*ENTRY-p.x,AY-p.y))[0];
+const nearestGate=p=>Object.keys(GATES).sort((a,b)=>Math.hypot(GATES[a].x-p.x,AY-p.y)-Math.hypot(GATES[b].x-p.x,AY-p.y))[0];
 function startFinal(p,k){p.state='final';p.dir=GATES[k].dir;p.gate=null;p.cleared=false;p.tgtSpd=12}
 
 function step(dt){
@@ -231,12 +231,10 @@ function step(dt){
     if(p.state==='ready')continue;
     if(p.state==='roll'){p.spd=Math.min(SPEED.normal,p.spd+8*dt);if(p.rdir*(p.x-AX)>RW)p.state='fly'}
     else{
-      if(p.gate){const g=GATES[p.gate],ex=g.x-g.dir*ENTRY,along=g.dir*(p.x-ex);
-        // phase 1: get well out beyond the circle on the plane's own side; phase 2 (sticky): swing onto the
-        // runway line toward the runway. Overshooting the circle starts over.
-        if(along<-30)p.lineup=true;else if(along>ENTRY+GATE_R)p.lineup=false;
-        p.tgt=p.lineup?Math.atan2(AY-p.y,g.dir*50):Math.atan2((p.y<AY?AY-50:AY+50)-p.y,ex-g.dir*35-p.x);
-        if(inGate(p)===p.gate&&facing(p,p.gate)&&Math.abs(p.y-AY)<25){p.tgt=g.dir>0?0:Math.PI;p.gate=null;p.lineup=false}}
+      // turn runway: straight at the circle's centre; once inside, turn toward the runway end, done when facing it
+      if(p.gate){const g=GATES[p.gate];
+        if(inGate(p)!==p.gate)p.tgt=Math.atan2(AY-p.y,g.x-p.x);
+        else{p.tgt=Math.atan2(AY-p.y,AX-g.dir*RW-p.x);if(facing(p,p.gate))p.gate=null}}
       if(p.cleared&&p.state==='fly'){const k=inGate(p);
         if(k&&landGate(p))startFinal(p,k);
         else if(!p.gate&&GATES[p.cleared].dir*(p.x-GATES[p.cleared].x)>GATE_R){p.cleared=false;say(`!${p.name} came in too high and went around: descend low, then turn runway`)}}
@@ -290,7 +288,7 @@ function options(words){
   return[]}
 function setLevel(p,lv){p.altFrom=p.alt;p.tgtAlt=lv}
 function steer(p,d){
-  p.gate=null;p.cleared=false;p.lineup=false;
+  p.gate=null;p.cleared=false;
   if(d==='runway')p.gate=nearestGate(p);
   else if(d in HEADINGS)p.tgt=rad(HEADINGS[d]);
   else p.tgt=wrap((p.state==='hold'?p.hdg:p.tgt)+rad(RELATIVE[d]));
@@ -360,7 +358,7 @@ function future(p,t,alt=p.tgtAlt){
   const lvl=p.alt+Math.sign(alt-p.alt)*Math.min(Math.abs(alt-p.alt),CLIMB*t);
   if(p.state==='hold')return[p.x-HOLD_R*Math.sin(p.hdg),p.y+HOLD_R*Math.cos(p.hdg),lvl,HOLD_R];
   // landing: to the gate on the extended centreline, then along it; taking off: east down the runway, then out
-  const legs=p.state==='final'?[[AX-p.dir*RW,AY],[AX,AY]]:p.state==='roll'?[[AX+p.rdir*RW,AY]]:p.gate?[[GATES[p.gate].x-GATES[p.gate].dir*ENTRY,AY],[AX,AY]]:[];
+  const legs=p.state==='final'?[[AX-p.dir*RW,AY],[AX,AY]]:p.state==='roll'?[[AX+p.rdir*RW,AY]]:p.gate?[[GATES[p.gate].x,AY],[AX,AY]]:[];
   const v=Math.max(p.spd,SPEED.normal*.8);let x=p.x,y=p.y,go=v*t,lv=lvl;
   for(const[lx,ly]of legs){const d=Math.hypot(lx-x,ly-y);if(go<=d)return[x+(lx-x)*go/d,y+(ly-y)*go/d,p.state==='roll'?0:lvl,0];go-=d;x=lx;y=ly}
   if(p.state==='roll')lv=Math.min(alt,CLIMB*go/v);          // climbing only starts at the end of the runway
