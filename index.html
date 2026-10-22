@@ -80,7 +80,7 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>heron turn l</td><td>turn 90° left · <b>sl sr</b> = 45° · <b>l r</b> = 90° · <b>hl hr</b> = 135°</td></tr>
 <tr><td>heron descend</td><td>down to low · <b>heron descend mid</b> stops at mid</td></tr>
 <tr><td>heron ascend</td><td>up to high · <b>heron ascend mid</b> stops at mid</td></tr>
-<tr><td>heron hold</td><td>circle on the spot until you give it a turn or clear it to land</td></tr>
+<tr><td>heron hold</td><td>circle on the spot until you give it a turn, or <b>land</b> while it is inside a landing circle</td></tr>
 <tr><td>heron land</td><td>clear an arrival to land, any time. Only a cleared plane turns inside a landing circle: toward the runway, and it lands once it faces it (the arrow), low. Still too high when it leaves the circle: it goes around.</td></tr>
 <tr><td>wren takeoff e</td><td>departures in the <b>ready</b> list: take off <b>east</b> or <b>west</b> down the runway. It climbs to mid and flies straight on until you turn it.</td></tr>
 <tr><td>slow · fast · abort</td><td>change speed · cancel a landing</td></tr>
@@ -312,14 +312,14 @@ function exec(words){
   if(act==='ascend'||act==='descend'){const up=act==='ascend',lv=arg?LV.indexOf(arg):up?2:0;
     if(up?lv<=p.tgtAlt:lv>=p.tgtAlt)return`!${n} is already ${LV[p.tgtAlt]}`;
     setLevel(p,lv);return`${n}: ${up?'climbing':'descending'} to ${LV[lv]} (takes a while)`}
-  if(act==='hold'){p.state='hold';return`${n}: circling until you turn it or clear it to land`}
+  if(act==='hold'){p.state='hold';return`${n}: circling until you turn it (or land, inside a landing circle)`}
   if(act==='land'){
     // always accepted: a clearance. It turns onto the runway in the next landing circle it flies into.
     if(p.cleared)return`!${n} is already cleared to land`;
-    // a holding plane stops circling and flies straight on from where it points now
-    if(p.state==='hold'){p.state='fly';p.tgt=p.hdg}
+    // a holding plane can only be cleared inside a landing circle; it stops circling and turns onto the runway there
+    if(p.state==='hold'){if(!inGate(p))return`!cannot land outside landing zone`;p.state='fly';p.tgt=p.hdg}
     p.cleared=true;const u=runwayUser();
-    return`${n}: cleared to land, it turns onto the runway in the next landing circle${p.tgtAlt>0?' · descend low first or it goes around':''}${u?` (careful: ${u.name} is still on the runway)`:''}`}
+    return`${n}: cleared to land, it turns onto the runway ${inGate(p)?'here':'in the next landing circle'}${p.tgtAlt>0?' · descend low first or it goes around':''}${u?` (careful: ${u.name} is still on the runway)`:''}`}
   if(act==='takeoff'){if(!arg)return`!${n} takeoff east or west? (${n} wants to leave ${U(p.dest)})`;
     const u=runwayUser();if(u)return`!the runway is busy: wait until ${u.name} is off it`;
     // rolls from the far end of the runway, then flies straight on, climbing to mid, until you turn it
@@ -347,6 +347,7 @@ function hintFor(n){
     if(!headingFor(p,p.dest))return`${p.name} must leave the circle on the ${U(p.dest)} side → ${p.name} turn ${U(p.dest)}`;
     return`${p.name} is heading ${U(p.dest)}: handed off when it leaves the circle there`}
   if(p.tgtAlt>0)return`${p.name} must come down → ${p.name} descend low`;
+  if(!p.cleared&&p.state==='hold'&&!inGate(p))return`${p.name} is circling outside the landing circles → ${p.name} turn ${U(toGate(p))}`;
   if(!p.cleared)return`${p.name} flies straight through a landing circle until cleared → ${p.name} land`;
   if(p.inGate)return`${p.name} is turning onto the runway in the ${p.inGate} circle${p.alt>.05?`, still descending ${bar(p)}`:''}`;
   const d=toGate(p);if(headingFor(p,d))return`${p.name} is cleared, heading for the ${nearestGate(p)} circle${p.alt>.05?`, descending ${bar(p)}`:''}`;
@@ -408,7 +409,9 @@ function decide(peek){
       return[[p.name,'hold'],`${p.name} is next, but someone is still landing. It circles until the runway is free.`];
     if(!landing&&p.tgtAlt>0&&clearAt(p,0)&&once(p,'down',8))
       return[levelCmd(p,0),`${p.name} is next to land. Bring it down to low first: that takes a while.`];
-    if(!landing&&p.tgtAlt===0&&once(p,'land',3))
+    if(!landing&&p.tgtAlt===0&&p.state==='hold'&&!inGate(p)&&once(p,'aimgate',3))
+      return[[p.name,'turn',toGate(p)],`${p.name} is next. A circling plane can only be cleared inside a landing circle: turn it ${U(toGate(p))}, toward the ${nearestGate(p)} circle.`];
+    if(!landing&&p.tgtAlt===0&&(p.state!=='hold'||inGate(p))&&once(p,'land',3))
       return[[p.name,'land'],`${p.name} is next and on its way down. Clear it to land: only a cleared plane turns onto the runway in a landing circle.`]}
   // a cleared arrival is pointed at the nearest landing circle, re-aimed as it closes in
   const cl=S.planes.find(p=>p.kind==='arr'&&p.cleared&&(p.state==='fly'||p.state==='hold')&&!p.inGate&&!headingFor(p,toGate(p)));

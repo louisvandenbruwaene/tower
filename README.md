@@ -10,7 +10,7 @@ heron turn l              # sl sr = 45°, l r = 90°, hl hr = 135°
 
 heron descend             # down to low (descend mid stops at mid)
 heron ascend              # up to high (ascend mid stops at mid)
-heron hold                # circle on the spot until a turn or land
+heron hold                # circle on the spot until a turn (or land, inside a landing circle)
 heron land                # cleared to land: it turns onto the runway in the next landing circle it flies into
 wren takeoff e             # e or w; it climbs to mid and flies straight on until you turn it
 ```
