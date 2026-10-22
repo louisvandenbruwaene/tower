@@ -11,11 +11,14 @@ heron turn l              # sl sr = 45°, l r = 90°, hl hr = 135°
 heron descend             # down to low (descend mid stops at mid)
 heron ascend              # up to high (ascend mid stops at mid)
 heron hold                # circle on the spot until a turn (or land, inside a landing circle)
-heron land                # only inside a landing circle: it turns onto the runway there
-wren takeoff e             # e or w; it climbs to mid and flies straight on until you turn it
+heron hold kilo           # fly to a holding fix (alpha bravo kilo zulu) and circle there
+heron land                # only inside an open landing circle: it turns onto the runway there
+wren takeoff e             # e or w; it taxis out, waits for a free runway, climbs to mid and flies straight on
+buy nav                   # after a shift: spend tokens on upgrades (height runway nav tanks)
+daily                     # today's seeded shift, the same for everyone
 ```
 
-A unique start of a word is enough, faded text in the prompt is a suggestion (→ takes it all, Tab one word), and typos are fixed at once (nt = north), the reply showing what was understood. Seven levels plus endless: the first four run in slow motion and suggest every move with the reason, later ones speed up and leave it to you. Waiting is shown on the radar: a bar for level changes, a dashed line for turns, an amber runway while it is busy. `demo` shows a built-in controller playing (it types into the real prompt and says why). Later realism (real heights, aircraft types, wind, weather, schedules) is listed in [IDEAS.md](IDEAS.md). One self-contained HTML file, no build step: open [`index.html`](index.html).
+A unique start of a word is enough, faded text in the prompt is a suggestion (→ takes it all, Tab one word), and typos are fixed at once (nt = north), the reply showing what was understood. Seven levels, then the shift: the first four levels run in slow motion and suggest every move with the reason. Later ones speed up, leave it to you and switch on more rules one by one: aircraft types (prop, jet, bizjet, heavy, each with its own speed, turn rate and pictogram, and wake turbulence behind a heavy), fuel and MAYDAYs, wind that sets the runway direction, readback errors and drifting storm cells. The shift never ends: three strikes pay tokens for the score (100 per plane, less the delay), spent on upgrades for later shifts. After 10 planes, overflights from the neighbouring sector join in. Waiting is shown on the radar: a bar for level changes, a dashed line for turns, an amber runway while it is busy. `demo` shows a built-in controller playing (it types into the real prompt and says why). What is in and what is still to come is listed in [IDEAS.md](IDEAS.md). One self-contained HTML file, no build step: open [`index.html`](index.html).
 
 ## Play on this Mac
 
