@@ -78,7 +78,6 @@ main{flex:1;min-height:0;display:flex}
 <table>
 <tr><td>heron turn s</td><td>turn until it flies that way: <b>n ne e se s sw w nw</b></td></tr>
 <tr><td>heron turn l</td><td>turn 90° left · <b>sl sr</b> = 45° · <b>l r</b> = 90° · <b>hl hr</b> = 135°</td></tr>
-<tr><td>heron turn runway</td><td>fly straight to the centre of the nearest landing circle. Without a landing clearance it flies straight on through it.</td></tr>
 <tr><td>heron descend</td><td>down to low · <b>heron descend mid</b> stops at mid</td></tr>
 <tr><td>heron ascend</td><td>up to high · <b>heron ascend mid</b> stops at mid</td></tr>
 <tr><td>heron hold</td><td>circle on the spot until you give it a new turn</td></tr>
@@ -177,12 +176,12 @@ const W=720,H=700,AX=360,AY=350,RW=60,RADAR=320,RING=250;  // airport centre, ru
 const GATES={west:{x:AX-RW-100,dir:1},east:{x:AX+RW+100,dir:-1}},GATE_R=50;
 const HEADINGS={north:-90,northeast:-45,east:0,southeast:45,south:90,southwest:135,west:180,northwest:-135};
 const RELATIVE={softleft:-45,left:-90,hardleft:-135,softright:45,right:90,hardright:135};
-const DIRS=[...Object.keys(HEADINGS),...Object.keys(RELATIVE),'runway'];
+const DIRS=[...Object.keys(HEADINGS),...Object.keys(RELATIVE)];
 // which way down the runway suits a departure: the end that points closest to where it wants to go
 const runwayFor=d=>Math.cos(rad(HEADINGS[d]))<-.01?'west':'east';
 const LV=['low','mid','high'],ALTCH='LMH';
 const NAMES='heron wren kite swift raven egret finch gull ibis jay lark owl puffin quail robin stork tern crane dove magpie osprey petrel snipe teal falcon grebe hawk vulture plover condor'.split(' ');
-const SEP=38,CRASH=10,TURN=55*Math.PI/180,CLIMB=2/(2/.22+5),SPEED={slow:15,normal:21,fast:28};
+const SEP=38,CRASH=10,TURN=55*Math.PI/180,CLIMB=2/(2/.22+5),SPEED={slow:12,normal:17,fast:22};
 // early levels run the whole world in slow motion and suggest every move (coach)
 const LEVELS=[
   {name:'first landing',arr:2,dep:0,max:1,scale:.4,gap:2,coach:true},
@@ -223,7 +222,9 @@ const lowNow=p=>p.tgtAlt===0&&p.alt<=.05;
 // the circle a plane is in, low and facing the runway: where it may land
 const landGate=p=>{const k=inGate(p);return k&&facing(p,k)&&lowNow(p)?k:null};
 const nearestGate=p=>Object.keys(GATES).sort((a,b)=>Math.hypot(GATES[a].x-p.x,AY-p.y)-Math.hypot(GATES[b].x-p.x,AY-p.y))[0];
-function startFinal(p,k){p.state='final';p.dir=GATES[k].dir;p.gate=null;p.cleared=false;p.inGate=null;p.tgtSpd=12}
+// the compass word that points a plane at the nearest landing circle
+const toGate=p=>{const g=GATES[nearestGate(p)];return compass(g.x-p.x,AY-p.y)};
+function startFinal(p,k){p.state='final';p.dir=GATES[k].dir;p.cleared=false;p.inGate=null;p.tgtSpd=10}
 
 function step(dt){
   S.t+=dt;
@@ -236,14 +237,12 @@ function step(dt){
     if(p.state==='ready')continue;
     if(p.state==='roll'){p.spd=Math.min(SPEED.normal,p.spd+8*dt);if(p.rdir*(p.x-AX)>RW)p.state='fly'}
     else{
-      // turn runway: straight at the circle's centre, and straight on through it
-      if(p.gate){const g=GATES[p.gate];p.tgt=Math.atan2(AY-p.y,g.x-p.x);if(inGate(p)===p.gate)p.gate=null}
       // only a plane cleared to land turns inside a circle: toward the runway end, landing once it faces it, low.
       // Leaving that circle without landing is a go-around.
       if(p.cleared&&p.state==='fly'){const k=inGate(p);
-        if(k){p.gate=null;p.inGate=k;p.tgt=Math.atan2(AY-p.y,AX-GATES[k].dir*RW-p.x);if(landGate(p))startFinal(p,k)}
+        if(k){p.inGate=k;p.tgt=Math.atan2(AY-p.y,AX-GATES[k].dir*RW-p.x);if(landGate(p))startFinal(p,k)}
         else if(p.inGate){p.cleared=false;p.inGate=null;
-          say(`!${p.name} went around: ${p.alt>.05?'it was not low yet':'it could not line up in the circle'}. descend low, turn runway, land`)}}
+          say(`!${p.name} went around: ${p.alt>.05?'it was not low yet':'it could not line up in the circle'}. descend low, land, and fly it into a circle`)}}
       // final: from the circle onto the runway end, touching down and rolling to the middle
       if(p.state==='final'){p.tgt=Math.atan2(AY-p.y,p.dir*60);p.alt=Math.max(0,p.alt-CLIMB*dt);
         if(p.dir*(p.x-AX)>=0){handled(p,'#7ee0a8',`${p.name} landed`);continue}}
@@ -281,7 +280,7 @@ function actions(p){
   return['turn','ascend','descend','hold',...(p.kind==='arr'?['land']:[]),'slow','fast',...(p.cleared?['abort']:[])]}
 function argsFor(p,act){
   if(act==='takeoff')return['east','west'];
-  if(act==='turn')return p.kind==='arr'?DIRS:DIRS.filter(d=>d!=='runway');
+  if(act==='turn')return DIRS;
   if(act==='ascend')return LV.filter((_,i)=>i>p.tgtAlt);
   if(act==='descend')return LV.filter((_,i)=>i<p.tgtAlt);
   return[]}
@@ -294,9 +293,7 @@ function options(words){
   return[]}
 function setLevel(p,lv){p.altFrom=p.alt;p.tgtAlt=lv}
 function steer(p,d){
-  p.gate=null;
-  if(d==='runway')p.gate=nearestGate(p);
-  else if(d in HEADINGS)p.tgt=rad(HEADINGS[d]);
+  if(d in HEADINGS)p.tgt=rad(HEADINGS[d]);
   else p.tgt=wrap((p.state==='hold'?p.hdg:p.tgt)+rad(RELATIVE[d]));
   if(p.state==='hold')p.state='fly'}
 function exec(words){
@@ -309,24 +306,24 @@ function exec(words){
   if(w0==='demo'){startDemo();return''}
   const p=plane(w0),n=p.name;
   if(!act)return`!${n} what? ${actions(p).join(' · ')}`;
-  if(act==='turn'){if(!arg)return`!${n} turn where? e.g. ${n} turn n, ${n} turn l${p.kind==='arr'?`, ${n} turn runway`:''}`;
-    steer(p,arg);return arg==='runway'?`${n}: flying straight to the ${p.gate} landing circle${p.cleared?', it turns onto the runway there':''}`:`${n}: turning ${arg in RELATIVE?`${Math.abs(RELATIVE[arg])}° ${RELATIVE[arg]<0?'left':'right'}`:U(arg)}${p.state==='roll'?' once airborne':''}`}
+  if(act==='turn'){if(!arg)return`!${n} turn where? e.g. ${n} turn n, ${n} turn l`;
+    steer(p,arg);return`${n}: turning ${arg in RELATIVE?`${Math.abs(RELATIVE[arg])}° ${RELATIVE[arg]<0?'left':'right'}`:U(arg)}${p.state==='roll'?' once airborne':''}`}
   if(act==='ascend'||act==='descend'){const up=act==='ascend',lv=arg?LV.indexOf(arg):up?2:0;
     if(up?lv<=p.tgtAlt:lv>=p.tgtAlt)return`!${n} is already ${LV[p.tgtAlt]}`;
     setLevel(p,lv);return`${n}: ${up?'climbing':'descending'} to ${LV[lv]} (takes a while)`}
-  if(act==='hold'){p.state='hold';p.gate=null;return`${n}: circling until you turn it`}
+  if(act==='hold'){p.state='hold';return`${n}: circling until you turn it`}
   if(act==='land'){
     // always accepted: a clearance. It turns onto the runway in the next landing circle it flies into.
     if(p.cleared)return`!${n} is already cleared to land`;
     p.cleared=true;const u=runwayUser();
-    return`${n}: cleared to land, it turns onto the runway in the ${p.gate?p.gate+' ':'next '}landing circle${p.tgtAlt>0?' · descend low first or it goes around':''}${u?` (careful: ${u.name} is still on the runway)`:''}`}
+    return`${n}: cleared to land, it turns onto the runway in the next landing circle${p.tgtAlt>0?' · descend low first or it goes around':''}${u?` (careful: ${u.name} is still on the runway)`:''}`}
   if(act==='takeoff'){if(!arg)return`!${n} takeoff east or west? (${n} wants to leave ${U(p.dest)})`;
     const u=runwayUser();if(u)return`!the runway is busy: wait until ${u.name} is off it`;
     // rolls from the far end of the runway, then flies straight on, climbing to mid, until you turn it
     p.rdir=arg==='east'?1:-1;p.state='roll';p.x=AX-p.rdir*RW;p.y=AY;p.hdg=p.tgt=p.rdir>0?0:Math.PI;p.spd=0;setLevel(p,1);
     return`${n}: taking off ${U(arg)}, climbing to mid · then turn it ${U(p.dest)}`}
   if(act==='slow'||act==='fast'){p.tgtSpd=SPEED[act];return`${n}: ${act}`}
-  if(act==='abort'){p.state='fly';p.tgt=p.hdg;p.gate=null;p.cleared=false;p.inGate=null;setLevel(p,1);p.tgtSpd=SPEED.normal;return`${n}: landing cancelled, climbing to mid`}}
+  if(act==='abort'){p.state='fly';p.tgt=p.hdg;p.cleared=false;p.inGate=null;setLevel(p,1);p.tgtSpd=SPEED.normal;return`${n}: landing cancelled, climbing to mid`}}
 function togglePause(){if(!S.over)S.paused=!S.paused}
 function onEmptyEnter(){if(S.over&&!S.demo)startLevel(S.result==='won'?S.lvl+1:S.lvl)}
 
@@ -349,8 +346,8 @@ function hintFor(n){
   if(p.tgtAlt>0)return`${p.name} must come down → ${p.name} descend low`;
   if(!p.cleared)return`${p.name} flies straight through a landing circle until cleared → ${p.name} land`;
   if(p.inGate)return`${p.name} is turning onto the runway in the ${p.inGate} circle${p.alt>.05?`, still descending ${bar(p)}`:''}`;
-  if(p.gate)return`${p.name} is cleared, flying to the ${p.gate} circle${p.alt>.05?`, descending ${bar(p)}`:''}`;
-  return`${p.name} is cleared: send it to a landing circle → ${p.name} turn runway`}
+  const d=toGate(p);if(headingFor(p,d))return`${p.name} is cleared, heading for the ${nearestGate(p)} circle${p.alt>.05?`, descending ${bar(p)}`:''}`;
+  return`${p.name} is cleared: fly it into a landing circle → ${p.name} turn ${U(d)}`}
 
 /* ---------- a good controller: suggests moves in early levels, and plays the demo ---------- */
 // where a plane will be in t seconds if nothing changes; a circling plane is its circle's centre, widened by its radius
@@ -358,12 +355,12 @@ const HOLD_R=SPEED.normal/(TURN*.7);
 function future(p,t,alt=p.tgtAlt){
   const lvl=p.alt+Math.sign(alt-p.alt)*Math.min(Math.abs(alt-p.alt),CLIMB*t);
   if(p.state==='hold')return[p.x-HOLD_R*Math.sin(p.hdg),p.y+HOLD_R*Math.cos(p.hdg),lvl,HOLD_R];
-  // landing: to the gate on the extended centreline, then along it; taking off: east down the runway, then out
-  const legs=p.state==='final'?[[AX-p.dir*RW,AY],[AX,AY]]:p.state==='roll'?[[AX+p.rdir*RW,AY]]:p.gate?[[GATES[p.gate].x,AY],[AX,AY]]:[];
+  // landing: to the runway end, then along it; taking off: down the runway, then out
+  const legs=p.state==='final'?[[AX-p.dir*RW,AY],[AX,AY]]:p.state==='roll'?[[AX+p.rdir*RW,AY]]:[];
   const v=Math.max(p.spd,SPEED.normal*.8);let x=p.x,y=p.y,go=v*t,lv=lvl;
   for(const[lx,ly]of legs){const d=Math.hypot(lx-x,ly-y);if(go<=d)return[x+(lx-x)*go/d,y+(ly-y)*go/d,p.state==='roll'?0:lvl,0];go-=d;x=lx;y=ly}
   if(p.state==='roll')lv=Math.min(alt,CLIMB*go/v);          // climbing only starts at the end of the runway
-  if(p.state==='final'||p.gate)return[AX,AY,lv,0];
+  if(p.state==='final')return[AX,AY,lv,0];
   return[x+Math.cos(p.tgt)*go,y+Math.sin(p.tgt)*go,lv,0]}
 function meets(a,b,altA=a.tgtAlt,altB=b.tgtAlt){
   for(let t=0;t<=20;t+=.5){const[ax,ay,al,ar]=future(a,t,altA),[bx,by,bl,br]=future(b,t,altB);
@@ -380,7 +377,7 @@ function decide(peek){
   const runwayBusy=!!runwayUser(),landing=S.planes.some(p=>p.state==='final'||p.cleared);
   const once=(p,k,sec)=>{const key=p.name+k;if((D.cool.get(key)||0)>S.t)return false;if(!peek)D.cool.set(key,S.t+sec);return true};
   // the one arrival allowed down to low: whoever is low already, else the closest
-  const arrs=S.planes.filter(p=>p.kind==='arr'&&free(p)&&!p.cleared).sort((x,y)=>(!!y.gate-!!x.gate)||(x.tgtAlt-y.tgtAlt)||(fromAirport(x)-fromAirport(y)));
+  const arrs=S.planes.filter(p=>p.kind==='arr'&&free(p)&&!p.cleared).sort((x,y)=>(x.tgtAlt-y.tgtAlt)||(fromAirport(x)-fromAirport(y)));
   const next=arrs[0];
   // compare with the true bearing, and allow more than the 22.5° a compass word can be off, or turns flip-flop
   const pointing=p=>p.state==='hold'||Math.abs(wrap(Math.atan2(AY-p.y,AX-p.x)-p.tgt))<=rad(35);
@@ -398,7 +395,7 @@ function decide(peek){
         return[[p.name,'slow'],`${p.name} would get too close to ${o.name}, but it is too near the edge to circle. Slow it down instead.`]}}
   // an arrival heading out near the edge of the circle is turned back before it leaves your area
   for(const p of arrs){const out=Math.cos(p.tgt-Math.atan2(p.y-AY,p.x-AX));
-    if(p.state==='fly'&&!p.gate&&fromAirport(p)>RADAR-70&&out>0&&once(p,'edge',5))
+    if(p.state==='fly'&&!p.cleared&&fromAirport(p)>RADAR-70&&out>0&&once(p,'edge',5))
       return[[p.name,'turn',toward(p)],`${p.name} is heading out of your area. Turn it ${U(toward(p))}, back toward the airport.`]}
   // 2. the next arrival comes down and lands
   if(next){const p=next;
@@ -410,9 +407,9 @@ function decide(peek){
       return[levelCmd(p,0),`${p.name} is next to land. Bring it down to low first: that takes a while.`];
     if(!landing&&p.tgtAlt===0&&once(p,'land',3))
       return[[p.name,'land'],`${p.name} is next and on its way down. Clear it to land: only a cleared plane turns onto the runway in a landing circle.`]}
-  // a cleared arrival is sent to the nearest landing circle
-  const cl=S.planes.find(p=>p.kind==='arr'&&p.cleared&&(p.state==='fly'||p.state==='hold')&&!p.gate&&!p.inGate);
-  if(cl&&once(cl,'rwy',6))return[[cl.name,'turn','runway'],`${cl.name} is cleared. Send it straight to the nearest landing circle: it turns onto the runway there.`];
+  // a cleared arrival is pointed at the nearest landing circle, re-aimed as it closes in
+  const cl=S.planes.find(p=>p.kind==='arr'&&p.cleared&&(p.state==='fly'||p.state==='hold')&&!p.inGate&&!headingFor(p,toGate(p)));
+  if(cl&&once(cl,'aimgate',3))return[[cl.name,'turn',toGate(cl)],`${cl.name} is cleared. Point it at the ${nearestGate(cl)} landing circle: inside, it turns onto the runway by itself.`];
   // 3. everyone else waits, circling near the airport on a free level
   for(const p of arrs){
     if(p!==next&&p.tgtSpd===SPEED.slow&&fromAirport(p)<RADAR-2*HOLD_R-25&&once(p,'spd',6))return[[p.name,'fast'],`${p.name} is clear of the edge: back to normal speed.`];
@@ -422,7 +419,7 @@ function decide(peek){
     if(p.state==='fly'&&fromAirport(p)>=RING-40&&!pointing(p)&&once(p,'aim',6))return[[p.name,'turn',toward(p)],`${p.name} is not pointing at the airport. Turn it ${U(toward(p))}.`]}
   // 4. departures: take off down the runway end closest to their direction, then turn them that way
   for(const p of S.planes.filter(p=>p.kind==='dep')){const way=runwayFor(p.dest);
-    if(p.state==='ready'&&!runwayBusy&&!landing&&!(next&&next.gate)&&air.every(o=>!meets(climbOut(p,way),o))&&once(p,'go',3))
+    if(p.state==='ready'&&!runwayBusy&&!landing&&air.every(o=>!meets(climbOut(p,way),o))&&once(p,'go',3))
       return[[p.name,'takeoff',way],`The runway is free. ${p.name} wants to leave ${U(p.dest)}: take off ${U(way)}, the runway direction closest to it.`];
     if((free(p)||p.state==='roll')&&!headingFor(p,p.dest)&&once(p,'dir',4))
       return[[p.name,'turn',p.dest],`${p.name} is on its way out. Turn it ${U(p.dest)}, so it leaves the circle on the ${U(p.dest)} side.`]}
@@ -517,7 +514,7 @@ function draw(){
     cx.save();cx.translate(p.x,p.y);cx.rotate(p.hdg+Math.PI/2);cx.scale(.055+lvl*.01,.055+lvl*.01);glow(col,10);cx.fillStyle=col;cx.fill(PLANE);cx.restore();glow('',0);
     // data block on a leader line; a level change fills the bar under it
     const moving=Math.abs(p.tgtAlt-p.alt)>.01,lvTxt=moving?`${ALTCH[lvl]}→${ALTCH[p.tgtAlt]}`:ALTCH[lvl];
-    let tag=p.state==='hold'?' ⟳':p.state==='final'?' landing':p.state==='roll'?' taking off':p.cleared?' · cleared':p.gate?' → runway':'';
+    let tag=p.state==='hold'?' ⟳':p.state==='final'?' landing':p.state==='roll'?' taking off':p.cleared?' · cleared':'';
     if(p.kind==='arr'&&p.state!=='final'&&!p.cleared&&landGate(p))tag+=u?' · wait':' · can land';
     const txt=`${p.name} ${lvTxt}${tag}${p.kind==='dep'?' → '+U(p.dest):''}`;font(12.5,hot?600:500);
     const lx=p.x+18,ly=p.y-20,tw=cx.measureText(txt).width;
