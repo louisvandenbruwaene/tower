@@ -12,3 +12,12 @@ The game is deliberately very simplified: three levels (low / mid / high), eight
 - **Handoffs**: neighbouring sectors that only accept planes at a given level and direction.
 - **Emergencies**: low fuel, a medical case, a go-around with priority.
 - **Radio phrasing**: optional real ATC phrases ("heron, descend and maintain four thousand").
+
+## Roguelike progression
+
+Each shift ends when you lose (too many strikes). You keep the tokens earned during it and spend them on permanent upgrades before the next shift:
+
+- **More height levels**: a fourth and fifth level, so there is more room to stack planes apart and fewer crashes.
+- **More runways**: a second runway (parallel or crossing) with its own landing circles.
+- **Navigation system**: departures turn toward their destination by themselves after takeoff, and arrivals turn toward the nearest landing circle by themselves.
+- **etc.**: other stats bought the same way.
