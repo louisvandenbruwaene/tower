@@ -486,10 +486,10 @@ function draw(){
   const a=S.t*1.1,sw=cx.createConicGradient(a-1.2,AX,AY);sw.addColorStop(0,'rgba(126,224,168,0)');sw.addColorStop(1.2/(2*Math.PI),'rgba(126,224,168,.16)');sw.addColorStop(1.2/(2*Math.PI)+1e-4,'rgba(126,224,168,0)');
   cx.fillStyle=sw;cx.beginPath();cx.moveTo(AX,AY);cx.arc(AX,AY,RADAR,a-1.2,a);cx.closePath();cx.fill();
   cx.strokeStyle='rgba(126,224,168,.35)';ray(a,0,RADAR);
-  // extended centreline and the two landing circles: bright when a plane in it may land now, chevrons for the way to face
+  // extended centreline and the two landing circles: bright while an arrival is inside, chevrons for the way to face
   cx.setLineDash([3,7]);cx.strokeStyle='rgba(126,224,168,.2)';cx.beginPath();cx.moveTo(AX-RW-190,AY);cx.lineTo(AX+RW+190,AY);cx.stroke();cx.setLineDash([]);
   const u=runwayUser();font(11);
-  for(const[k,g]of Object.entries(GATES)){const ready=S.planes.some(p=>p.kind==='arr'&&p.state!=='final'&&landGate(p)===k),c=ready?'#7ee0a8':'#2f6b4a';
+  for(const[k,g]of Object.entries(GATES)){const ready=S.planes.some(p=>p.kind==='arr'&&inGate(p)===k),c=ready?'#7ee0a8':'#2f6b4a';
     cx.fillStyle=ready?'rgba(126,224,168,.14)':'rgba(126,224,168,.04)';cx.beginPath();cx.arc(g.x,AY,GATE_R,0,7);cx.fill();
     if(ready)glow('#7ee0a8',12);cx.strokeStyle=c;cx.lineWidth=ready?2:1.2;cx.setLineDash(ready?[]:[6,5]);cx.stroke();cx.setLineDash([]);glow('',0);
     cx.lineWidth=2;cx.strokeStyle=c;for(const o of[-12,0,12]){cx.globalAlpha=ready?.5+.5*((S.t*2+o/12*g.dir)%1.5>.75):.8;
@@ -511,8 +511,10 @@ function draw(){
     if(p.state==='fly'&&Math.abs(wrap(p.tgt-p.hdg))>.05){
       cx.setLineDash([3,4]);cx.strokeStyle='rgba(255,255,255,.4)';cx.beginPath();cx.moveTo(p.x,p.y);cx.lineTo(p.x+Math.cos(p.tgt)*45,p.y+Math.sin(p.tgt)*45);cx.stroke();cx.setLineDash([])}
     if(hot){cx.strokeStyle='#fff';cx.lineWidth=1.5;cx.beginPath();cx.arc(p.x,p.y,12+Math.sin(S.t*6)*1.5,0,7);cx.stroke();cx.lineWidth=1}
+    // heading line out of the nose, as on a real radar, so it is never unclear which way a plane points
+    cx.strokeStyle=col;cx.lineWidth=1.5;cx.globalAlpha=.8;cx.beginPath();cx.moveTo(p.x+Math.cos(p.hdg)*10,p.y+Math.sin(p.hdg)*10);cx.lineTo(p.x+Math.cos(p.hdg)*24,p.y+Math.sin(p.hdg)*24);cx.stroke();cx.globalAlpha=1;cx.lineWidth=1;
     // a small glowing airplane seen from above, a little bigger the higher it flies
-    cx.save();cx.translate(p.x,p.y);cx.rotate(p.hdg+Math.PI/2);cx.scale(.055+lvl*.01,.055+lvl*.01);glow(col,10);cx.fillStyle=col;cx.fill(PLANE);cx.restore();glow('',0);
+    cx.save();cx.translate(p.x,p.y);cx.rotate(p.hdg+Math.PI/2);cx.scale(.065+lvl*.01,.065+lvl*.01);glow(col,10);cx.fillStyle=col;cx.fill(PLANE);cx.restore();glow('',0);
     // data block on a leader line; a level change fills the bar under it
     const moving=Math.abs(p.tgtAlt-p.alt)>.01,lvTxt=moving?`${ALTCH[lvl]}→${ALTCH[p.tgtAlt]}`:ALTCH[lvl];
     let tag=p.state==='hold'?' ⟳':p.state==='final'?' landing':p.state==='roll'?' taking off':p.cleared?' · cleared':'';
