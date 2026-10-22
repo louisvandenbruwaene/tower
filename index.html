@@ -180,7 +180,7 @@ const DIRS=[...Object.keys(HEADINGS),...Object.keys(RELATIVE)];
 // which way down the runway suits a departure: the end that points closest to where it wants to go
 const runwayFor=d=>Math.cos(rad(HEADINGS[d]))<-.01?'west':'east';
 const LV=['low','mid','high'],ALTCH='LMH';
-const NAMES='heron wren kite swift raven egret finch gull ibis jay lark owl puffin quail robin stork tern crane dove magpie osprey petrel snipe teal falcon grebe hawk vulture plover condor'.split(' ');
+const NAMES='heron wren kite swift raven egret finch gull ibis jay lark owl puffin quail robin stork tern crane dove magpie osprey petrel snipe teal falcon grebe hawk vulture plover condor albatross bittern nightjar'.split(' ');
 const SEP=38,CRASH=10,TURN=55*Math.PI/180,CLIMB=2/(2/.22+5),SPEED={slow:12,normal:17,fast:22};
 // early levels run the whole world in slow motion and suggest every move (coach)
 const LEVELS=[
@@ -201,11 +201,12 @@ function startLevel(n,demo=false){n=Math.max(0,Math.min(LEVELS.length-1,n));if(!
   say(L.endless||demo?'':`level ${n+1}: ${L.name}`)}
 startLevel(+store('tower-level')||0);
 
-function freshName(){const used=S.planes.map(p=>p.name.slice(0,2));
-  const pool=NAMES.filter(n=>!used.includes(n.slice(0,2))&&!S.planes.some(p=>p.name===n));return pool[Math.random()*pool.length|0]||'nomad'}
-function spawnDep(dest){S.planes.push({name:freshName(),kind:'dep',dest,state:'ready',x:AX-RW,y:AY,hdg:0,tgt:0,fix:null,alt:0,tgtAlt:0,altFrom:0,spd:0,tgtSpd:SPEED.normal,trail:[],tt:0})}
+// no two planes ever share a first letter, so one letter always picks the plane; null when every letter is in use
+function freshName(){const used=S.planes.map(p=>p.name[0]);
+  const pool=NAMES.filter(n=>!used.includes(n[0]));return pool.length?pool[Math.random()*pool.length|0]:null}
+function spawnDep(dest){const name=freshName();if(name)S.planes.push({name,kind:'dep',dest,state:'ready',x:AX-RW,y:AY,hdg:0,tgt:0,fix:null,alt:0,tgtAlt:0,altFrom:0,spd:0,tgtSpd:SPEED.normal,trail:[],tt:0})}
 function spawnArr(bearing){const b=rad(bearing),x=AX+Math.cos(b)*(RADAR-6),y=AY+Math.sin(b)*(RADAR-6),h=wrap(b+Math.PI+rad((Math.random()-.5)*40));
-  S.planes.push({name:freshName(),kind:'arr',state:'fly',x,y,hdg:h,tgt:h,fix:null,alt:2,tgtAlt:2,altFrom:2,spd:SPEED.normal,tgtSpd:SPEED.normal,trail:[],tt:0})}
+  const name=freshName();if(name)S.planes.push({name,kind:'arr',state:'fly',x,y,hdg:h,tgt:h,fix:null,alt:2,tgtAlt:2,altFrom:2,spd:SPEED.normal,tgtSpd:SPEED.normal,trail:[],tt:0})}
 function spawnKind(kind){
   if(kind==='dep')return spawnDep(Object.keys(HEADINGS)[Math.random()*8|0]);
   for(let k=0;k<40;k++){const b=Math.random()*360,x=AX+Math.cos(rad(b))*RADAR,y=AY+Math.sin(rad(b))*RADAR;
@@ -230,8 +231,8 @@ function step(dt){
   S.t+=dt;
   if(S.script){while(S.script.length&&S.script[0][0]<=S.t){const[,k,a,b]=S.script.shift();k==='arr'?spawnArr(a):spawnDep(a)}
     if(!S.script.length){S.script=null;S.next=6}}
-  else if(S.L.endless){if((S.next-=dt)<=0){spawnRandom();S.next=Math.max(11,26-S.t/20)*(.75+Math.random()*.5)}}
-  else if(S.queue.length){if(S.planes.length<S.L.max&&(S.next-=dt)<=0){spawnKind(S.queue.shift());S.next=S.L.gap}}
+  else if(S.L.endless){if((S.next-=dt)<=0&&freshName()){spawnRandom();S.next=Math.max(11,26-S.t/20)*(.75+Math.random()*.5)}}
+  else if(S.queue.length){if(S.planes.length<S.L.max&&(S.next-=dt)<=0&&freshName()){spawnKind(S.queue.shift());S.next=S.L.gap}}
   else if(!S.planes.length){S.over=true;S.result='won';unlocked=Math.max(unlocked,S.lvl+1);store('tower-unlocked',unlocked);return}
   for(const p of [...S.planes]){
     if(p.state==='ready')continue;
