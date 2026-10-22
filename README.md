@@ -1,21 +1,21 @@
 # Tower Power
 
-Air traffic control on a radar, played only by typing words. Arrivals (blue) come in high and must be brought down low into one of the two landing circles off the runway ends, facing the runway; they then land toward the middle. Departures (gold) take off, climb to high and fly to their exit point by themselves. Two planes on the same level getting too close cost a strike. Three strikes and you replay the level.
+Air traffic control, very realistic in spirit but highly simplified, played only by typing words. Your area is the radar circle. Arrivals (blue) come in high; bring them down low into one of the two landing circles off the runway ends, facing the runway, and they land toward the middle. Departures (gold) each want to leave in one of 8 directions: take them off east or west down the runway, then turn them so they leave the circle through their own slice. Same level and too close, a departure leaving through the wrong slice, or an arrival leaving your area: strike. Three strikes and you replay the level.
 
 Every command is `plane action [direction]`, in any capitals:
 
 ```
 heron turn south          # compass direction: north … northwest
 heron turn softleft       # 45°; hardleft / hardright = 90°
-heron turn maple          # straight to an edge point
-heron descend low         # climb / descend, to low · mid · high (no word = one level)
-heron hold                # circle on the spot
 heron turn runway         # to the nearest landing circle, lining up with the runway
+heron descend             # down to low (descend mid stops at mid)
+heron ascend              # up to high (ascend mid stops at mid)
+heron hold                # circle on the spot
 heron land                # low, in a landing circle, facing the runway (or cleared on the way there)
-wren takeoff              # or: wren takeoff north
+wren takeoff east         # east or west; it climbs to mid and flies straight on until you turn it
 ```
 
-A unique start of a word is enough, faded text in the prompt is a suggestion (→ takes it all, Tab one word), and a typo gets "did you mean …? yes / no". Seven levels plus endless: the first four run in slow motion and suggest every move with the reason, later ones speed up and leave it to you. Waiting is shown on the radar: a bar for level changes, a dashed line for turns, an amber runway while it is busy. `demo` shows a built-in controller playing (it types into the real prompt and says why). One self-contained HTML file, no build step: open [`index.html`](index.html).
+A unique start of a word is enough, faded text in the prompt is a suggestion (→ takes it all, Tab one word), and a typo gets "did you mean …? yes / no". Seven levels plus endless: the first four run in slow motion and suggest every move with the reason, later ones speed up and leave it to you. Waiting is shown on the radar: a bar for level changes, a dashed line for turns, an amber runway while it is busy. `demo` shows a built-in controller playing (it types into the real prompt and says why). Later realism (real heights, aircraft types, wind, weather, schedules) is listed in [IDEAS.md](IDEAS.md). One self-contained HTML file, no build step: open [`index.html`](index.html).
 
 ## Play on this Mac
 
