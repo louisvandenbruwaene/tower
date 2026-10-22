@@ -211,6 +211,8 @@ function spawnKind(kind){
   if(kind==='dep')return spawnDep(Object.keys(HEADINGS)[Math.random()*8|0]);
   for(let k=0;k<40;k++){const b=Math.random()*360,x=AX+Math.cos(rad(b))*RADAR,y=AY+Math.sin(rad(b))*RADAR;
     if(!S.planes.some(p=>p.state!=='ready'&&Math.hypot(p.x-x,p.y-y)<180)||k===39)return spawnArr(b)}}
+// traffic starts at 70% of the full rate and builds up to it over the first four minutes
+const traffic=()=>Math.min(1,.7+.3*S.t/240);
 function spawnRandom(){spawnKind(Math.random()<.38&&S.planes.filter(p=>p.state==='ready').length<3?'dep':'arr')}
 function strike(msg,x,y){if(S.over)return;S.strikes++;say('!'+msg);S.fx.push({x,y,t:0,c:'#ff6b5e',r:40});
   if(S.strikes>=3){S.over=true;S.result='lost';if(S.L.endless&&!S.demo&&S.done>best){best=S.done;store('tower-best',best)}}}
@@ -231,8 +233,8 @@ function step(dt){
   S.t+=dt;
   if(S.script){while(S.script.length&&S.script[0][0]<=S.t){const[,k,a,b]=S.script.shift();k==='arr'?spawnArr(a):spawnDep(a)}
     if(!S.script.length){S.script=null;S.next=6}}
-  else if(S.L.endless){if((S.next-=dt)<=0&&freshName()){spawnRandom();S.next=Math.max(11,26-S.t/20)*(.75+Math.random()*.5)}}
-  else if(S.queue.length){if(S.planes.length<S.L.max&&(S.next-=dt)<=0&&freshName()){spawnKind(S.queue.shift());S.next=S.L.gap}}
+  else if(S.L.endless){if((S.next-=dt)<=0&&freshName()){spawnRandom();S.next=Math.max(11,26-S.t/20)*(.75+Math.random()*.5)/traffic()}}
+  else if(S.queue.length){if(S.planes.length<S.L.max&&(S.next-=dt)<=0&&freshName()){spawnKind(S.queue.shift());S.next=S.L.gap/traffic()}}
   else if(!S.planes.length){S.over=true;S.result='won';unlocked=Math.max(unlocked,S.lvl+1);store('tower-unlocked',unlocked);return}
   for(const p of [...S.planes]){
     if(p.state==='ready')continue;
