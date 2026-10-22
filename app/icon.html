@@ -1,29 +1,45 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><title>Tower Power icon</title>
-<style>html,body{margin:0;background:transparent}svg{display:block;width:1024px;height:1024px}</style></head>
-<body><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-<defs>
-  <clipPath id="c"><rect x="100" y="100" width="824" height="824" rx="185"/></clipPath>
-  <radialGradient id="bg" cx="512" cy="512" r="560" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#0f3322"/><stop offset="1" stop-color="#03100a"/></radialGradient>
-  <linearGradient id="sweep" x1="512" y1="512" x2="900" y2="250" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#7ee0a8" stop-opacity=".05"/><stop offset="1" stop-color="#7ee0a8" stop-opacity=".38"/></linearGradient>
-  <linearGradient id="plane" x1="0" y1="-170" x2="0" y2="150" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#e9fbff"/><stop offset="1" stop-color="#8fd8ff"/></linearGradient>
-  <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="14" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-  <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".12"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/></linearGradient>
-</defs>
-<g clip-path="url(#c)">
-  <rect width="1024" height="1024" fill="url(#bg)"/>
-  <!-- range rings and cross hairs -->
-  <g fill="none" stroke="#1f5a3c" stroke-width="6"><circle cx="512" cy="512" r="130"/><circle cx="512" cy="512" r="260"/><circle cx="512" cy="512" r="390"/></g>
-  <g stroke="#173f2b" stroke-width="4"><path d="M512 100V924M100 512H924"/></g>
-  <!-- sweep wedge with its bright leading edge -->
-  <path d="M512 512 L 960 300 A 500 500 0 0 0 820 120 Z" fill="url(#sweep)"/>
-  <path d="M512 512 L 960 300" stroke="#9af0bf" stroke-width="6" opacity=".7"/>
-  <!-- trail of earlier radar returns -->
-  <g fill="#bfe9d0"><circle cx="300" cy="760" r="9" opacity=".2"/><circle cx="342" cy="716" r="10" opacity=".3"/><circle cx="384" cy="672" r="11" opacity=".42"/><circle cx="426" cy="628" r="12" opacity=".55"/></g>
-  <!-- the airplane, top-down, heading northeast -->
-  <g transform="translate(560 470) rotate(45) scale(1.15)" filter="url(#glow)">
-    <path fill="url(#plane)" d="
-      M0 -175 C 16 -175 24 -150 24 -120 L 24 -30 L 190 40 L 190 70 L 24 35 L 20 100 L 78 135 L 78 157 L 14 145 L 0 160 L -14 145 L -78 157 L -78 135 L -20 100 L -24 35 L -190 70 L -190 40 L -24 -30 L -24 -120 C -24 -150 -16 -175 0 -175 Z"/>
-  </g>
-  <rect width="1024" height="1024" fill="url(#shine)"/>
-</g></svg></body></html>
+<style>html,body{margin:0;background:transparent}canvas{display:block;width:1024px;height:1024px}</style></head>
+<body><canvas id="c" width="1024" height="1024"></canvas><script>
+// the game's radar in miniature: a departure climbing out of the runway through its gold slice, under the sweep
+const cx=document.getElementById('c').getContext('2d'),C=512,R=330,rad=d=>d*Math.PI/180;
+const ray=(b,r0,r1)=>{cx.beginPath();cx.moveTo(C+Math.cos(b)*r0,C+Math.sin(b)*r0);cx.lineTo(C+Math.cos(b)*r1,C+Math.sin(b)*r1);cx.stroke()};
+const tile=()=>{cx.beginPath();cx.roundRect(100,100,824,824,185)};
+// tile with a soft drop shadow
+cx.save();cx.shadowColor='rgba(0,0,0,.45)';cx.shadowBlur=36;cx.shadowOffsetY=14;tile();cx.fillStyle='#04100a';cx.fill();cx.restore();
+cx.save();tile();cx.clip();
+let g=cx.createLinearGradient(0,100,0,924);g.addColorStop(0,'#0f2a1d');g.addColorStop(1,'#030a06');cx.fillStyle=g;cx.fillRect(0,0,1024,1024);
+// radar disc
+g=cx.createRadialGradient(C,C,0,C,C,R);g.addColorStop(0,'#123a27');g.addColorStop(1,'#061610');cx.fillStyle=g;cx.beginPath();cx.arc(C,C,R,0,7);cx.fill();
+cx.strokeStyle='rgba(126,224,168,.13)';cx.lineWidth=4;for(const r of[110,220]){cx.beginPath();cx.arc(C,C,r,0,7);cx.stroke()}
+cx.setLineDash([6,16]);cx.lineWidth=3;for(let k=0;k<8;k++)ray(rad(22.5+45*k),60,R);cx.setLineDash([]);
+for(let d=0;d<360;d+=7.5){const border=d%45===22.5;cx.strokeStyle=border?'rgba(126,224,168,.6)':'rgba(126,224,168,.25)';cx.lineWidth=border?5:3;ray(rad(d),R-(border?30:d%45===0?18:9),R)}
+// sweep: fading wedge behind a bright leading edge
+const a=rad(-112),span=1.5,sw=cx.createConicGradient(a-span,C,C);
+sw.addColorStop(0,'rgba(126,224,168,0)');sw.addColorStop(span/(2*Math.PI),'rgba(126,224,168,.32)');sw.addColorStop(span/(2*Math.PI)+1e-4,'rgba(126,224,168,0)');
+cx.fillStyle=sw;cx.beginPath();cx.moveTo(C,C);cx.arc(C,C,R,a-span,a);cx.closePath();cx.fill();
+cx.save();cx.shadowColor='#7ee0a8';cx.shadowBlur=20;cx.strokeStyle='rgba(170,245,200,.85)';cx.lineWidth=5;ray(a,0,R);cx.restore();
+// the gold slice the departure must leave through, and the rim
+cx.save();cx.shadowColor='#f2c94c';cx.shadowBlur=26;cx.strokeStyle='#f2c94c';cx.lineWidth=14;cx.lineCap='round';
+cx.beginPath();cx.arc(C,C,R+2,rad(-45-20),rad(-45+20));cx.stroke();cx.restore();
+cx.save();cx.shadowColor='#7ee0a8';cx.shadowBlur=22;cx.strokeStyle='#4fae7c';cx.lineWidth=6;cx.beginPath();cx.arc(C,C,R,rad(-25),rad(-65)+2*Math.PI);cx.stroke();cx.restore();
+// runway: asphalt, threshold bars, centre stripes, edge lights
+const RW=125,rx=C-60,ry=C+100;
+cx.fillStyle='#1c2722';cx.fillRect(rx-RW-10,ry-20,RW*2+20,40);
+cx.fillStyle='rgba(235,245,240,.85)';for(const e of[-1,1])for(let i=0;i<4;i++)cx.fillRect(rx+e*(RW-6)-(e>0?22:0),ry-15+i*8.6,22,4.5);
+cx.setLineDash([22,16]);cx.strokeStyle='rgba(235,245,240,.55)';cx.lineWidth=4;cx.beginPath();cx.moveTo(rx-RW+40,ry);cx.lineTo(rx+RW-40,ry);cx.stroke();cx.setLineDash([]);
+cx.save();cx.shadowColor='#7ee0a8';cx.shadowBlur=14;cx.fillStyle='#aaf5c8';
+for(let x=rx-RW;x<=rx+RW;x+=30)for(const y of[ry-26,ry+26]){cx.beginPath();cx.arc(x,y,4,0,7);cx.fill()}cx.restore();
+// climb-out trail: off the runway's east end, curving northeast toward the plane
+const px=C+Math.cos(rad(-45))*215,py=C+Math.sin(rad(-45))*215,q=t=>[(1-t)**2*(rx+RW)+2*t*(1-t)*(px-40)+t*t*(px-70),(1-t)**2*ry+2*t*(1-t)*ry+t*t*(py+70)];
+cx.fillStyle='#e9d9a0';[.05,.3,.55,.8,1].forEach((t,i)=>{const[x,y]=q(t);cx.globalAlpha=.15+i*.12;cx.beginPath();cx.arc(x,y,6+i*1.4,0,7);cx.fill()});cx.globalAlpha=1;
+// the departure, heading northeast, glowing gold
+const PLANE=new Path2D('M0 -175 C 16 -175 24 -150 24 -120 L 24 -30 L 190 40 L 190 70 L 24 35 L 20 100 L 78 135 L 78 157 L 14 145 L 0 160 L -14 145 L -78 157 L -78 135 L -20 100 L -24 35 L -190 70 L -190 40 L -24 -30 L -24 -120 C -24 -150 -16 -175 0 -175 Z');
+cx.save();cx.translate(px,py);cx.rotate(rad(45));cx.scale(.58,.58);
+g=cx.createLinearGradient(0,-175,0,160);g.addColorStop(0,'#fff6d6');g.addColorStop(1,'#f2c94c');
+cx.shadowColor='rgba(242,201,76,.9)';cx.shadowBlur=40;cx.fillStyle=g;cx.fill(PLANE);cx.shadowBlur=0;cx.fill(PLANE);cx.restore();
+// glass shine and a fine inner edge
+g=cx.createLinearGradient(0,100,0,600);g.addColorStop(0,'rgba(255,255,255,.10)');g.addColorStop(1,'rgba(255,255,255,0)');cx.fillStyle=g;cx.fillRect(0,0,1024,1024);
+cx.restore();cx.save();tile();cx.strokeStyle='rgba(126,224,168,.18)';cx.lineWidth=3;cx.stroke();cx.restore();
+</script></body></html>
