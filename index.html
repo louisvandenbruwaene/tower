@@ -80,7 +80,7 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>heron turn l</td><td>turn 90° left · <b>sl sr</b> = 45° · <b>l r</b> = 90° · <b>hl hr</b> = 135°</td></tr>
 <tr><td>heron descend</td><td>down to low · <b>heron descend mid</b> stops at mid</td></tr>
 <tr><td>heron ascend</td><td>up to high · <b>heron ascend mid</b> stops at mid</td></tr>
-<tr><td>heron hold</td><td>circle on the spot until you give it a new turn</td></tr>
+<tr><td>heron hold</td><td>circle on the spot until you give it a turn or clear it to land</td></tr>
 <tr><td>heron land</td><td>clear an arrival to land, any time. Only a cleared plane turns inside a landing circle: toward the runway, and it lands once it faces it (the arrow), low. Still too high when it leaves the circle: it goes around.</td></tr>
 <tr><td>wren takeoff e</td><td>departures in the <b>ready</b> list: take off <b>east</b> or <b>west</b> down the runway. It climbs to mid and flies straight on until you turn it.</td></tr>
 <tr><td>slow · fast · abort</td><td>change speed · cancel a landing</td></tr>
@@ -312,10 +312,12 @@ function exec(words){
   if(act==='ascend'||act==='descend'){const up=act==='ascend',lv=arg?LV.indexOf(arg):up?2:0;
     if(up?lv<=p.tgtAlt:lv>=p.tgtAlt)return`!${n} is already ${LV[p.tgtAlt]}`;
     setLevel(p,lv);return`${n}: ${up?'climbing':'descending'} to ${LV[lv]} (takes a while)`}
-  if(act==='hold'){p.state='hold';return`${n}: circling until you turn it`}
+  if(act==='hold'){p.state='hold';return`${n}: circling until you turn it or clear it to land`}
   if(act==='land'){
     // always accepted: a clearance. It turns onto the runway in the next landing circle it flies into.
     if(p.cleared)return`!${n} is already cleared to land`;
+    // a holding plane stops circling and flies straight on from where it points now
+    if(p.state==='hold'){p.state='fly';p.tgt=p.hdg}
     p.cleared=true;const u=runwayUser();
     return`${n}: cleared to land, it turns onto the runway in the next landing circle${p.tgtAlt>0?' · descend low first or it goes around':''}${u?` (careful: ${u.name} is still on the runway)`:''}`}
   if(act==='takeoff'){if(!arg)return`!${n} takeoff east or west? (${n} wants to leave ${U(p.dest)})`;
