@@ -83,7 +83,7 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>heron hold</td><td>circle on the spot until you give it a turn, or <b>land</b> inside a landing circle</td></tr>
 <tr><td>heron land</td><td>only inside a landing circle (also ends a hold). It turns onto the runway and lands once it faces it (the arrow), low. Still too high when it leaves the circle: it goes around.</td></tr>
 <tr><td>wren takeoff e</td><td>departures in the <b>ready</b> list: take off <b>east</b> or <b>west</b> down the runway. It climbs to mid and flies straight on until you turn it.</td></tr>
-<tr><td>slow · fast · abort</td><td>change speed · cancel a landing</td></tr>
+<tr><td>slow · fast · abort</td><td>change speed · cancel a hold (flies straight on) or a landing (also climbs to mid)</td></tr>
 </table>
 <table>
 <tr><td>blue planes</td><td><b>Arrivals.</b> They come in high. Bring them down to low, clear them to land and send them into one of the two landing circles at the runway ends.</td></tr>
@@ -278,7 +278,7 @@ function actions(p){
   if(p.state==='ready')return['takeoff'];
   if(p.state==='roll')return['turn'];
   if(p.state==='final')return['abort'];
-  return['turn','ascend','descend','hold',...(p.kind==='arr'?['land']:[]),'slow','fast',...(p.cleared?['abort']:[])]}
+  return['turn','ascend','descend','hold',...(p.kind==='arr'?['land']:[]),'slow','fast',...(p.cleared||p.state==='hold'?['abort']:[])]}
 function argsFor(p,act){
   if(act==='takeoff')return['east','west'];
   if(act==='turn')return DIRS;
@@ -326,6 +326,8 @@ function exec(words){
     p.rdir=arg==='east'?1:-1;p.state='roll';p.x=AX-p.rdir*RW;p.y=AY;p.hdg=p.tgt=p.rdir>0?0:Math.PI;p.spd=0;setLevel(p,1);
     return`${n}: taking off ${U(arg)}, climbing to mid · then turn it ${U(p.dest)}`}
   if(act==='slow'||act==='fast'){p.tgtSpd=SPEED[act];return`${n}: ${act}`}
+  // abort: a hold just flies straight on; a landing also climbs back to mid
+  if(act==='abort'&&p.state==='hold'){p.state='fly';p.tgt=p.hdg;return`${n}: stops circling, flying straight ahead`}
   if(act==='abort'){p.state='fly';p.tgt=p.hdg;p.cleared=false;p.inGate=null;setLevel(p,1);p.tgtSpd=SPEED.normal;return`${n}: landing cancelled, climbing to mid`}}
 function togglePause(){if(!S.over)S.paused=!S.paused}
 function onEmptyEnter(){if(S.over&&!S.demo)startLevel(S.result==='won'?S.lvl+1:S.lvl)}
