@@ -6,7 +6,7 @@ Every command is `plane action [direction]`, in any capitals:
 
 ```
 heron turn s              # n ne e se s sw w nw
-heron turn softleft       # 45°; hardleft / hardright = 90°
+heron turn l              # sl sr = 45°, l r = 90°, hl hr = 135°
 heron turn runway         # to the nearest landing circle, lining up with the runway
 heron descend             # down to low (descend mid stops at mid)
 heron ascend              # up to high (ascend mid stops at mid)
