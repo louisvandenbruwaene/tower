@@ -14,15 +14,40 @@ body{display:flex;flex-direction:column}
 #cmd{flex:1;background:transparent;border:0;outline:0;color:var(--fg);font:inherit;font-size:22px;caret-color:var(--acc)}
 #sug{position:absolute;bottom:100%;left:16px;display:flex;gap:6px;flex-wrap:wrap}
 #sug i{font-style:normal;padding:2px 9px;border-radius:4px;background:var(--chip);color:var(--dim)} #sug i.on{background:var(--chipon);color:var(--fg)}
+#hint{min-height:1.3em;color:var(--acc);opacity:.85}
+#help{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.72);overflow:auto}
+#help .card{max-width:780px;max-height:calc(100% - 24px);overflow:auto;box-sizing:border-box;font-size:14px;margin:12px;padding:14px 24px;background:var(--bg);border:1px solid var(--chipon);border-radius:10px;line-height:1.5}
+#help h2{margin:0 0 6px;color:var(--acc)} #help p{margin:8px 0} #help table{border-collapse:collapse;margin:8px 0} #help td{padding:2px 14px 2px 0;vertical-align:top}
+#help td:first-child{color:var(--acc);white-space:nowrap} #help .go{color:var(--dim);margin-top:12px}
 </style></head><body>
 <div id="bar"><span>score <b id="score">0</b></span><span>strikes <b id="strikes"></b></span><span>best <b id="best">0</b></span><span>ready <span id="ready"></span></span></div>
-<div id="view"><canvas id="cv"></canvas><div id="over"></div></div>
-<div id="term"><div id="sug"></div><div id="out">heron west · heron low · heron land · wren takeoff · wren to maple · wren high</div>
+<div id="view"><canvas id="cv"></canvas><div id="over"></div><div id="help"><div class="card">
+<h2>Tower</h2>
+<p>You are the air traffic controller. Every plane has a name. Type the name, then one or more orders.</p>
+<table>
+<tr><td>blue planes</td><td><b>Arrivals.</b> They come in high. Bring them down to low, get them inside the dashed ring around the runway, then type <b>land</b>. They line up and touch down by themselves.</td></tr>
+<tr><td>gold planes</td><td><b>Departures.</b> They wait in the <b>ready</b> list at the top. Type <b>takeoff</b>, climb them <b>high</b> and send them <b>to</b> the edge point (▲) named on their label. They leave when they reach it at H.</td></tr>
+<tr><td>L · M · H</td><td>The level each plane flies at: low, mid, high. An arrow ↑↓ means it is still climbing or descending.</td></tr>
+<tr><td>red ring</td><td>Two planes on the <b>same level</b> are too close: <b>strike</b>. Planes on different levels can cross safely. A plane flying off the screen is also a strike. Three strikes end the shift.</td></tr>
+</table>
+<table>
+<tr><td>north … northwest</td><td>turn to a compass direction (north, northeast, east, …)</td></tr>
+<tr><td>left · right</td><td>turn an eighth of a circle</td></tr>
+<tr><td>to maple</td><td>fly straight to an edge point</td></tr>
+<tr><td>high · mid · low</td><td>change level</td></tr>
+<tr><td>land · takeoff</td><td>arrivals (low, inside the ring) · departures (ready list)</td></tr>
+<tr><td>hold · slow · fast</td><td>circle on the spot · change speed</td></tr>
+<tr><td>abort</td><td>cancel a landing and climb to mid</td></tr>
+</table>
+<p>Example: <b>heron west low</b>. The first letters are enough (<b>he w lo</b>). <b>Tab</b> or <b>→</b> completes a word. The green line above the prompt says what the plane you are typing needs next. <b>↑</b> repeats an earlier line, <b>Esc</b> pauses, <b>help</b> shows this card.</p>
+<p class="go">Enter to start</p></div></div></div>
+<div id="term"><div id="sug"></div><div id="hint"></div><div id="out"></div>
 <div class="row"><span>›</span><input id="cmd" autocomplete="off" spellcheck="false" autofocus></div></div>
 <script>
 /* ---------- terminal: words only, every word autocompletes, a unique prefix is enough ---------- */
 const cmd=document.getElementById('cmd'),sugEl=document.getElementById('sug'),outEl=document.getElementById('out');
-const T={hist:[],hi:0,sel:0,cands:[]};
+const T={hist:[],hi:0,sel:0,cands:[]},hintEl=document.getElementById('hint'),helpEl=document.getElementById('help');
+const helpOpen=()=>helpEl.style.display!=='none',showHelp=on=>helpEl.style.display=on?'grid':'none';
 function say(s){const bad=s.startsWith('!');outEl.textContent=bad?s.slice(1):s;outEl.className=bad?'bad':''}
 function resolve(toks){const out=[];for(const w of toks){const opts=options(out);if(opts.includes(w)){out.push(w);continue}
   const m=opts.filter(o=>o.startsWith(w));if(m.length===1){out.push(m[0]);continue}
@@ -31,7 +56,8 @@ function parts(){const t=cmd.value.toLowerCase().split(/\s+/);return{done:t.slic
 function refreshSug(){const{done,part}=parts();const r=resolve(done);
   T.cands=(r.err||!cmd.value.trim())?[]:options(r.words).filter(o=>o.startsWith(part));
   if(T.sel>=T.cands.length)T.sel=0;
-  sugEl.innerHTML=T.cands.slice(0,10).map((c,i)=>`<i class="${i===T.sel?'on':''}">${c}</i>`).join('')}
+  sugEl.innerHTML=T.cands.slice(0,10).map((c,i)=>`<i class="${i===T.sel?'on':''}">${c}</i>`).join('');
+  hintEl.textContent=helpOpen()?'':hintFor(typedHead())}
 function typedHead(){const w=cmd.value.toLowerCase().trim().split(/\s+/)[0];if(!w)return null;const o=options([]);
   if(o.includes(w))return w;const m=o.filter(x=>x.startsWith(w));return m.length===1?m[0]:null}
 cmd.addEventListener('input',()=>{T.sel=0;refreshSug()});
@@ -44,8 +70,8 @@ cmd.addEventListener('keydown',e=>{
     T.sel=(T.sel+(e.key==='ArrowDown'?1:T.cands.length-1))%T.cands.length;refreshSug();return}
   if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();if(!T.hist.length)return;
     T.hi=Math.max(0,Math.min(T.hist.length,T.hi+(e.key==='ArrowUp'?-1:1)));cmd.value=T.hist[T.hi]||'';refreshSug();return}
-  if(e.key==='Escape'){e.preventDefault();if(cmd.value)cmd.value='';else togglePause();refreshSug();return}
-  if(e.key==='Enter'){e.preventDefault();const v=cmd.value.trim().toLowerCase();if(!v)return;
+  if(e.key==='Escape'){e.preventDefault();if(helpOpen())showHelp(false);else if(cmd.value)cmd.value='';else togglePause();refreshSug();return}
+  if(e.key==='Enter'){e.preventDefault();showHelp(false);const v=cmd.value.trim().toLowerCase();if(!v)return;
     T.hist.push(v);T.hi=T.hist.length;cmd.value='';refreshSug();
     const r=resolve(v.split(/\s+/));say(r.err||exec(r.words)||'')}});
 addEventListener('mousedown',e=>{e.preventDefault();cmd.focus()});
@@ -134,7 +160,7 @@ function exec(words){
   const[w0,...rest]=words;
   if(w0==='restart'){newGame();return'new shift'}
   if(w0==='pause'){togglePause();return''}
-  if(w0==='help')return'plane + heading (north… / left / right / to <fix>) + level (low mid high) + land / takeoff / hold / slow / fast / abort';
+  if(w0==='help'){showHelp(true);return''}
   const p=plane(w0);if(!rest.length)return`!${w0} what?`;const said=[];
   for(let i=0;i<rest.length;i++){const w=rest[i];
     if(w in HEADINGS){p.tgt=rad(HEADINGS[w]);p.fix=null;if(p.state==='hold')p.state='fly'}
@@ -152,6 +178,23 @@ function exec(words){
     said.push(w)}
   return`${p.name}: ${said.join(', ')}`}
 function togglePause(){if(!S.over)S.paused=!S.paused}
+// what the plane being typed needs next, so the player never has to remember the rules
+const compass=(x,y)=>Object.keys(HEADINGS).find(k=>Math.abs(wrap(rad(HEADINGS[k])-Math.atan2(y,x)))<=Math.PI/8+1e-9);
+function hintFor(n){
+  if(S.over)return'type restart';
+  const p=plane(n);
+  if(!p)return cmd.value.trim()?'':S.planes.length?'type a plane\'s name to see what it needs':'';
+  if(p.state==='ready')return`${p.name} waits at the runway → ${p.name} takeoff to ${p.dest} high`;
+  if(p.state==='roll')return`${p.name} is taking off · then it needs: to ${p.dest}, high`;
+  if(p.state==='appr'||p.state==='final')return`${p.name} is landing by itself · abort to cancel`;
+  if(p.kind==='dep'){
+    if(p.tgtAlt<2)return`${p.name} must leave high → ${p.name} high`;
+    if(p.fix!==p.dest)return`${p.name} leaves over ${p.dest} → ${p.name} to ${p.dest}`;
+    return`${p.name} is on its way: it leaves when it reaches ${p.dest} at H`}
+  if(p.tgtAlt>0)return`${p.name} must come down → ${p.name} low`;
+  if(p.alt>.05)return`${p.name} is descending · land once its label shows L`;
+  if(Math.hypot(p.x-AX,p.y-AY)>290)return`${p.name} is low but outside the ring → ${p.name} ${compass(AX-p.x,AY-p.y)}`;
+  return`${p.name} can land now → ${p.name} land`}
 
 /* ---------- drawing ---------- */
 const cv=document.getElementById('cv'),cx=cv.getContext('2d');let sc=1,ox=0,oy=0;
@@ -171,6 +214,7 @@ function draw(){
   // land zone, runway, centreline
   cx.setLineDash([3,7]);cx.strokeStyle='#1d4a33';cx.beginPath();cx.arc(AX,AY,290,0,7);cx.stroke();
   cx.beginPath();cx.moveTo(AX-RW-190,AY);cx.lineTo(AX+RW+190,AY);cx.stroke();cx.setLineDash([]);
+  cx.font='12px ui-monospace,Menlo,monospace';cx.textAlign='center';cx.fillStyle='#2f6b4a';cx.fillText('landing ring: low planes can land inside',AX,AY-298);cx.fillText('runway',AX,AY+16);
   cx.fillStyle='#3a5a48';cx.fillRect(AX-RW,AY-4,RW*2,8);
   cx.font='13px ui-monospace,Menlo,monospace';cx.textBaseline='middle';
   for(const[n,[x,y]]of Object.entries(FIXES)){cx.fillStyle='#4f7d63';cx.beginPath();cx.moveTo(x,y-7);cx.lineTo(x+7,y+5);cx.lineTo(x-7,y+5);cx.fill();
@@ -194,7 +238,7 @@ function draw(){
 const over=document.getElementById('over');
 let last=performance.now();
 function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;
-  if(!S.paused&&!S.over)step(dt);draw();
+  if(!S.paused&&!S.over&&!helpOpen())step(dt);draw();
   const focus=typedHead();document.getElementById('ready').innerHTML=S.planes.filter(p=>p.state==='ready').map(p=>`<b style="color:${p.name===focus?'#fff':LABEL.dep}">${p.name} → ${p.dest}</b>`).join(' ')||'';
   document.getElementById('score').textContent=S.score;document.getElementById('best').textContent=best;
   document.getElementById('strikes').textContent='●'.repeat(S.strikes)+'○'.repeat(Math.max(0,3-S.strikes));
