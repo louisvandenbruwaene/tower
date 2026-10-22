@@ -33,14 +33,14 @@ body{display:flex;flex-direction:column}
 <p>You are the air traffic controller. Every command has the same shape:</p>
 <p><code>plane&nbsp;&nbsp;action&nbsp;&nbsp;[direction]</code> &nbsp; the direction is only needed for some actions.</p>
 <table>
-<tr><td>heron turn south</td><td>turn until it flies south (north, northeast, east … northwest)</td></tr>
+<tr><td>heron turn s</td><td>turn until it flies that way: <b>n ne e se s sw w nw</b></td></tr>
 <tr><td>heron turn softleft</td><td>turn 45° left · <b>hardleft</b> = 90° · <b>softright</b> · <b>hardright</b></td></tr>
 <tr><td>heron turn runway</td><td>fly to the nearest landing circle and line up with the runway there</td></tr>
 <tr><td>heron descend</td><td>down to low · <b>heron descend mid</b> stops at mid</td></tr>
 <tr><td>heron ascend</td><td>up to high · <b>heron ascend mid</b> stops at mid</td></tr>
 <tr><td>heron hold</td><td>circle on the spot until you give it a new turn</td></tr>
 <tr><td>heron land</td><td>arrivals that are low, inside a landing circle and facing the runway (the arrow). It flies to the runway end and lands toward the middle. Given on the way to a circle, it lands as soon as it gets there.</td></tr>
-<tr><td>wren takeoff east</td><td>departures in the <b>ready</b> list: take off <b>east</b> or <b>west</b> down the runway. It climbs to mid and flies straight on until you turn it.</td></tr>
+<tr><td>wren takeoff e</td><td>departures in the <b>ready</b> list: take off <b>east</b> or <b>west</b> down the runway. It climbs to mid and flies straight on until you turn it.</td></tr>
 <tr><td>slow · fast · abort</td><td>change speed · cancel a landing</td></tr>
 </table>
 <table>
@@ -49,31 +49,41 @@ body{display:flex;flex-direction:column}
 <tr><td>strikes</td><td>Two planes on the <b>same level</b> too close (red ring), a departure leaving through the wrong slice, or an arrival leaving your circle. Different levels cross safely. Three strikes and you replay the level.</td></tr>
 <tr><td>things take time</td><td>Changing level takes a while (bar under the label). Turning is gradual (dashed line = where it is turning to). The runway takes one plane at a time (it turns amber while busy).</td></tr>
 </table>
-<p>Faded text in the prompt is a suggestion: <b>→</b> takes all of it, <b>Tab</b> takes one word. Capitals don't matter. A typo gets a "did you mean …?": answer <b>yes</b> or <b>no</b>. The first levels are slow and suggest every move; later ones go faster and leave it to you. <b>demo</b> shows a good controller at work, <b>Esc</b> pauses, <b>help</b> shows this card.</p>
+<p>Faded text in the prompt is a suggestion: <b>→</b> takes all of it, <b>Tab</b> takes one word. Capitals don't matter. Typos are fixed for you (<b>nt</b> = north): the reply shows what was understood. The first levels are slow and suggest every move; later ones go faster and leave it to you. <b>demo</b> shows a good controller at work, <b>Esc</b> pauses, <b>help</b> shows this card.</p>
 <p class="go">Enter to start · or type <b>demo</b> first</p></div></div></div>
 <div id="term"><div id="sug"></div><div id="hint"></div><div id="out"></div>
 <div class="row"><span>›</span><div id="wrap"><div id="ghost"></div><input id="cmd" autocomplete="off" spellcheck="false" autofocus></div></div></div>
 <script>
-/* ---------- terminal: plane action [direction]; prefixes, faded suggestions, "did you mean" ---------- */
+/* ---------- terminal: plane action [direction]; every word is read as its most likely meaning ---------- */
 const cmd=document.getElementById('cmd'),sugEl=document.getElementById('sug'),outEl=document.getElementById('out'),ghostEl=document.getElementById('ghost');
 const hintEl=document.getElementById('hint'),helpEl=document.getElementById('help');
-const T={hist:[],hi:0,sel:0,cands:[],pending:null,ghost:'',sug:null,why:''};
+const T={hist:[],hi:0,sel:0,cands:[],ghost:'',sug:null,why:''};
 const helpOpen=()=>helpEl.style.display!=='none',showHelp=on=>helpEl.style.display=on?'grid':'none';
 const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
-// '!' = error (red), '?' = question (yellow)
-function say(s){const k=s[0]==='!'?'bad':s[0]==='?'?'ask':'';outEl.textContent=k?s.slice(1):s;outEl.className=k}
-function resolve(toks){const out=[];for(const w of toks){const opts=options(out);if(opts.includes(w)){out.push(w);continue}
-  const m=opts.filter(o=>o.startsWith(w));if(m.length===1){out.push(m[0]);continue}
-  return{err:m.length?`!${w}: ${m.slice(0,6).join(' / ')}?`:opts.length?`!${w}?`:`!too many words: plane action [direction]`}}return{words:out}}
-// edit distance (with swapped neighbours) for typo correction
+// the eight directions are typed and shown short: n ne e se s sw w nw
+const ABBR={n:'north',ne:'northeast',e:'east',se:'southeast',s:'south',sw:'southwest',w:'west',nw:'northwest'};
+const SHORT=Object.fromEntries(Object.entries(ABBR).map(([k,v])=>[v,k]));
+const U=w=>SHORT[w]?SHORT[w].toUpperCase():w;
+// '!' = error (red)
+function say(s){const bad=s[0]==='!';outEl.textContent=bad?s.slice(1):s;outEl.className=bad?'bad':''}
+// edit distance (with swapped neighbours) for typos
 function dist(a,b){const d=[...Array(a.length+1)].map((_,i)=>[i,...Array(b.length).fill(0)]);for(let j=1;j<=b.length;j++)d[0][j]=j;
   for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++){d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
     if(i>1&&j>1&&a[i-1]===b[j-2]&&a[i-2]===b[j-1])d[i][j]=Math.min(d[i][j],d[i-2][j-2]+1)}return d[a.length][b.length]}
-function correct(toks){const out=[];for(const w of toks){const opts=options(out);if(!opts.length)return null;
-  if(opts.includes(w)){out.push(w);continue}
-  const m=opts.filter(o=>o.startsWith(w));if(m.length===1){out.push(m[0]);continue}if(m.length>1)return null;
-  let best=null,bs=9;for(const o of opts){const s=Math.min(dist(w,o),dist(w,o.slice(0,w.length))+.5);if(s<bs){bs=s;best=o}}
-  if(bs>(w.length<=3?1:2))return null;out.push(best)}return out}
+const inOrder=(w,o)=>{let i=0;for(const c of o)if(c===w[i])i++;return i===w.length};
+// what a typed word most likely means: exact or abbreviation, then the start of a word, then its letters in order
+// (same first letter), then the closest spelling. Ties: the shortest direction, else the earliest option.
+function meaning(w,opts){
+  if(opts.includes(w))return w;if(ABBR[w]&&opts.includes(ABBR[w]))return ABBR[w];
+  let pick=null,ps=1e9;
+  opts.forEach((o,i)=>{let sc;
+    if(o.startsWith(w))sc=1;else if(o[0]===w[0]&&inOrder(w,o))sc=2;
+    else{const d=Math.min(dist(w,o),dist(w,o.slice(0,w.length))+.5);if(d>(w.length<=3?1:2))return;sc=3+d}
+    sc+=(o in SHORT?o.length:i)*.001;if(sc<ps){ps=sc;pick=o}});
+  return pick}
+function resolve(toks){const out=[];for(const w of toks){const opts=options(out);
+  if(!opts.length){if(out.length===2)break;return{err:'!too many words: plane action [direction]'}}   // nothing left to choose: let the action say why
+  const o=meaning(w,opts);if(!o)return{err:`!${w}? ${opts.slice(0,8).map(U).join(' · ')}`};out.push(o)}return{words:out}}
 function parts(){const t=cmd.value.toLowerCase().split(/\s+/);return{done:t.slice(0,-1).filter(Boolean),part:t[t.length-1]}}
 function ghostRest(){const low=cmd.value.toLowerCase();
   if(T.sug){const full=T.sug.join(' ');if(full.startsWith(low)&&full.length>low.length)return full.slice(low.length)}
@@ -86,16 +96,12 @@ function refreshSug(){const{done,part}=parts();const r=resolve(done);
   sugEl.innerHTML=T.cands.length>1?T.cands.slice(0,12).map((c,i)=>`<i class="${i===T.sel?'on':''}">${c}</i>`).join(''):'';
   const onSug=T.sug&&T.sug.join(' ').startsWith(cmd.value.toLowerCase());
   hintEl.textContent=helpOpen()?'':onSug&&T.why?T.why:hintFor(typedHead())}
-function typedHead(){const w=cmd.value.toLowerCase().trim().split(/\s+/)[0];if(!w)return null;const o=options([]);
-  if(o.includes(w))return w;const m=o.filter(x=>x.startsWith(w));return m.length===1?m[0]:null}
+function typedHead(){const w=cmd.value.toLowerCase().trim().split(/\s+/)[0];return w?meaning(w,options([])):null}
+// runs at once; when a word was read differently from how it was typed, the reply starts with what was understood
 function run(v){
-  const toks=v.split(/\s+/);
-  if(T.pending&&toks.length===1&&(toks[0]==='yes'||toks[0]==='y')){const w=T.pending;T.pending=null;return say(exec(w)||'')}
-  if(T.pending&&toks.length===1&&(toks[0]==='no'||toks[0]==='n')){T.pending=null;return say('cancelled')}
-  T.pending=null;
-  const r=resolve(toks);if(!r.err)return say(exec(r.words)||'');
-  const c=correct(toks);if(c){T.pending=c;return say(`?did you mean: ${c.join(' ')}   (yes / no)`)}
-  say(r.err)}
+  const toks=v.split(/\s+/),r=resolve(toks);if(r.err)return say(r.err);
+  const m=exec(r.words)||'',read=r.words.map(U).join(' '),same=r.words.every((w,i)=>w===toks[i]||SHORT[w]===toks[i]);
+  say(same||!m?m:m[0]==='!'?`!(${read}) ${m.slice(1)}`:`(${read}) ${m}`)}
 cmd.addEventListener('input',()=>{T.sel=0;refreshSug()});
 cmd.addEventListener('keydown',e=>{
   if(D.on&&e.isTrusted){e.preventDefault();if(e.key==='Escape')stopDemo();return}
@@ -143,7 +149,7 @@ let S,best=+store('tower-best')||0,unlocked=+store('tower-unlocked')||0;
 function startLevel(n,demo=false){n=Math.max(0,Math.min(LEVELS.length-1,n));if(!demo)store('tower-level',n);const L=LEVELS[n];
   const queue=L.endless?null:[...Array(L.arr).fill('arr'),...Array(L.dep).fill('dep')].sort(()=>Math.random()-.5);
   S={lvl:n,L,t:0,planes:[],fx:[],done:0,strikes:0,queue,next:1,over:false,result:'',paused:false,pairs:new Set(),demo};
-  T.pending=null;say(L.endless||demo?'':`level ${n+1}: ${L.name}`)}
+  say(L.endless||demo?'':`level ${n+1}: ${L.name}`)}
 startLevel(+store('tower-level')||0);
 
 function freshName(){const used=S.planes.map(p=>p.name.slice(0,2));
@@ -201,8 +207,8 @@ function step(dt){
     if((p.tt-=dt)<=0){p.tt=.7;p.trail.push([p.x,p.y]);if(p.trail.length>9)p.trail.shift()}
     // leaving your area: a departure in its own direction is handed off, anything else is a strike
     if(fromAirport(p)>RADAR){const went=compass(p.x-AX,p.y-AY);remove(p);
-      if(p.kind==='dep'&&went===p.dest){S.done++;S.fx.push({x:p.x,y:p.y,t:0,c:'#f2c94c',r:24});say(`${p.name} handed off to the ${went}`)}
-      else strike(p.kind==='dep'?`${p.name} left to the ${went}, it wanted ${p.dest}`:`${p.name} flew out of your area`,p.x,p.y)}
+      if(p.kind==='dep'&&went===p.dest){S.done++;S.fx.push({x:p.x,y:p.y,t:0,c:'#f2c94c',r:24});say(`${p.name} handed off to the ${U(went)}`)}
+      else strike(p.kind==='dep'?`${p.name} left to the ${U(went)}, it wanted ${U(p.dest)}`:`${p.name} flew out of your area`,p.x,p.y)}
   }
   // separation: same level and too close = strike once per encounter; touching = both lost
   const air=S.planes.filter(p=>p.state!=='ready'),now=new Set();
@@ -231,7 +237,7 @@ function argsFor(p,act){
   if(act==='descend')return LV.filter((_,i)=>i<p.tgtAlt);
   return[]}
 function options(words){
-  if(!words.length)return[...(T.pending?['yes','no']:[]),...(S.over?[]:S.planes.map(p=>p.name)),'help','demo','pause','restart',
+  if(!words.length)return[...(S.over?[]:S.planes.map(p=>p.name)),'help','demo','pause','restart',
     ...(S.lvl>0&&!S.demo?['back']:[]),...(unlocked>S.lvl&&!S.demo?['next']:[])];
   const p=plane(words[0]);if(!p||S.over)return[];
   if(words.length===1)return actions(p);
@@ -255,7 +261,7 @@ function exec(words){
   const p=plane(w0),n=p.name;
   if(!act)return`!${n} what? ${actions(p).join(' · ')}`;
   if(act==='turn'){if(!arg)return`!${n} turn where? e.g. ${n} turn north, ${n} turn softleft${p.kind==='arr'?`, ${n} turn runway`:''}`;
-    steer(p,arg);return arg==='runway'?`${n}: flying to the ${p.gate} landing circle, it lines up there`:`${n}: turning ${arg}${p.state==='roll'?' once airborne':''}`}
+    steer(p,arg);return arg==='runway'?`${n}: flying to the ${p.gate} landing circle, it lines up there`:`${n}: turning ${U(arg)}${p.state==='roll'?' once airborne':''}`}
   if(act==='ascend'||act==='descend'){const up=act==='ascend',lv=arg?LV.indexOf(arg):up?2:0;
     if(up?lv<=p.tgtAlt:lv>=p.tgtAlt)return`!${n} is already ${LV[p.tgtAlt]}`;
     setLevel(p,lv);return`${n}: ${up?'climbing':'descending'} to ${LV[lv]} (takes a while)`}
@@ -270,11 +276,11 @@ function exec(words){
     if(g&&!facing(p,g))return`!${n} is in the ${g} circle but must face the runway (${GATES[g].dir>0?'east':'west'}): ${n} turn runway`;
     if(g)return`!${n} is still descending: land once its label shows L`;
     return`!${n} must be in a landing circle, facing the runway: ${n} turn runway`}
-  if(act==='takeoff'){if(!arg)return`!${n} takeoff east or west? (${n} wants to leave ${p.dest})`;
+  if(act==='takeoff'){if(!arg)return`!${n} takeoff east or west? (${n} wants to leave ${U(p.dest)})`;
     const u=runwayUser();if(u)return`!the runway is busy: wait until ${u.name} is off it`;
     // rolls from the far end of the runway, then flies straight on, climbing to mid, until you turn it
     p.rdir=arg==='east'?1:-1;p.state='roll';p.x=AX-p.rdir*RW;p.y=AY;p.hdg=p.tgt=p.rdir>0?0:Math.PI;p.spd=0;setLevel(p,1);
-    return`${n}: taking off ${arg}, climbing to mid · then turn it ${p.dest}`}
+    return`${n}: taking off ${U(arg)}, climbing to mid · then turn it ${U(p.dest)}`}
   if(act==='slow'||act==='fast'){p.tgtSpd=SPEED[act];return`${n}: ${act}`}
   if(act==='abort'){p.state='fly';p.tgt=p.hdg;p.gate=null;p.cleared=false;setLevel(p,1);p.tgtSpd=SPEED.normal;return`${n}: landing cancelled, climbing to mid`}}
 function togglePause(){if(!S.over)S.paused=!S.paused}
@@ -290,12 +296,12 @@ function hintFor(n){
     // nothing typed: show what the most urgent plane is waiting for (a level change, the runway…)
     const q=S.planes.find(q=>q.state!=='ready')||S.planes[0];return hintFor(q.name)}
   const u=runwayUser();
-  if(p.state==='ready')return u?`${p.name} waits: the runway is busy until ${u.name} is off it`:`${p.name} wants to leave ${p.dest} → ${p.name} takeoff ${runwayFor(p.dest)} (the runway direction closest to ${p.dest})`;
-  if(p.state==='roll')return`${p.name} is taking off ${p.rdir>0?'east':'west'}${headingFor(p,p.dest)?'':` → ${p.name} turn ${p.dest}`}`;
+  if(p.state==='ready')return u?`${p.name} waits: the runway is busy until ${u.name} is off it`:`${p.name} wants to leave ${U(p.dest)} → ${p.name} takeoff ${U(runwayFor(p.dest))} (the runway direction closest to ${U(p.dest)})`;
+  if(p.state==='roll')return`${p.name} is taking off ${p.rdir>0?'east':'west'}${headingFor(p,p.dest)?'':` → ${p.name} turn ${U(p.dest)}`}`;
   if(p.state==='final')return`${p.name} is landing by itself · ${p.name} abort to cancel`;
   if(p.kind==='dep'){
-    if(!headingFor(p,p.dest))return`${p.name} must leave the circle on the ${p.dest} side → ${p.name} turn ${p.dest}`;
-    return`${p.name} is heading ${p.dest}: handed off when it leaves the circle there`}
+    if(!headingFor(p,p.dest))return`${p.name} must leave the circle on the ${U(p.dest)} side → ${p.name} turn ${U(p.dest)}`;
+    return`${p.name} is heading ${U(p.dest)}: handed off when it leaves the circle there`}
   if(p.tgtAlt>0)return`${p.name} must come down → ${p.name} descend low`;
   if(p.cleared)return`${p.name} is cleared: it lands once it is in the ${p.cleared} circle${p.alt>.05?`, still descending ${bar(p)}`:''}`;
   if(landGate(p))return u?`${p.name} can land once ${u.name} is off the runway`:`${p.name} is in the circle, low, facing the runway → ${p.name} land`;
@@ -349,7 +355,7 @@ function decide(peek){
   // an arrival heading out near the edge of the circle is turned back before it leaves your area
   for(const p of arrs){const out=Math.cos(p.tgt-Math.atan2(p.y-AY,p.x-AX));
     if(p.state==='fly'&&!p.gate&&fromAirport(p)>RADAR-70&&out>0&&once(p,'edge',5))
-      return[[p.name,'turn',toward(p)],`${p.name} is heading out of your area. Turn it ${toward(p)}, back toward the airport.`]}
+      return[[p.name,'turn',toward(p)],`${p.name} is heading out of your area. Turn it ${U(toward(p))}, back toward the airport.`]}
   // 2. the next arrival comes down and lands
   if(next){const p=next;
     if(landing&&p.tgtAlt===2&&fromAirport(p)<RING+20&&clearAt(p,1)&&once(p,'down',8))
@@ -368,16 +374,17 @@ function decide(peek){
     if(p!==next&&p.state==='fly'&&fromAirport(p)<RING-40){const hl=holdLevel(p,[p.tgtAlt,2,1]);
       if(hl===p.tgtAlt&&once(p,'hold',6))return[[p.name,'hold'],`Only one plane lands at a time and ${next.name} is first. ${p.name} circles here, ${LV[hl]}, until its turn.`];
       if(hl!==undefined&&hl!==p.tgtAlt&&once(p,'stack',6))return[levelCmd(p,hl),`${p.name} must wait for ${next.name}, but its level is taken near the airport. Move it to ${LV[hl]} first.`]}
-    if(p.state==='fly'&&fromAirport(p)>=RING-40&&!pointing(p)&&once(p,'aim',6))return[[p.name,'turn',toward(p)],`${p.name} is not pointing at the airport. Turn it ${toward(p)}.`]}
+    if(p.state==='fly'&&fromAirport(p)>=RING-40&&!pointing(p)&&once(p,'aim',6))return[[p.name,'turn',toward(p)],`${p.name} is not pointing at the airport. Turn it ${U(toward(p))}.`]}
   // 4. departures: take off down the runway end closest to their direction, then turn them that way
   for(const p of S.planes.filter(p=>p.kind==='dep')){const way=runwayFor(p.dest);
     if(p.state==='ready'&&!runwayBusy&&!landing&&!(next&&next.gate)&&air.every(o=>!meets(climbOut(p,way),o))&&once(p,'go',3))
-      return[[p.name,'takeoff',way],`The runway is free. ${p.name} wants to leave ${p.dest}: take off ${way}, the runway direction closest to it.`];
+      return[[p.name,'takeoff',way],`The runway is free. ${p.name} wants to leave ${U(p.dest)}: take off ${U(way)}, the runway direction closest to it.`];
     if((free(p)||p.state==='roll')&&!headingFor(p,p.dest)&&once(p,'dir',4))
-      return[[p.name,'turn',p.dest],`${p.name} is on its way out. Turn it ${p.dest}, so it leaves the circle on the ${p.dest} side.`]}
+      return[[p.name,'turn',p.dest],`${p.name} is on its way out. Turn it ${U(p.dest)}, so it leaves the circle on the ${U(p.dest)} side.`]}
   return null}
 // faded suggestion and its reason, only while the level coaches
-function coach(){const plan=!D.on&&!S.over&&S.L.coach&&!helpOpen()?decide(true):null;T.sug=plan&&plan[0];T.why=plan?plan[1]:''}
+const shortCmd=words=>words.map(w=>SHORT[w]||w);
+function coach(){const plan=!D.on&&!S.over&&S.L.coach&&!helpOpen()?decide(true):null;T.sug=plan&&shortCmd(plan[0]);T.why=plan?plan[1]:''}
 
 /* ---------- demo: the controller plays, typing into the real prompt and saying why ---------- */
 // [time, kind, …]: a calm opening that shows a landing, a departure, a level split and a holding pattern
@@ -389,15 +396,16 @@ function stopDemo(){D.on=false;demoEl.style.display='none';cmd.value='';startLev
 function showDemo(why){demoEl.style.display='block';demoEl.innerHTML=`${why}<br><small>demo · esc to stop</small>`}
 // turn a command into keystrokes: the shortest unique start of each word, then Tab to complete it
 function keystrokes(words){const keys=[];let prev=[];
-  for(const w of words){const opts=options(prev);let k=1;
-    while(k<w.length&&opts.filter(o=>o.startsWith(w.slice(0,k))).length>1)k++;
-    for(const c of w.slice(0,k))keys.push(c);keys.push(k<w.length?'Tab':' ');prev=[...prev,w]}
+  for(const w of words){const opts=options(prev),abbr=ABBR[w]&&!opts.includes(w);let k=1;
+    if(abbr)k=w.length;      // n, ne …: typed in full, no Tab
+    else while(k<w.length&&opts.filter(o=>o.startsWith(w.slice(0,k))).length>1)k++;
+    for(const c of w.slice(0,k))keys.push(c);keys.push(k<w.length?'Tab':' ');prev=[...prev,abbr?ABBR[w]:w]}
   keys.push('Enter');return keys}
 function demoTick(dt){
   if(S.over||S.t>150){D.wait-=dt;if(D.wait<-3)startDemo();return}  // a short, clean shift, then again
   if((D.wait-=dt)>0)return;
   if(!D.steps.length){const plan=decide();if(!plan){D.wait=.3;return}
-    D.steps=keystrokes(plan[0]);showDemo(plan[1]);D.wait=.4;return}
+    D.steps=keystrokes(shortCmd(plan[0]));showDemo(plan[1]);D.wait=.4;return}
   const k=D.steps.shift(),key=x=>cmd.dispatchEvent(new KeyboardEvent('keydown',{key:x}));
   if(k==='Tab'){key('Tab');D.wait=.25}else if(k==='Enter'){key('Enter');D.wait=1.4}
   else{cmd.value+=k;cmd.dispatchEvent(new Event('input'));D.wait=.11}}
@@ -424,7 +432,9 @@ function draw(){
     cx.strokeStyle=hot?'#f2c94c':'rgba(242,201,76,.35)';cx.lineWidth=hot?5:3;cx.beginPath();cx.arc(AX,AY,RADAR,b-rad(22.5),b+rad(22.5));cx.stroke()}
   cx.lineWidth=1.5;cx.strokeStyle='#2f6b4a';cx.beginPath();cx.arc(AX,AY,RADAR,0,7);cx.stroke();cx.lineWidth=1;
   cx.font='12px ui-monospace,Menlo,monospace';cx.textAlign='center';cx.textBaseline='middle';cx.fillStyle='#3f7a5a';
-  for(const[k,d]of Object.entries(HEADINGS))cx.fillText(k,AX+Math.cos(rad(d))*(RADAR+(Math.abs(Math.sin(rad(d)))>.9?14:Math.abs(Math.cos(rad(d)))>.9?38:46)),AY+Math.sin(rad(d))*(RADAR+14));
+  cx.font='bold 14px ui-monospace,Menlo,monospace';
+  for(const[k,d]of Object.entries(HEADINGS))cx.fillText(U(k),AX+Math.cos(rad(d))*(RADAR+18),AY+Math.sin(rad(d))*(RADAR+16));
+  cx.font='12px ui-monospace,Menlo,monospace';
   const a=S.t*1.1,g=cx.createRadialGradient(AX,AY,0,AX,AY,RADAR);g.addColorStop(0,'rgba(126,224,168,.12)');g.addColorStop(1,'rgba(126,224,168,0)');
   cx.fillStyle=g;cx.beginPath();cx.moveTo(AX,AY);cx.arc(AX,AY,RADAR,a-.5,a);cx.closePath();cx.fill();
   // landing ring, centreline, runway (amber while a plane uses it)
@@ -457,7 +467,7 @@ function draw(){
     let tag=p.state==='hold'?' ⟳':p.state==='final'?' landing':p.state==='roll'?' taking off':p.cleared?' · cleared':p.gate?' → runway':'';
     if(p.kind==='arr'&&p.state!=='final'&&!p.cleared&&landGate(p))tag+=u?' · wait':' · can land';
     cx.textAlign='left';cx.fillStyle=hot?'#fff':col;
-    cx.fillText(`${p.name} ${lvTxt}${tag}${p.kind==='dep'?' → '+p.dest:''}`,p.x+14,p.y-14);
+    cx.fillText(`${p.name} ${lvTxt}${tag}${p.kind==='dep'?' → '+U(p.dest):''}`,p.x+14,p.y-14);
     if(moving){const f=1-Math.abs(p.tgtAlt-p.alt)/Math.max(.01,Math.abs(p.tgtAlt-p.altFrom));
       cx.fillStyle='rgba(211,234,217,.18)';cx.fillRect(p.x+11,p.y-2,44,3);cx.fillStyle=col;cx.fillRect(p.x+11,p.y-2,44*f,3)}
     p.warn=0}
@@ -471,11 +481,11 @@ function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;
   $('todo').textContent=S.queue?`${S.done} of ${S.L.arr+S.L.dep} planes done`+(S.L.scale<1?' · slow motion':''):'';
   $('strikes').textContent='●'.repeat(S.strikes)+'○'.repeat(Math.max(0,3-S.strikes));
   const focus=typedHead(),u=runwayUser();
-  $('ready').innerHTML=S.planes.filter(p=>p.state==='ready').map(p=>`<b style="color:${p.name===focus?'#fff':LABEL.dep}">${p.name} → ${p.dest}</b>`).join(' ')+(u&&S.planes.some(p=>p.state==='ready')?' <span style="color:#f2a03c">(runway busy)</span>':'');
+  $('ready').innerHTML=S.planes.filter(p=>p.state==='ready').map(p=>`<b style="color:${p.name===focus?'#fff':LABEL.dep}">${p.name} → ${U(p.dest)}</b>`).join(' ')+(u&&S.planes.some(p=>p.state==='ready')?' <span style="color:#f2a03c">(runway busy)</span>':'');
   over.style.display=(S.over&&!S.demo)||S.paused?'grid':'none';
   over.innerHTML=S.paused?'paused<br><small>esc</small>':S.result==='won'?`level ${S.lvl+1} done ✓<br><small>Enter: level ${S.lvl+2} · ${LEVELS[S.lvl+1].name}</small>`
     :S.L.endless?`shift over<br><b>${S.done}</b><br><small>Enter: play again</small>`:`three strikes<br><small>Enter: try level ${S.lvl+1} again</small>`;
   requestAnimationFrame(frame)}
 requestAnimationFrame(frame);
-if(location.hash==='#dev')window.G={get S(){return S},step,exec,options,resolve,correct,run,D,decide,demoTick,startLevel};
+if(location.hash==='#dev')window.G={get S(){return S},step,exec,options,resolve,meaning,run,D,decide,demoTick,startLevel};
 </script></body></html>
