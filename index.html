@@ -90,7 +90,7 @@ main{flex:1;min-height:0;display:flex}
 <table>
 <tr><td>blue planes</td><td><b>Arrivals.</b> They come in high. Bring them down to low, clear them to land and send them into one of the two landing circles at the runway ends.</td></tr>
 <tr><td>gold planes</td><td><b>Departures.</b> Each wants to leave in one of 8 directions (the gold slice of the circle). Take it off the runway way that points closest, then turn it that way before it reaches the edge of the circle: once it leaves, it is too late.</td></tr>
-<tr><td>strikes</td><td>Two planes on the <b>same level</b> too close (red ring), a departure leaving through the wrong slice, or an arrival leaving your circle. Different levels cross safely. Three strikes and you replay the level.</td></tr>
+<tr><td>strikes</td><td>Two planes on the <b>same level</b> too close (red ring), a departure leaving through the wrong slice, or an arrival leaving your circle. If their shapes touch, they collide: both are lost (two strikes). Different levels cross safely. Three strikes and you replay the level.</td></tr>
 <tr><td>purple planes</td><td><b>Overflights</b> from the neighbouring sector (in a shift, after 10 planes). They fly straight across: keep them apart from the rest and let them leave through their slice.</td></tr>
 <tr><td>things take time</td><td>Changing level takes a while (bar under the label). Turning is gradual (dashed line = where it is turning to). The runway takes one plane at a time, until a landing plane has rolled out (amber while busy).</td></tr>
 </table>
@@ -98,7 +98,7 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>types</td><td><b>prop</b> slow, turns tight · <b>jet</b> · <b>bizjet</b> fast, climbs quickly · <b>heavy</b> big, turns wide, climbs slowly, needs more room around it, and its runway rests a few seconds after it (wake)</td></tr>
 <tr><td>fuel</td><td>From level 5, arrivals carry fuel. Below 90 s it shows on the label, below 45 s it calls MAYDAY: land it next. Empty: a strike.</td></tr>
 <tr><td>wind</td><td>From level 6, planes land and take off into the wind (top left): the other circles close. Now and then it turns.</td></tr>
-<tr><td>storms</td><td>From level 7, storm cells drift across with the wind. A plane that flies into one: a strike.</td></tr>
+<tr><td>storms</td><td>From level 7, storm cells drift across with the wind. A plane that flies into one loses control and crash-lands: a strike.</td></tr>
 <tr><td>readback</td><td>From level 6, a pilot sometimes mishears: the reply shows what it understood (a turn 45° off, another level). Say it again.</td></tr>
 <tr><td>score</td><td>100 per plane, less a point for every second it took beyond par. After the levels: <b>shift</b>, which never ends. Three strikes end it and pay a token per 100 points, to <b>buy</b> upgrades for later shifts (more levels up, a second runway, navigation, bigger tanks). <b>daily</b>: today's shift, the same for everyone, no upgrades.</td></tr>
 </table>
@@ -188,7 +188,7 @@ const RELATIVE={softleft:-45,left:-90,hardleft:-135,softright:45,right:90,hardri
 const DIRS=[...Object.keys(HEADINGS),...Object.keys(RELATIVE)];
 const LV=['low','mid','high','top','peak'],ALTCH='LMHTP';
 const NAMES='heron wren kite swift raven egret finch gull ibis jay lark owl puffin quail robin stork tern crane dove magpie osprey petrel snipe teal falcon grebe hawk vulture plover condor albatross bittern nightjar'.split(' ');
-const SEP=38,WAKE=14,CRASH=10,TURN=30*Math.PI/180,CLIMB=2/(2/.22+5),SPEED={slow:12,normal:17,fast:22},TAXI=18,GATE_R=50,GATE_D=150;   // landing circles: radius, and how far out from the runway end (room for a gentle line-up)
+const SEP=38,WAKE=14,TURN=30*Math.PI/180,CLIMB=2/(2/.22+5),SPEED={slow:12,normal:17,fast:22},TAXI=18,GATE_R=50,GATE_D=150;   // landing circles: radius, and how far out from the runway end (room for a gentle line-up)
 // aircraft types scale speed, turn rate and climb rate; a heavy needs more room around it (wake turbulence)
 // and leaves its runway unusable for a few seconds after it
 const TYPES={
@@ -236,7 +236,7 @@ function startLevel(n,demo=false,daily=false){n=Math.max(0,Math.min(LEVELS.lengt
   for(const r of RUNWAYS){const s=r.i?' 2':'';GATES['west'+s]={x:AX-RW-GATE_D,y:r.y,dir:1,rw:r};GATES['east'+s]={x:AX+RW+GATE_D,y:r.y,dir:-1,rw:r}}
   const queue=L.endless?null:[...Array(L.arr).fill('arr'),...Array(L.dep).fill('dep')].sort(()=>rnd()-.5);
   S={lvl:n,L,t:0,planes:[],fx:[],done:0,score:0,strikes:0,queue,next:1,over:false,result:'',paused:false,pairs:new Set(),demo,daily,
-    rwdir:rnd()<.5?1:-1,windAt:160+rnd()*90,storms:[],stormAt:25,inStorm:new Set(),ovfOn:false,earned:0};
+    rwdir:rnd()<.5?1:-1,windAt:160+rnd()*90,storms:[],stormAt:25,shake:0,ovfOn:false,earned:0};
   say(L.endless||demo?'':`level ${n+1}: ${L.name}`)}
 startLevel(+store('tower-level')||0);
 
@@ -257,8 +257,8 @@ function spawnKind(kind){
   if(kind==='dep')return spawnDep(Object.keys(HEADINGS)[rnd()*8|0]);
   for(let k=0;k<40;k++){const b=rnd()*360,x=AX+Math.cos(rad(b))*RADAR,y=AY+Math.sin(rad(b))*RADAR;
     if(!S.planes.some(p=>!onGround(p)&&Math.hypot(p.x-x,p.y-y)<180)||k===39)return kind==='ovf'?spawnOvf(b):spawnArr(b)}}
-// traffic starts at 70% of the full rate and builds up to it over the first four minutes
-const traffic=()=>Math.min(1,.7+.3*S.t/240);
+// traffic starts at 70% of the full rate and builds up to it over the first eight minutes
+const traffic=()=>Math.min(1,.7+.3*S.t/480);
 function spawnRandom(){const r=rnd();spawnKind(S.ovfOn&&r<.22?'ovf':r<(S.ovfOn?.52:.38)&&S.planes.filter(p=>p.state==='ready').length<3?'dep':'arr')}
 function strike(msg,x,y){if(S.over)return;S.strikes++;S.lastStrike=msg;say('!'+msg);S.fx.push({x,y,t:0,c:'#ff6b5e',r:40});if(S.strikes>=3)endShift()}
 // three strikes: a shift pays tokens for its score, and the daily shift keeps today's five best
@@ -329,7 +329,7 @@ function step(dt){
   S.t+=dt;
   if(S.script){while(S.script.length&&S.script[0][0]<=S.t){const[,k,a,b]=S.script.shift();k==='arr'?spawnArr(a):spawnDep(a)}
     if(!S.script.length){S.script=null;S.next=6}}
-  else if(S.L.endless){if((S.next-=dt)<=0&&freshName()){spawnRandom();S.next=Math.max(11,26-S.t/20)*(.75+rnd()*.5)/traffic()}
+  else if(S.L.endless){if((S.next-=dt)<=0&&freshName()){spawnRandom();S.next=Math.max(14,26-S.t/40)*(.75+rnd()*.5)/traffic()}
     if(CFG.ovf&&!S.ovfOn&&S.done>=10){S.ovfOn=true;say('the neighbouring sector opened: its traffic (purple) now crosses your area')}}
   else if(S.queue.length){if(S.planes.length<S.L.max&&(S.next-=dt)<=0&&freshName()){spawnKind(S.queue.shift());S.next=S.L.gap/traffic()}}
   else if(!S.planes.length){S.over=true;S.result='won';unlocked=Math.max(unlocked,S.lvl+1);store('tower-unlocked',unlocked);return}
@@ -352,19 +352,21 @@ function step(dt){
       const turn=TURN*p.T.turn;
       // with navigation, a plane cleared outside a circle flies itself to the one it was given
       if(CFG.nav&&p.cleared&&p.state==='fly'&&p.navGate&&!inGate(p)){const g=GATES[p.navGate];p.tgt=Math.atan2(g.y-p.y,g.x-p.x)}
-      // a plane cleared to land captures the approach once it enters a circle and keeps turning one way until it can line up:
-      // nose within 90° of the runway, around the circle's centre; further off, the short way round (it may swing outside).
-      // It commits to final once low, facing the runway, with a line-up turn it can fly and the runway free.
+      // a plane cleared to land captures the approach once it enters a circle. Nose within 90° of the runway and a line-up turn
+      // it can fly: it just turns onto the centreline. Otherwise it circles around the circle's centre until it can.
+      // It commits to final once low, facing the runway, with that line-up turn and the runway free.
       // Still high when it leaves the circle, wandering far off, or circling more than once around: a go-around.
       if(p.cleared&&p.state==='fly'){const k=inGate(p);if(k&&gateOpen(k)&&!p.inGate){p.inGate=k;p.navGate=null}
         if(p.inGate){const g=GATES[p.inGate],d=Math.hypot(g.x-p.x,g.y-p.y),high=p.alt>.05&&d>=GATE_R+appR(p);   // circling may poke a little outside; high and clearly outside is leaving
           if(!p.orbit){const off=wrap(p.hdg-(g.dir>0?0:Math.PI)),bear=wrap(Math.atan2(g.y-p.y,g.x-p.x)-p.hdg),short=-Math.sign(off)||1;
             // the centre on the inside of the turn; nose (nearly) at the centre: either way goes around it, so the short way to the runway heading
-            p.orbit=Math.abs(off)>Math.PI/2?Math.sign(wrap(approachHdg(p,g.dir,g.rw)-p.hdg))||1:Math.abs(bear)<rad(35)?short:Math.sign(bear);p.orbitT=0}
-          p.orbitT+=dt;p.tgt=wrap(p.hdg+p.orbit);   // always 1 rad further round: it keeps turning that way
+            p.orbit=Math.abs(bear)<rad(35)?short:Math.sign(bear);p.orbitT=0}
+          // circling the centre: fly along a ring of one turn radius around it, steering in or out when off the ring
+          const ro=Math.min(GATE_R*.85,appR(p)),r=Math.hypot(p.x-g.x,p.y-g.y),err=Math.max(-1,Math.min(1,(r-ro)/ro));
+          p.orbitT+=dt;p.tgt=wrap(Math.atan2(p.y-g.y,p.x-g.x)+p.orbit*(Math.PI/2+err*Math.PI/3));
           const c=lowNow(p)&&facing(p,p.inGate)&&!pastThreshold(p,g)&&S.t>=(p.planAt||0)&&(p.planAt=S.t+.25,lineUp(p,g));   // planning is costly: 4 tries a second
           if(c){if(rwBusy(g.rw))p.blocked=true;else startFinal(p,p.inGate,c)}
-          else if(high||d>GATE_R+2.6*appR(p)||pastThreshold(p,g)||p.orbitT>1.3*2*Math.PI/(turn*APP_TURN)||!gateOpen(p.inGate)){const was=p.inGate;p.cleared=false;p.inGate=null;p.orbit=0;p.tgt=p.hdg;
+          else if(high||d>GATE_R+2.6*appR(p)||pastThreshold(p,g)||p.orbitT>2.2*2*Math.PI/(turn*APP_TURN)||!gateOpen(p.inGate)){const was=p.inGate;p.cleared=false;p.inGate=null;p.orbit=0;p.tgt=p.hdg;
             say(`!${p.name} went around: ${high?'it was not low yet':!gateOpen(was)?'the wind turned':p.blocked?'the runway was busy':'it could not line up'}. descend low, fly it into a circle, then land`);p.blocked=false}}}
       if(p.state==='tofix'){const f=FIXES[p.fix];p.tgt=Math.atan2(f.y-p.y,f.x-p.x);if(Math.hypot(f.x-p.x,f.y-p.y)<8)p.state='hold'}
       // final: from the circle onto the runway end, touching down there and rolling out
@@ -388,17 +390,17 @@ function step(dt){
       if(p.kind!=='arr'&&went===p.dest)handled(p,p.kind==='dep'?'#f2c94c':'#c9a3ff',`${p.name} handed off to the ${U(went)}`);
       else{remove(p);strike(p.kind!=='arr'?`${p.name} left to the ${U(went)}, it wanted ${U(p.dest)}`:`${p.name} flew out of your area`,p.x,p.y)}}
   }
-  // separation: same level and too close = strike once per encounter; touching = both lost
+  // separation: same level and too close = strike once per encounter; outlines touching = both lost, in an explosion
   const air=S.planes.filter(p=>!onGround(p)),now=new Set();
   for(let i=0;i<air.length;i++)for(let j=i+1;j<air.length;j++){const a=air[i],b=air[j];
     if(Math.abs(a.alt-b.alt)>.6)continue;const d=Math.hypot(a.x-b.x,a.y-b.y);if(d>=sepOf(a,b))continue;
     const key=[a.name,b.name].sort().join();now.add(key);a.warn=b.warn=1;
-    if(d<CRASH&&!a.dead&&!b.dead){a.dead=b.dead=1;remove(a);remove(b);S.fx.push({x:a.x,y:a.y,t:0,c:'#ff6b5e',r:70});S.strikes++;strike(`${a.name} and ${b.name} collided`,a.x,a.y);continue}
+    if(!a.dead&&!b.dead&&touching(a,b)){a.dead=b.dead=1;remove(a);remove(b);boom(a,b);S.strikes++;strike(`${a.name} and ${b.name} collided`,(a.x+b.x)/2,(a.y+b.y)/2);continue}
     if(!S.pairs.has(key))strike(`${a.name} and ${b.name} too close${a.T.wake||b.T.wake?' (a heavy needs more room)':''}`,(a.x+b.x)/2,(a.y+b.y)/2)}
   S.pairs=now;
-  // a storm cell: a strike for every plane that flies into one
-  for(const s of S.storms)for(const p of air)if(Math.hypot(p.x-s.x,p.y-s.y)<s.r){const k=p.name+s.id;if(!S.inStorm.has(k)){S.inStorm.add(k);strike(`${p.name} flew into a storm`,p.x,p.y)}}
-  for(const f of S.fx)f.t+=dt;S.fx=S.fx.filter(f=>f.t<1.2);
+  // a storm cell: a plane that flies into one loses control and crash-lands (a strike)
+  for(const s of S.storms)for(const p of air)if(!p.dead&&Math.hypot(p.x-s.x,p.y-s.y)<s.r){p.dead=1;remove(p);crashLand(p);strike(`${p.name} crash-landed in a storm`,p.x,p.y)}
+  for(const f of S.fx)f.t+=dt;S.fx=S.fx.filter(f=>f.t<(f.life||1.2));S.shake=Math.max(0,(S.shake||0)-dt);
 }
 
 /* ---------- commands: plane action [direction] ---------- */
@@ -631,6 +633,68 @@ function resize(){const r=cv.getBoundingClientRect(),d=devicePixelRatio||1;cv.wi
 addEventListener('resize',resize);resize();
 const LABEL={arr:'#8fd8ff',dep:'#f2c94c',ovf:'#c9a3ff'};
 // one pictogram per type, seen from above, nose up, about 380 wide; drawn scaled down on the radar
+// each pictogram's outline as convex pieces (icon units, nose up), for the touching test
+const mir=P=>P.map(([x,y])=>[-x,y]),sym=(...P)=>P.flatMap(q=>[q,mir(q)]);   // a piece and its mirror image
+const HULLS={
+  jet:[[[-24,-150],[0,-175],[24,-150],[24,100],[14,145],[0,160],[-14,145],[-24,100]],...sym([[24,-30],[190,40],[190,70],[24,35]],[[20,100],[78,135],[78,157],[14,145]])],
+  light:[[[-20,-120],[0,-150],[20,-120],[20,-30],[12,90],[0,138],[-12,90],[-20,-30]],[[-200,-75],[200,-75],[200,-30],[-200,-30]],[[-80,100],[80,100],[80,130],[0,138],[-80,130]],[[-60,-172],[60,-172],[60,-160],[-60,-160]]],
+  bizjet:[[[-18,-160],[0,-190],[18,-160],[18,40],[16,110],[0,160],[-16,110],[-18,40]],...sym([[18,-20],[150,55],[150,78],[18,40]],[[16,110],[62,150],[62,166],[0,160]],[[22,55],[46,55],[46,110],[22,110]])],
+  heavy:[[[-34,-150],[0,-190],[34,-150],[34,30],[28,110],[0,175],[-28,110],[-34,30]],...sym([[34,-40],[230,50],[230,80],[34,30]],[[28,110],[100,145],[100,165],[16,155]])]};
+const hullsOf=p=>{const k=p.vs??sizeFor(p),a=p.hdg+Math.PI/2,c=Math.cos(a)*k,s=Math.sin(a)*k;
+  return HULLS[p.ty].map(P=>P.map(([x,y])=>[p.x+x*c-y*s,p.y+x*s+y*c]))};
+// separating axis test for two convex polygons
+const sat=(A,B)=>{for(const P of[A,B])for(let i=0;i<P.length;i++){const[x1,y1]=P[i],[x2,y2]=P[(i+1)%P.length],nx=y1-y2,ny=x2-x1;
+  let a0=Infinity,a1=-Infinity,b0=Infinity,b1=-Infinity;for(const[x,y]of A){const d=x*nx+y*ny;a0=Math.min(a0,d);a1=Math.max(a1,d)}
+  for(const[x,y]of B){const d=x*nx+y*ny;b0=Math.min(b0,d);b1=Math.max(b1,d)}if(a1<b0||b1<a0)return false}return true};
+// two planes touch when any part of their pictograms overlaps
+const touching=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y)<40&&hullsOf(a).some(A=>hullsOf(b).some(B=>sat(A,B)));
+
+// crash effects (visual only: Math.random, so seeded daily traffic stays the same)
+const R=(a,b)=>a+Math.random()*(b-a);
+// a collision: flash, fireball, shockwave, both pictograms broken in half and tumbling apart, burning debris, smoke
+function boom(a,b){const x=(a.x+b.x)/2,y=(a.y+b.y)/2;S.shake=.45;
+  const halves=[a,b].flatMap(p=>[-1,1].map(side=>{const out=Math.atan2(p.y-y,p.x-x)+side*.5,v=R(18,34);
+    return{ty:p.ty,c:LABEL[p.kind],k:p.vs??sizeFor(p),side,x:p.x,y:p.y,h:p.hdg,vx:Math.cos(out)*v+Math.cos(p.hdg)*p.spd*.5,vy:Math.sin(out)*v+Math.sin(p.hdg)*p.spd*.5,w:R(1.5,4)*(side||1)}}));
+  const bits=[...Array(26)].map(()=>{const d=R(0,7),v=R(30,130);return{vx:Math.cos(d)*v,vy:Math.sin(d)*v,l:R(2,6),h:R(0,7),w:R(-9,9),c:Math.random()<.5?'#ffb347':Math.random()<.5?LABEL[a.kind]:LABEL[b.kind],life:R(.9,1.8)}});
+  const smoke=[...Array(9)].map(()=>({x:R(-14,14),y:R(-14,14),vx:R(-6,6),vy:R(-6,6),at:R(.15,.6),r:R(10,18)}));
+  S.fx.push({kind:'boom',x,y,t:0,life:3.2,halves,bits,smoke})}
+// a storm: the plane loses control, spirals down trailing smoke, skids along the ground and lies there smoking
+function crashLand(p){const pts=[],side=Math.random()<.5?-1:1,v0=Math.max(p.spd,10),air=3,skid=.9;let x=p.x,y=p.y,h=p.hdg;
+  for(let t=0;t<air+skid;t+=1/30){const v=t<air?v0*(1-.35*t/air):v0*.65*(1-(t-air)/skid);h+=side*(t<air?.5+1.8*t/air:1.2*(1-(t-air)/skid))/30;
+    x+=Math.cos(h)*v/30;y+=Math.sin(h)*v/30;pts.push([x,y,h])}
+  S.fx.push({kind:'down',t:0,life:8,pts,air,ty:p.ty,c:LABEL[p.kind],k0:p.vs??sizeFor(p),k1:.045*p.T.size})}
+function drawFx(f){const t=f.t;
+  if(f.kind==='boom'){const{x,y}=f;
+    if(t<.2){cx.fillStyle=`rgba(255,250,235,${1-t/.2})`;cx.beginPath();cx.arc(x,y,12+90*t,0,7);cx.fill()}
+    if(t<.8){cx.strokeStyle=`rgba(255,220,180,${.7*(1-t/.8)})`;cx.lineWidth=2.5*(1-t/.8)+.5;cx.beginPath();cx.arc(x,y,10+150*t,0,7);cx.stroke();cx.lineWidth=1}
+    for(const s of f.smoke)if(t>s.at){const u=(t-s.at)/(f.life-s.at),g=cx.createRadialGradient(x+s.x+s.vx*t,y+s.y+s.vy*t,0,x+s.x+s.vx*t,y+s.y+s.vy*t,s.r*(1+2*u));
+      g.addColorStop(0,`rgba(70,70,66,${.45*(1-u)})`);g.addColorStop(1,'rgba(70,70,66,0)');cx.fillStyle=g;cx.beginPath();cx.arc(x+s.x+s.vx*t,y+s.y+s.vy*t,s.r*(1+2*u),0,7);cx.fill()}
+    if(t<1.1){const u=t/1.1,r=10+34*(1-(1-u)**3),g=cx.createRadialGradient(x,y,0,x,y,r);
+      g.addColorStop(0,`rgba(255,244,200,${1-u})`);g.addColorStop(.35,`rgba(255,160,50,${.9*(1-u)})`);g.addColorStop(.75,`rgba(200,50,25,${.6*(1-u)})`);g.addColorStop(1,'rgba(120,20,10,0)');
+      glow('#ff8a3c',24*(1-u));cx.fillStyle=g;cx.beginPath();cx.arc(x,y,r,0,7);cx.fill();glow('',0)}
+    for(const h of f.halves){const e=1-Math.exp(-1.4*t),px=h.x+h.vx*e/1.4,py=h.y+h.vy*e/1.4,a=Math.max(0,1-Math.max(0,t-1.6)/1.4);
+      cx.save();cx.globalAlpha=a;cx.translate(px,py);cx.rotate(h.h+Math.PI/2+h.w*e/1.4);cx.scale(h.k,h.k);
+      cx.beginPath();cx.rect(h.side<0?-300:0,-300,300,600);cx.clip();cx.fillStyle=t<.6?h.c:'#4a4d4a';if(t<.6)glow(h.c,8);cx.fill(SHAPES[h.ty]);
+      if(t<1.4){cx.globalAlpha=a*(1-t/1.4);cx.fillStyle='#ff9a3c';cx.fill(SHAPES[h.ty])}cx.restore();glow('',0)}
+    for(const b of f.bits)if(t<b.life){const e=(1-Math.exp(-2.5*t))/2.5,px=x+b.vx*e,py=y+b.vy*e,h=b.h+b.w*t;
+      cx.globalAlpha=1-t/b.life;cx.strokeStyle=b.c;glow('#ff9a3c',6);cx.lineWidth=1.6;cx.beginPath();cx.moveTo(px-Math.cos(h)*b.l/2,py-Math.sin(h)*b.l/2);cx.lineTo(px+Math.cos(h)*b.l/2,py+Math.sin(h)*b.l/2);cx.stroke()}
+    cx.globalAlpha=1;cx.lineWidth=1;glow('',0);return}
+  if(f.kind==='down'){const n=f.pts.length,i=Math.min(n-1,t*30|0),[x,y,h]=f.pts[i],landed=t>=f.air,end=f.air*30|0,still=t>=f.air+.9;
+    const fade=Math.min(1,Math.max(0,(f.life-t)/1.8));cx.globalAlpha=fade;
+    // the skid: a dark scorched streak from touchdown to where it stopped, a dust ring where it hit
+    if(landed){cx.strokeStyle='rgba(150,120,90,.55)';cx.lineWidth=3;cx.lineCap='round';cx.beginPath();for(let j=end;j<=i;j++)cx[j===end?'moveTo':'lineTo'](f.pts[j][0],f.pts[j][1]);cx.stroke();cx.lineWidth=1;cx.lineCap='butt';
+      const u=(t-f.air)/.9;if(u<1){const[dx,dy]=f.pts[end];cx.strokeStyle=`rgba(200,190,170,${.6*(1-u)})`;cx.beginPath();cx.arc(dx,dy,6+26*u,0,7);cx.stroke()}}
+    // smoke: puffs left along the way down, then a column from the wreck
+    for(let j=0;j<=i;j+=5){const age=t-j/30,u=Math.min(1,age/3.5);if(u>=1)continue;const[sx,sy]=f.pts[j];
+      cx.fillStyle=`rgba(175,175,165,${.4*(1-u)})`;cx.beginPath();cx.arc(sx+age*3,sy-age*2,2+9*u,0,7);cx.fill()}
+    if(still)for(let j=0;j<5;j++){const u=((t*.6+j/5)%1);cx.fillStyle=`rgba(175,175,165,${.4*(1-u)})`;cx.beginPath();cx.arc(x+u*14,y-u*10,3+10*u,0,7);cx.fill()}
+    // the plane: shrinking as it falls, flickering, then a dark wreck with a dying glow
+    const k=landed?f.k1:f.k0+(f.k1-f.k0)*(t/f.air)**1.5;cx.save();cx.translate(x,y);cx.rotate(h+Math.PI/2);cx.scale(k,k);
+    if(!landed){glow(f.c,10);cx.fillStyle=(t*8|0)%2?f.c:'#ff9a3c'}else{cx.fillStyle='#6a6e6a'}cx.fill(SHAPES[f.ty]);
+    if(landed&&t<f.air+3){cx.globalAlpha=fade*.8*(1-(t-f.air)/3);glow('#ff7a2c',10);cx.fillStyle='#ff7a2c';cx.fill(SHAPES[f.ty])}
+    cx.restore();glow('',0);cx.globalAlpha=1;return}
+  glow(f.c,12);cx.strokeStyle=f.c;cx.globalAlpha=1-f.t/1.2;cx.lineWidth=2;cx.beginPath();cx.arc(f.x,f.y,6+f.r*f.t,0,7);cx.stroke();cx.globalAlpha=1;cx.lineWidth=1}
+
 const SHAPES={
   // the app icon's airliner
   jet:new Path2D('M0 -175 C 16 -175 24 -150 24 -120 L 24 -30 L 190 40 L 190 70 L 24 35 L 20 100 L 78 135 L 78 157 L 14 145 L 0 160 L -14 145 L -78 157 L -78 135 L -20 100 L -24 35 L -190 70 L -190 40 L -24 -30 L -24 -120 C -24 -150 -16 -175 0 -175 Z'),
@@ -645,7 +709,7 @@ const ray=(b,r0,r1)=>{cx.beginPath();cx.moveTo(AX+Math.cos(b)*r0,AY+Math.sin(b)*
 const glow=(c,b)=>{cx.shadowColor=c;cx.shadowBlur=b*(devicePixelRatio||1)};
 function draw(){
   cx.setTransform(1,0,0,1,0,0);cx.clearRect(0,0,cv.width,cv.height);
-  cx.setTransform(sc,0,0,sc,ox,oy);
+  const sh=S.shake>0?S.shake*12*sc:0;cx.setTransform(sc,0,0,sc,ox+R(-sh,sh),oy+R(-sh,sh));   // a collision shakes the screen
   // your area: the radar disc, brighter toward the airport, cut into 8 direction slices
   const disc=cx.createRadialGradient(AX,AY,0,AX,AY,RADAR);disc.addColorStop(0,'#0e2c1e');disc.addColorStop(1,'#061410');
   cx.fillStyle=disc;cx.beginPath();cx.arc(AX,AY,RADAR,0,7);cx.fill();
@@ -725,7 +789,7 @@ function draw(){
     if(moving&&!ground){const f=1-Math.abs(p.tgtAlt-p.alt)/Math.max(.01,Math.abs(p.tgtAlt-p.altFrom));
       cx.fillStyle='rgba(211,234,217,.15)';cx.fillRect(lx-5,ly+9,tw+10,2);cx.fillStyle=col;cx.fillRect(lx-5,ly+9,(tw+10)*f,2)}
     p.warn=0}
-  for(const f of S.fx){glow(f.c,12);cx.strokeStyle=f.c;cx.globalAlpha=1-f.t/1.2;cx.lineWidth=2;cx.beginPath();cx.arc(f.x,f.y,6+f.r*f.t,0,7);cx.stroke();cx.globalAlpha=1;cx.lineWidth=1}
+  for(const f of S.fx)drawFx(f);
   glow('',0)}
 const over=document.getElementById('over'),$=id=>document.getElementById(id);
 // after a shift: the score, tokens earned, and the upgrades to buy (or today's best, for the daily shift)
