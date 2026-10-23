@@ -293,30 +293,39 @@ const holdR=p=>p.spd/(TURN*p.T.turn);
 const APP_TURN=.8,appR=p=>p.spd/(TURN*p.T.turn*APP_TURN);
 // the ring a plane circles a landing circle's centre on: its type's turn radius at normal speed, so planes of a type share one ring
 const ringR=p=>SPEED.normal*p.T.spd/(TURN*p.T.turn*APP_TURN);
-// until it commits, a cleared plane turns toward the extended centreline: aim at a point a little way ahead on it
-const approachHdg=(p,dir,rw)=>Math.atan2(rw.y-p.y,dir*Math.max(35,appR(p)));
 const pastThreshold=(p,g)=>g.dir*(p.x-(AX-g.dir*RW))>-10;   // too close to the runway end to line up any more
-// final flies cubic Bezier curves: a point on one, and its direction there (the plane's heading)
-const bez=(P,u)=>{const v=1-u;return[0,1].map(i=>v*v*v*P[0][i]+3*v*v*u*P[1][i]+3*v*u*u*P[2][i]+u*u*u*P[3][i])};
-const bezD=(P,u)=>{const v=1-u;return[0,1].map(i=>3*v*v*(P[1][i]-P[0][i])+6*v*u*(P[2][i]-P[1][i])+3*u*u*(P[3][i]-P[2][i]))};
-const bezDD=(P,u)=>[0,1].map(i=>6*(1-u)*(P[2][i]-2*P[1][i]+P[0][i])+6*u*(P[3][i]-2*P[2][i]+P[1][i]));
-const bezLen=P=>{let s=0,q=P[0];for(let i=1;i<=16;i++){const r=bez(P,i/16);s+=Math.hypot(r[0]-q[0],r[1]-q[1]);q=r}return s};
-// the sharpest turn along a curve, in rad per unit of distance
-const bezBend=P=>{let m=0;for(let i=0;i<=48;i++){const[dx,dy]=bezD(P,i/48),[ex,ey]=bezDD(P,i/48),v=Math.hypot(dx,dy);m=Math.max(m,Math.abs(dx*ey-dy*ex)/Math.max(1e-6,v*v*v))}return m};
-// the line-up turn: onto the centreline as early as possible (inside the circle, around its centre) without turning sharper than the plane can;
-// of the curves that make it there, the shortest (the one that wanders least). None: it keeps turning toward the centreline first
-function lineUp(p,g){const ty=g.rw.y,along=g.dir*(p.x-g.x),max=.95*TURN*p.T.turn/p.spd;
-  for(let a=Math.max(GATE_R*.4,along+10);a<=GATE_D-10;a+=5){const ax=g.x+g.dir*a,d=Math.hypot(ax-p.x,ty-p.y);let best=null;
-    for(const f of[.2,.35,.5,.65,.8])for(const h of[.2,.35,.5,.65,.8]){const c=[[p.x,p.y],[p.x+Math.cos(p.hdg)*d*f,p.y+Math.sin(p.hdg)*d*f],[ax-g.dir*d*h,ty],[ax,ty]],b=bezBend(c);
-      if(b<=max){const len=bezLen(c);if(!best||len<best.len)best={c,len}}}
-    if(best)return best.c}
-  return null}
+// paths are arcs and straights, like real turns at a steady bank: {x,y,h} where a piece starts, d = turn direction (+1 right, -1 left, 0 straight), r, len
+// a point on a path, s along it: position, heading, and the turn it is in (rad per unit of distance)
+function pathAt(P,s){for(const q of P){if(s<=q.len||q===P[P.length-1]){s=Math.min(s,q.len);
+  if(!q.d)return{x:q.x+Math.cos(q.h)*s,y:q.y+Math.sin(q.h)*s,h:q.h,k:0};
+  const cx=q.x-q.r*Math.sin(q.h)*q.d,cy=q.y+q.r*Math.cos(q.h)*q.d,a=Math.atan2(q.y-cy,q.x-cx)+q.d*s/q.r;   // turn centre, then round it
+  return{x:cx+Math.cos(a)*q.r,y:cy+Math.sin(a)*q.r,h:wrap(q.h+q.d*s/q.r),k:q.d/q.r}}s-=q.len}}
+const pathLen=P=>P.reduce((t,q)=>t+q.len,0);
+// the shortest turn-straight-turn path from one position and heading to another, every turn of radius r (Dubins)
+function dubins(x0,y0,h0,x1,y1,h1,r){let best=null;const tw=a=>((a%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
+  for(const d1 of[1,-1])for(const d2 of[1,-1]){
+    const c1x=x0+r*Math.cos(h0+d1*Math.PI/2),c1y=y0+r*Math.sin(h0+d1*Math.PI/2),c2x=x1+r*Math.cos(h1+d2*Math.PI/2),c2y=y1+r*Math.sin(h1+d2*Math.PI/2);
+    const D=Math.hypot(c2x-c1x,c2y-c1y),phi=Math.atan2(c2y-c1y,c2x-c1x);let hs,L;
+    if(d1===d2){hs=phi;L=D}else{if(D<2*r)continue;hs=phi+Math.asin(2*r*d1/D);L=D*Math.cos(phi-hs)}
+    const a1=tw(d1*(hs-h0))*r,a2=tw(d2*(h1-hs))*r,len=a1+L+a2;
+    if(!best||len<best.len){const tx=c1x-r*Math.cos(hs+d1*Math.PI/2),ty=c1y-r*Math.sin(hs+d1*Math.PI/2);
+      best={len,P:[{x:x0,y:y0,h:h0,d:d1,r,len:a1},{x:tx,y:ty,h:hs,d:0,len:L},{x:tx+Math.cos(hs)*L,y:ty+Math.sin(hs)*L,h:hs,d:d2,r,len:a2}].filter(q=>q.len>.01)}}}
+  return best}
+// the line-up: the shortest such path onto the centreline (then straight in to the runway end) that stays in the landing circle,
+// or no further out than the plane already is. None: it circles the centre until there is one
+function lineUp(p,g){const ty=g.rw.y,rh=g.dir>0?0:Math.PI,r=ringR(p),lim=Math.max(GATE_R,Math.hypot(p.x-g.x,p.y-g.y))+6,tx=AX-g.dir*RW;let best=null;
+  for(let a=-GATE_R*.5;a<=GATE_D-10;a+=5){const ax=g.x+g.dir*a,b=dubins(p.x,p.y,p.hdg,ax,ty,rh,r);if(!b||b.P.some(q=>q.d&&q.len>1.15*Math.PI*r))continue;
+    let ok=true;for(let s=0;s<=b.len&&ok&&b.P.length;s+=3){const q=pathAt(b.P,s);if(Math.hypot(q.x-g.x,q.y-g.y)>lim&&!(g.dir*(q.x-g.x)>0&&Math.abs(q.y-ty)<GATE_R*.6))ok=false}   // past the centre, toward the runway, it may run close along the centreline
+    const cost=b.len+Math.abs(tx-ax)+.3*Math.max(0,a);
+    if(ok&&(!best||cost<best.cost))best={cost,P:[...b.P,{x:ax,y:ty,h:rh,d:0,len:Math.abs(tx-ax)}]}}
+  return best&&best.P}
+// following a path or a ring: the turn it needs there, plus a correction toward it (intercept up to 50°) and onto its heading
+function follow(p,x,y,h,k){const lat=(p.x-x)*-Math.sin(h)+(p.y-y)*Math.cos(h),want=-Math.max(-.9,Math.min(.9,lat*.035));
+  return p.spd*k+1.6*wrap(want-wrap(p.hdg-h))}
 const sepOf=(a,b)=>SEP+(a.T.wake||b.T.wake?WAKE:0);
 const windWord=()=>S.rwdir>0?'E':'W';
-// final: one turn inside the circle onto the centreline (point A, on it, toward the runway side), then straight in to the runway end
-function startFinal(p,k,c){const g=GATES[k];p.state='final';p.dir=g.dir;p.rw=g.rw;p.cleared=false;p.inGate=null;p.navGate=null;p.orbit=0;p.tgtSpd=10*p.T.spd;
-  const tx=AX-g.dir*RW,ty=g.rw.y,ax=c[3][0];
-  p.app=[c,[[ax,ty],[(2*ax+tx)/3,ty],[(ax+2*tx)/3,ty],[tx,ty]]];p.u=0}
+// final: the line-up path, flown by following it, touching down at the runway end
+function startFinal(p,k,P){const g=GATES[k];p.state='final';p.dir=g.dir;p.rw=g.rw;p.cleared=false;p.inGate=null;p.navGate=null;p.orbit=0;p.tgtSpd=10*p.T.spd;p.app=P;p.s=0}
 function startRoll(p){p.state='roll';p.x=AX-p.rdir*RW;p.y=p.rw.y;p.hdg=p.rdir>0?0:Math.PI;if(!p.turned)p.tgt=p.hdg;p.spd=0;setLevel(p,1)}
 
 // wind turns now and then (the runway direction flips); storm cells drift with it, north or south of the runways
@@ -353,7 +362,7 @@ function step(dt){
       const d=wrap(Math.atan2(p.rw.y-p.y,p.dir*20)-p.hdg);p.hdg=wrap(p.hdg+Math.sign(d)*Math.min(Math.abs(d),TURN*dt));
       if(p.dir*(p.x-AX)>=RW*.5){if(p.T.wake)p.rw.wake=6;handled(p,'#7ee0a8',`${p.name} landed and taxied off`);continue}}
     else{
-      const turn=TURN*p.T.turn;
+      const turn=TURN*p.T.turn;let wd=null;   // the turn rate it wants, when something steers it more finely than a heading
       // with navigation, a plane cleared outside a circle flies itself to the one it was given
       if(CFG.nav&&p.cleared&&p.state==='fly'&&p.navGate&&!inGate(p)){const g=GATES[p.navGate];p.tgt=Math.atan2(g.y-p.y,g.x-p.x)}
       // a plane cleared to land captures the approach once it enters a circle. Nose within 90° of the runway and a line-up turn
@@ -367,27 +376,25 @@ function step(dt){
             p.orbit=Math.abs(bear)<rad(35)?short:Math.sign(bear);p.orbitT=0;p.tgtSpd=SPEED.normal*p.T.spd}
           // circling the centre on its ring: outside it, straight for the point where its line touches the ring; on or inside it,
           // the ring's tangent tilted outward by how far inside it is. Both meet at the ring, so it joins it smoothly and stays on it
-          const ro=ringR(p),r=Math.hypot(p.x-g.x,p.y-g.y);p.orbitT+=dt;
-          p.tgt=wrap(r>ro?Math.atan2(g.y-p.y,g.x-p.x)-p.orbit*Math.asin(ro/r):Math.atan2(p.y-g.y,p.x-g.x)+p.orbit*(Math.PI/2+Math.max(-1,(r-ro)/ro)*Math.PI/3));
+          const ro=ringR(p),r=Math.hypot(p.x-g.x,p.y-g.y),a=Math.atan2(p.y-g.y,p.x-g.x);p.orbitT+=dt;
+          if(r>1.4*ro)p.tgt=wrap(Math.atan2(g.y-p.y,g.x-p.x)-p.orbit*Math.asin(ro/r));
+          else wd=follow(p,g.x+Math.cos(a)*ro,g.y+Math.sin(a)*ro,wrap(a+p.orbit*Math.PI/2),p.orbit/ro);
           const c=lowNow(p)&&facing(p,p.inGate)&&!pastThreshold(p,g)&&S.t>=(p.planAt||0)&&(p.planAt=S.t+.25,lineUp(p,g));   // planning is costly: 4 tries a second
           if(c){if(rwBusy(g.rw))p.blocked=true;else startFinal(p,p.inGate,c)}
           else if(high||d>GATE_R+2.6*appR(p)||pastThreshold(p,g)||p.orbitT>2.2*2*Math.PI/(turn*APP_TURN)||!gateOpen(p.inGate)){const was=p.inGate;p.cleared=false;p.inGate=null;p.orbit=0;p.tgt=p.hdg;
             say(`!${p.name} went around: ${high?'it was not low yet':!gateOpen(was)?'a storm moved over the circle':p.blocked?'the runway was busy':'it could not line up'}. descend low, fly it into a circle, then land`);p.blocked=false}}}
       if(p.state==='tofix'){const f=FIXES[p.fix];p.tgt=Math.atan2(f.y-p.y,f.x-p.x);if(Math.hypot(f.x-p.x,f.y-p.y)<8)p.state='hold'}
-      // final: from the circle onto the runway end, touching down there and rolling out
-      // (placed on its curves directly, heading along them, so it never overshoots a joint)
-      if(p.state==='final'){p.alt=Math.max(0,p.alt-CLIMB*p.T.climb*dt);let go=p.spd*dt;
-        while(go>0&&p.app.length){const c=p.app[0],du=go/Math.max(1,Math.hypot(...bezD(c,p.u)));
-          if(p.u+du<1){p.u+=du;go=0}else{go-=(1-p.u)*Math.hypot(...bezD(c,p.u));p.u=1}
-          [p.x,p.y]=bez(c,p.u);const[dx,dy]=bezD(c,p.u);p.hdg=p.tgt=Math.atan2(dy,dx);if(p.u>=1&&(p.app.shift(),p.app.length))p.u=0}
-        if(!p.app.length){p.state='rollout';p.alt=p.tgtAlt=0}}
-      const bank=p.inGate&&!p.orbit?turn*APP_TURN:turn;   // on its ring it may bank up to its full rate, to stay on it
-      if(p.state==='hold')p.hdg=wrap(p.hdg+turn*dt);
-      else if(p.state!=='rollout'){const d=wrap(p.tgt-p.hdg);p.hdg=wrap(p.hdg+Math.sign(d)*Math.min(Math.abs(d),bank*dt))}
+      // final: following the line-up path to the runway end, touching down there and rolling out
+      if(p.state==='final'){p.alt=Math.max(0,p.alt-CLIMB*p.T.climb*dt);const q=pathAt(p.app,p.s);
+        p.s+=p.spd*dt*Math.max(0,Math.cos(wrap(p.hdg-q.h)));wd=follow(p,q.x,q.y,q.h,q.k);p.tgt=q.h;
+        if(p.dir*(p.x-(AX-p.dir*RW))>=0){p.state='rollout';p.alt=p.tgtAlt=0}}
+      // turning: a plane rolls into and out of a turn (its turn rate changes gradually, full bank in about 0.7 s)
+      if(p.state!=='rollout'){if(wd===null)wd=p.state==='hold'?turn:1.4*wrap(p.tgt-p.hdg);wd=Math.max(-turn,Math.min(turn,wd));
+        p.w=p.w||0;p.w+=Math.max(-1.4*turn*dt,Math.min(1.4*turn*dt,wd-p.w));p.hdg=wrap(p.hdg+p.w*dt)}
       if(p.state!=='rollout')p.alt+=Math.sign(p.tgtAlt-p.alt)*Math.min(Math.abs(p.tgtAlt-p.alt),CLIMB*p.T.climb*dt);
       p.spd+=Math.sign(p.tgtSpd-p.spd)*Math.min(Math.abs(p.tgtSpd-p.spd),3*dt);
     }
-    if(p.state!=='final'){p.x+=Math.cos(p.hdg)*p.spd*dt;p.y+=Math.sin(p.hdg)*p.spd*dt}
+    p.x+=Math.cos(p.hdg)*p.spd*dt;p.y+=Math.sin(p.hdg)*p.spd*dt;
     p.vs=(p.vs??sizeFor(p))+(sizeFor(p)-(p.vs??sizeFor(p)))*Math.min(1,dt*1.5);
     if((p.tt-=dt)<=0){p.tt=.7;p.trail.push([p.x,p.y]);if(p.trail.length>9)p.trail.shift()}
     // leaving your area: a departure or overflight through its own slice is handed off, anything else is a strike
@@ -774,7 +781,7 @@ function draw(){
     if(p.state==='hold'){const hr=holdR(p);cx.setLineDash([2,4]);cx.strokeStyle='rgba(211,234,217,.25)';cx.beginPath();cx.arc(p.x-hr*Math.sin(p.hdg),p.y+hr*Math.cos(p.hdg),hr,0,7);cx.stroke();cx.setLineDash([])}
     if(p.inGate&&p.orbit){const g=GATES[p.inGate];cx.setLineDash([2,5]);cx.strokeStyle='rgba(211,234,217,.22)';cx.beginPath();cx.arc(g.x,g.y,ringR(p),0,7);cx.stroke();cx.setLineDash([])}   // the ring it circles
     if(p.state==='final'){cx.setLineDash([3,4]);cx.strokeStyle='rgba(126,224,168,.45)';cx.beginPath();cx.moveTo(p.x,p.y);
-      p.app.forEach((c,j)=>{for(let i=1;i<=12;i++){const[x,y]=bez(c,j?i/12:p.u+(1-p.u)*i/12);cx.lineTo(x,y)}});cx.stroke();cx.setLineDash([])}
+      const L=pathLen(p.app);for(let s=p.s;s<L+3;s+=3){const q=pathAt(p.app,Math.min(s,L));cx.lineTo(q.x,q.y)}cx.stroke();cx.setLineDash([])}
     if(p.state==='tofix'){const f=FIXES[p.fix];cx.setLineDash([2,5]);cx.strokeStyle='rgba(211,234,217,.3)';cx.beginPath();cx.moveTo(p.x,p.y);cx.lineTo(f.x,f.y);cx.stroke();cx.setLineDash([])}
     if(p.state==='fly'&&!p.inGate&&Math.abs(wrap(p.tgt-p.hdg))>.05){
       cx.setLineDash([3,4]);cx.strokeStyle='rgba(255,255,255,.4)';cx.beginPath();cx.moveTo(p.x,p.y);cx.lineTo(p.x+Math.cos(p.tgt)*45,p.y+Math.sin(p.tgt)*45);cx.stroke();cx.setLineDash([])}
