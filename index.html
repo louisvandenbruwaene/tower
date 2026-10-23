@@ -289,6 +289,8 @@ const toGate=p=>{const g=GATES[nearestGate(p)];return compass(g.x-g.dir*GATE_R*.
 const holdR=p=>p.spd/(TURN*p.T.turn);
 // on the approach a plane banks gently: wider, slower turns than when you steer it
 const APP_TURN=.8,appR=p=>p.spd/(TURN*p.T.turn*APP_TURN);
+// the ring a plane circles a landing circle's centre on: its type's turn radius at normal speed, so planes of a type share one ring
+const ringR=p=>SPEED.normal*p.T.spd/(TURN*p.T.turn*APP_TURN);
 // until it commits, a cleared plane turns toward the extended centreline: aim at a point a little way ahead on it
 const approachHdg=(p,dir,rw)=>Math.atan2(rw.y-p.y,dir*Math.max(35,appR(p)));
 const pastThreshold=(p,g)=>g.dir*(p.x-(AX-g.dir*RW))>-10;   // too close to the runway end to line up any more
@@ -360,10 +362,11 @@ function step(dt){
         if(p.inGate){const g=GATES[p.inGate],d=Math.hypot(g.x-p.x,g.y-p.y),high=p.alt>.05&&d>=GATE_R+appR(p);   // circling may poke a little outside; high and clearly outside is leaving
           if(!p.orbit){const off=wrap(p.hdg-(g.dir>0?0:Math.PI)),bear=wrap(Math.atan2(g.y-p.y,g.x-p.x)-p.hdg),short=-Math.sign(off)||1;
             // the centre on the inside of the turn; nose (nearly) at the centre: either way goes around it, so the short way to the runway heading
-            p.orbit=Math.abs(bear)<rad(35)?short:Math.sign(bear);p.orbitT=0}
-          // circling the centre: fly along a ring of one turn radius around it, steering in or out when off the ring
-          const ro=Math.min(GATE_R*.85,appR(p)),r=Math.hypot(p.x-g.x,p.y-g.y),err=Math.max(-1,Math.min(1,(r-ro)/ro));
-          p.orbitT+=dt;p.tgt=wrap(Math.atan2(p.y-g.y,p.x-g.x)+p.orbit*(Math.PI/2+err*Math.PI/3));
+            p.orbit=Math.abs(bear)<rad(35)?short:Math.sign(bear);p.orbitT=0;p.tgtSpd=SPEED.normal*p.T.spd}
+          // circling the centre on its ring: outside it, straight for the point where its line touches the ring; on or inside it,
+          // the ring's tangent tilted outward by how far inside it is. Both meet at the ring, so it joins it smoothly and stays on it
+          const ro=ringR(p),r=Math.hypot(p.x-g.x,p.y-g.y);p.orbitT+=dt;
+          p.tgt=wrap(r>ro?Math.atan2(g.y-p.y,g.x-p.x)-p.orbit*Math.asin(ro/r):Math.atan2(p.y-g.y,p.x-g.x)+p.orbit*(Math.PI/2+Math.max(-1,(r-ro)/ro)*Math.PI/3));
           const c=lowNow(p)&&facing(p,p.inGate)&&!pastThreshold(p,g)&&S.t>=(p.planAt||0)&&(p.planAt=S.t+.25,lineUp(p,g));   // planning is costly: 4 tries a second
           if(c){if(rwBusy(g.rw))p.blocked=true;else startFinal(p,p.inGate,c)}
           else if(high||d>GATE_R+2.6*appR(p)||pastThreshold(p,g)||p.orbitT>2.2*2*Math.PI/(turn*APP_TURN)||!gateOpen(p.inGate)){const was=p.inGate;p.cleared=false;p.inGate=null;p.orbit=0;p.tgt=p.hdg;
@@ -376,7 +379,7 @@ function step(dt){
           if(p.u+du<1){p.u+=du;go=0}else{go-=(1-p.u)*Math.hypot(...bezD(c,p.u));p.u=1}
           [p.x,p.y]=bez(c,p.u);const[dx,dy]=bezD(c,p.u);p.hdg=p.tgt=Math.atan2(dy,dx);if(p.u>=1&&(p.app.shift(),p.app.length))p.u=0}
         if(!p.app.length){p.state='rollout';p.alt=p.tgtAlt=0}}
-      const bank=p.inGate?turn*APP_TURN:turn;
+      const bank=p.inGate&&!p.orbit?turn*APP_TURN:turn;   // on its ring it may bank up to its full rate, to stay on it
       if(p.state==='hold')p.hdg=wrap(p.hdg+turn*dt);
       else if(p.state!=='rollout'){const d=wrap(p.tgt-p.hdg);p.hdg=wrap(p.hdg+Math.sign(d)*Math.min(Math.abs(d),bank*dt))}
       if(p.state!=='rollout')p.alt+=Math.sign(p.tgtAlt-p.alt)*Math.min(Math.abs(p.tgtAlt-p.alt),CLIMB*p.T.climb*dt);
@@ -767,6 +770,7 @@ function draw(){
     if(p.warn){cx.fillStyle='rgba(255,107,94,.1)';cx.strokeStyle='rgba(255,107,94,.6)';cx.beginPath();cx.arc(p.x,p.y,(SEP+(p.T.wake?WAKE:0))/2,0,7);cx.fill();cx.stroke()}
     // timing cues: the circle it is flying, where it is turning to, the fix it is flying to
     if(p.state==='hold'){const hr=holdR(p);cx.setLineDash([2,4]);cx.strokeStyle='rgba(211,234,217,.25)';cx.beginPath();cx.arc(p.x-hr*Math.sin(p.hdg),p.y+hr*Math.cos(p.hdg),hr,0,7);cx.stroke();cx.setLineDash([])}
+    if(p.inGate&&p.orbit){const g=GATES[p.inGate];cx.setLineDash([2,5]);cx.strokeStyle='rgba(211,234,217,.22)';cx.beginPath();cx.arc(g.x,g.y,ringR(p),0,7);cx.stroke();cx.setLineDash([])}   // the ring it circles
     if(p.state==='final'){cx.setLineDash([3,4]);cx.strokeStyle='rgba(126,224,168,.45)';cx.beginPath();cx.moveTo(p.x,p.y);
       p.app.forEach((c,j)=>{for(let i=1;i<=12;i++){const[x,y]=bez(c,j?i/12:p.u+(1-p.u)*i/12);cx.lineTo(x,y)}});cx.stroke();cx.setLineDash([])}
     if(p.state==='tofix'){const f=FIXES[p.fix];cx.setLineDash([2,5]);cx.strokeStyle='rgba(211,234,217,.3)';cx.beginPath();cx.moveTo(p.x,p.y);cx.lineTo(f.x,f.y);cx.stroke();cx.setLineDash([])}
