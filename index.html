@@ -83,7 +83,7 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>heron descend</td><td>down to low · <b>heron descend mid</b> stops at mid</td></tr>
 <tr><td>heron ascend</td><td>up to high · <b>heron ascend mid</b> stops at mid</td></tr>
 <tr><td>heron hold</td><td>circle on the spot until you give it a turn, or <b>land</b> inside a landing circle · <b>heron hold kilo</b> flies to the fix KILO (also ALPHA, BRAVO, ZULU) and circles there</td></tr>
-<tr><td>heron land</td><td>only inside an open landing circle (also ends a hold). It turns toward the runway by itself, even if that swings it a little outside, and lands once it faces it, low, with the runway free. Still high when it leaves the circle: it goes around.</td></tr>
+<tr><td>heron land</td><td>only inside an open landing circle (also ends a hold). It circles around the centre of the circle until it can line up (nose more than 90° off the runway: the short way round, which may swing it outside), then turns onto the runway and lands, low, with the runway free. Still high when it leaves the circle: it goes around.</td></tr>
 <tr><td>wren takeoff e</td><td>departures in the <b>ready</b> list: it taxis from the apron to that runway end, waits there until the runway is free, takes off <b>east</b> or <b>west</b>, climbs to mid and flies straight on until you turn it (you may turn it while it taxis).</td></tr>
 <tr><td>slow · fast · abort</td><td>change speed · cancel a hold (flies straight on) or a landing (also climbs to mid)</td></tr>
 </table>
@@ -278,7 +278,8 @@ const rwBusy=r=>!!runwayUser(r)||r.wake>0;
 const runwayFor=d=>CFG.wind?(S.rwdir>0?'east':'west'):Math.cos(rad(HEADINGS[d]))<-.01?'west':'east';
 const gateOpen=k=>!CFG.wind||GATES[k].dir===S.rwdir;
 const inGate=p=>Object.keys(GATES).find(k=>Math.hypot(GATES[k].x-p.x,GATES[k].y-p.y)<GATE_R);
-const facing=(p,k)=>Math.abs(wrap(p.hdg-(GATES[k].dir>0?0:Math.PI)))<=rad(45);
+// facing the runway: nose within 90° of it, so it can line up turning around the circle's centre
+const facing=(p,k)=>Math.abs(wrap(p.hdg-(GATES[k].dir>0?0:Math.PI)))<=rad(90);
 const lowNow=p=>p.tgtAlt===0&&p.alt<=.05;
 // the open circle a plane is in, low and facing the runway: where it may land
 const landGate=p=>{const k=inGate(p);return k&&gateOpen(k)&&facing(p,k)&&lowNow(p)?k:null};
@@ -290,15 +291,28 @@ const holdR=p=>p.spd/(TURN*p.T.turn);
 const APP_TURN=.8,appR=p=>p.spd/(TURN*p.T.turn*APP_TURN);
 // until it commits, a cleared plane turns toward the extended centreline: aim at a point a little way ahead on it
 const approachHdg=(p,dir,rw)=>Math.atan2(rw.y-p.y,dir*Math.max(35,appR(p)));
-const pastThreshold=(p,g)=>g.dir*(p.x-(AX-g.dir*RW))>-60;
-// final follows a cubic Bezier from where the plane commits to the runway end: its heading at both ends, so one smooth turn, lined up at touchdown
+const pastThreshold=(p,g)=>g.dir*(p.x-(AX-g.dir*RW))>-10;   // too close to the runway end to line up any more
+// final flies cubic Bezier curves: a point on one, and its direction there (the plane's heading)
 const bez=(P,u)=>{const v=1-u;return[0,1].map(i=>v*v*v*P[0][i]+3*v*v*u*P[1][i]+3*v*u*u*P[2][i]+u*u*u*P[3][i])};
-const bezSpeed=(P,u)=>{const v=1-u;return Math.hypot(...[0,1].map(i=>3*v*v*(P[1][i]-P[0][i])+6*v*u*(P[2][i]-P[1][i])+3*u*u*(P[3][i]-P[2][i])))};
+const bezD=(P,u)=>{const v=1-u;return[0,1].map(i=>3*v*v*(P[1][i]-P[0][i])+6*v*u*(P[2][i]-P[1][i])+3*u*u*(P[3][i]-P[2][i]))};
+const bezDD=(P,u)=>[0,1].map(i=>6*(1-u)*(P[2][i]-2*P[1][i]+P[0][i])+6*u*(P[3][i]-2*P[2][i]+P[1][i]));
+const bezLen=P=>{let s=0,q=P[0];for(let i=1;i<=16;i++){const r=bez(P,i/16);s+=Math.hypot(r[0]-q[0],r[1]-q[1]);q=r}return s};
+// the sharpest turn along a curve, in rad per unit of distance
+const bezBend=P=>{let m=0;for(let i=0;i<=48;i++){const[dx,dy]=bezD(P,i/48),[ex,ey]=bezDD(P,i/48),v=Math.hypot(dx,dy);m=Math.max(m,Math.abs(dx*ey-dy*ex)/Math.max(1e-6,v*v*v))}return m};
+// the line-up turn: onto the centreline as early as possible (inside the circle, around its centre) without turning sharper than the plane can;
+// of the curves that make it there, the shortest (the one that wanders least). None: it keeps turning toward the centreline first
+function lineUp(p,g){const ty=g.rw.y,along=g.dir*(p.x-g.x),max=.95*TURN*p.T.turn/p.spd;
+  for(let a=Math.max(GATE_R*.4,along+10);a<=GATE_D-10;a+=5){const ax=g.x+g.dir*a,d=Math.hypot(ax-p.x,ty-p.y);let best=null;
+    for(const f of[.2,.35,.5,.65,.8])for(const h of[.2,.35,.5,.65,.8]){const c=[[p.x,p.y],[p.x+Math.cos(p.hdg)*d*f,p.y+Math.sin(p.hdg)*d*f],[ax-g.dir*d*h,ty],[ax,ty]],b=bezBend(c);
+      if(b<=max){const len=bezLen(c);if(!best||len<best.len)best={c,len}}}
+    if(best)return best.c}
+  return null}
 const sepOf=(a,b)=>SEP+(a.T.wake||b.T.wake?WAKE:0);
 const windWord=()=>S.rwdir>0?'E':'W';
-function startFinal(p,k){const g=GATES[k];p.state='final';p.dir=g.dir;p.rw=g.rw;p.cleared=false;p.inGate=null;p.navGate=null;p.tgtSpd=10*p.T.spd;
-  const tx=AX-g.dir*RW,ty=g.rw.y,l=Math.hypot(tx-p.x,ty-p.y)*.4;
-  p.app=[[p.x,p.y],[p.x+Math.cos(p.hdg)*l,p.y+Math.sin(p.hdg)*l],[tx-g.dir*l,ty],[tx,ty]];p.u=0}
+// final: one turn inside the circle onto the centreline (point A, on it, toward the runway side), then straight in to the runway end
+function startFinal(p,k,c){const g=GATES[k];p.state='final';p.dir=g.dir;p.rw=g.rw;p.cleared=false;p.inGate=null;p.navGate=null;p.orbit=0;p.tgtSpd=10*p.T.spd;
+  const tx=AX-g.dir*RW,ty=g.rw.y,ax=c[3][0];
+  p.app=[c,[[ax,ty],[(2*ax+tx)/3,ty],[(ax+2*tx)/3,ty],[tx,ty]]];p.u=0}
 function startRoll(p){p.state='roll';p.x=AX-p.rdir*RW;p.y=p.rw.y;p.hdg=p.rdir>0?0:Math.PI;if(!p.turned)p.tgt=p.hdg;p.spd=0;setLevel(p,1)}
 
 // wind turns now and then (the runway direction flips); storm cells drift with it, north or south of the runways
@@ -338,27 +352,35 @@ function step(dt){
       const turn=TURN*p.T.turn;
       // with navigation, a plane cleared outside a circle flies itself to the one it was given
       if(CFG.nav&&p.cleared&&p.state==='fly'&&p.navGate&&!inGate(p)){const g=GATES[p.navGate];p.tgt=Math.atan2(g.y-p.y,g.x-p.x)}
-      // a plane cleared to land captures the approach once it enters a circle: it keeps turning toward the runway end
-      // (a slow turner may swing a little outside the circle doing so) and lands once it faces it, low, near the circle,
-      // with the runway free. Still high when it leaves the circle, or wandering far off, is a go-around.
+      // a plane cleared to land captures the approach once it enters a circle and keeps turning one way until it can line up:
+      // nose within 90° of the runway, around the circle's centre; further off, the short way round (it may swing outside).
+      // It commits to final once low, facing the runway, with a line-up turn it can fly and the runway free.
+      // Still high when it leaves the circle, wandering far off, or circling more than once around: a go-around.
       if(p.cleared&&p.state==='fly'){const k=inGate(p);if(k&&gateOpen(k)&&!p.inGate){p.inGate=k;p.navGate=null}
-        if(p.inGate){const g=GATES[p.inGate],d=Math.hypot(g.x-p.x,g.y-p.y),high=p.alt>.05&&d>=GATE_R;
-          p.tgt=approachHdg(p,g.dir,g.rw);
-          if(lowNow(p)&&facing(p,p.inGate)&&!pastThreshold(p,g)){if(rwBusy(g.rw))p.blocked=true;else startFinal(p,p.inGate)}
-          else if(high||d>GATE_R+2.6*appR(p)||pastThreshold(p,g)||!gateOpen(p.inGate)){const was=p.inGate;p.cleared=false;p.inGate=null;
+        if(p.inGate){const g=GATES[p.inGate],d=Math.hypot(g.x-p.x,g.y-p.y),high=p.alt>.05&&d>=GATE_R+appR(p);   // circling may poke a little outside; high and clearly outside is leaving
+          if(!p.orbit){const off=wrap(p.hdg-(g.dir>0?0:Math.PI)),bear=wrap(Math.atan2(g.y-p.y,g.x-p.x)-p.hdg),short=-Math.sign(off)||1;
+            // the centre on the inside of the turn; nose (nearly) at the centre: either way goes around it, so the short way to the runway heading
+            p.orbit=Math.abs(off)>Math.PI/2?Math.sign(wrap(approachHdg(p,g.dir,g.rw)-p.hdg))||1:Math.abs(bear)<rad(35)?short:Math.sign(bear);p.orbitT=0}
+          p.orbitT+=dt;p.tgt=wrap(p.hdg+p.orbit);   // always 1 rad further round: it keeps turning that way
+          const c=lowNow(p)&&facing(p,p.inGate)&&!pastThreshold(p,g)&&S.t>=(p.planAt||0)&&(p.planAt=S.t+.25,lineUp(p,g));   // planning is costly: 4 tries a second
+          if(c){if(rwBusy(g.rw))p.blocked=true;else startFinal(p,p.inGate,c)}
+          else if(high||d>GATE_R+2.6*appR(p)||pastThreshold(p,g)||p.orbitT>1.3*2*Math.PI/(turn*APP_TURN)||!gateOpen(p.inGate)){const was=p.inGate;p.cleared=false;p.inGate=null;p.orbit=0;p.tgt=p.hdg;
             say(`!${p.name} went around: ${high?'it was not low yet':!gateOpen(was)?'the wind turned':p.blocked?'the runway was busy':'it could not line up'}. descend low, fly it into a circle, then land`);p.blocked=false}}}
       if(p.state==='tofix'){const f=FIXES[p.fix];p.tgt=Math.atan2(f.y-p.y,f.x-p.x);if(Math.hypot(f.x-p.x,f.y-p.y)<8)p.state='hold'}
       // final: from the circle onto the runway end, touching down there and rolling out
-      // (it heads for the point on its curve one step on, so the move below lands it there)
-      if(p.state==='final'){p.alt=Math.max(0,p.alt-CLIMB*p.T.climb*dt);p.u=Math.min(1,p.u+p.spd*dt/Math.max(1,bezSpeed(p.app,p.u)));
-        const[nx,ny]=bez(p.app,p.u);p.hdg=p.tgt=Math.atan2(ny-p.y,nx-p.x);if(p.u>=1){p.state='rollout';p.alt=p.tgtAlt=0}}
-      const bank=p.state==='final'||p.inGate?turn*APP_TURN:turn;
+      // (placed on its curves directly, heading along them, so it never overshoots a joint)
+      if(p.state==='final'){p.alt=Math.max(0,p.alt-CLIMB*p.T.climb*dt);let go=p.spd*dt;
+        while(go>0&&p.app.length){const c=p.app[0],du=go/Math.max(1,Math.hypot(...bezD(c,p.u)));
+          if(p.u+du<1){p.u+=du;go=0}else{go-=(1-p.u)*Math.hypot(...bezD(c,p.u));p.u=1}
+          [p.x,p.y]=bez(c,p.u);const[dx,dy]=bezD(c,p.u);p.hdg=p.tgt=Math.atan2(dy,dx);if(p.u>=1&&(p.app.shift(),p.app.length))p.u=0}
+        if(!p.app.length){p.state='rollout';p.alt=p.tgtAlt=0}}
+      const bank=p.inGate?turn*APP_TURN:turn;
       if(p.state==='hold')p.hdg=wrap(p.hdg+turn*dt);
       else if(p.state!=='rollout'){const d=wrap(p.tgt-p.hdg);p.hdg=wrap(p.hdg+Math.sign(d)*Math.min(Math.abs(d),bank*dt))}
       if(p.state!=='rollout')p.alt+=Math.sign(p.tgtAlt-p.alt)*Math.min(Math.abs(p.tgtAlt-p.alt),CLIMB*p.T.climb*dt);
       p.spd+=Math.sign(p.tgtSpd-p.spd)*Math.min(Math.abs(p.tgtSpd-p.spd),3*dt);
     }
-    p.x+=Math.cos(p.hdg)*p.spd*dt;p.y+=Math.sin(p.hdg)*p.spd*dt;
+    if(p.state!=='final'){p.x+=Math.cos(p.hdg)*p.spd*dt;p.y+=Math.sin(p.hdg)*p.spd*dt}
     p.vs=(p.vs??sizeFor(p))+(sizeFor(p)-(p.vs??sizeFor(p)))*Math.min(1,dt*1.5);
     if((p.tt-=dt)<=0){p.tt=.7;p.trail.push([p.x,p.y]);if(p.trail.length>9)p.trail.shift()}
     // leaving your area: a departure or overflight through its own slice is handed off, anything else is a strike
@@ -458,7 +480,7 @@ function exec(words){
     return`${n}: taxiing to the runway${RUNWAYS.length>1?` ${p.rw.i+1}`:''}, then taking off ${U(arg)} and climbing to mid · ${CFG.nav?`it turns ${U(p.dest)} by itself`:`then turn it ${U(p.dest)}`}`}
   if(act==='slow'||act==='fast'){p.tgtSpd=SPEED[act]*p.T.spd;return`${n}: ${act}`}
   if(act==='abort'&&(p.state==='hold'||p.state==='tofix')){p.state='fly';p.tgt=p.hdg;return`${n}: stops circling, flying straight ahead`}
-  if(act==='abort'){p.state='fly';p.tgt=p.hdg;p.cleared=false;p.inGate=null;p.navGate=null;setLevel(p,1);p.tgtSpd=SPEED.normal*p.T.spd;return`${n}: landing cancelled, climbing to mid`}}
+  if(act==='abort'){p.state='fly';p.tgt=p.hdg;p.cleared=false;p.inGate=null;p.orbit=0;p.navGate=null;setLevel(p,1);p.tgtSpd=SPEED.normal*p.T.spd;return`${n}: landing cancelled, climbing to mid`}}
 function togglePause(){if(!S.over)S.paused=!S.paused}
 function onEmptyEnter(){if(S.over&&!S.demo)startLevel(S.result==='won'?S.lvl+1:S.lvl,false,S.daily)}
 
@@ -682,9 +704,9 @@ function draw(){
     // timing cues: the circle it is flying, where it is turning to, the fix it is flying to
     if(p.state==='hold'){const hr=holdR(p);cx.setLineDash([2,4]);cx.strokeStyle='rgba(211,234,217,.25)';cx.beginPath();cx.arc(p.x-hr*Math.sin(p.hdg),p.y+hr*Math.cos(p.hdg),hr,0,7);cx.stroke();cx.setLineDash([])}
     if(p.state==='final'){cx.setLineDash([3,4]);cx.strokeStyle='rgba(126,224,168,.45)';cx.beginPath();cx.moveTo(p.x,p.y);
-      for(let i=1;i<=12;i++){const[x,y]=bez(p.app,p.u+(1-p.u)*i/12);cx.lineTo(x,y)}cx.stroke();cx.setLineDash([])}
+      p.app.forEach((c,j)=>{for(let i=1;i<=12;i++){const[x,y]=bez(c,j?i/12:p.u+(1-p.u)*i/12);cx.lineTo(x,y)}});cx.stroke();cx.setLineDash([])}
     if(p.state==='tofix'){const f=FIXES[p.fix];cx.setLineDash([2,5]);cx.strokeStyle='rgba(211,234,217,.3)';cx.beginPath();cx.moveTo(p.x,p.y);cx.lineTo(f.x,f.y);cx.stroke();cx.setLineDash([])}
-    if(p.state==='fly'&&Math.abs(wrap(p.tgt-p.hdg))>.05){
+    if(p.state==='fly'&&!p.inGate&&Math.abs(wrap(p.tgt-p.hdg))>.05){
       cx.setLineDash([3,4]);cx.strokeStyle='rgba(255,255,255,.4)';cx.beginPath();cx.moveTo(p.x,p.y);cx.lineTo(p.x+Math.cos(p.tgt)*45,p.y+Math.sin(p.tgt)*45);cx.stroke();cx.setLineDash([])}
     if(hot){cx.strokeStyle='#fff';cx.lineWidth=1.5;cx.beginPath();cx.arc(p.x,p.y,12+Math.sin(S.t*6)*1.5,0,7);cx.stroke();cx.lineWidth=1}
     // its type's pictogram, a little bigger the higher it flies, small on the ground
