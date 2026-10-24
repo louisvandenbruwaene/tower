@@ -22,6 +22,7 @@ heron land                # only inside an open landing circle: it turns onto th
 wren takeoff e             # e or w; it taxis out, waits for a free runway, climbs to mid and flies straight on
 buy nav                   # after a shift: spend tokens on upgrades (height runway nav tanks)
 daily                     # today's seeded shift, the same for everyone
+speed                     # time runs 1×, 2×, 4× and back (or the 1× button)
 sound                     # sound effects on/off (or the ♪ button)
 aircraft                  # the data sheet: every aircraft type's real model, weights, speeds, turn, climb, runway, fuel
 ```
