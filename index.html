@@ -204,19 +204,19 @@ function meaning(w, opts) {
   if (opts.includes(w)) return w;
   if (/^\d+$/.test(w) && levelOf(w) >= 0 && opts.includes(LEVEL_NAMES[levelOf(w)])) return LEVEL_NAMES[levelOf(w)]; // a level by numberif(ABBR[w]&&opts.includes(ABBR[w]))return ABBR[w];
   let pick = null,
-    ps = 1e9;
+    pickScore = 1e9;
   opts.forEach((o, i) => {
-    let viewScale;
-    if (o.startsWith(w)) viewScale = 1;
-    else if (o[0] === w[0] && lettersInOrder(w, o)) viewScale = 2;
+    let score;
+    if (o.startsWith(w)) score = 1;
+    else if (o[0] === w[0] && lettersInOrder(w, o)) score = 2;
     else {
       const d = Math.min(editDistance(w, o), editDistance(w, o.slice(0, w.length)) + 0.5);
       if (d > (w.length <= 3 ? 1 : 2)) return;
-      viewScale = 3 + d;
+      score = 3 + d;
     }
-    viewScale += (o in SHORT_WORD ? o.length : i) * 0.001;
-    if (viewScale < ps) {
-      ps = viewScale;
+    score += (o in SHORT_WORD ? o.length : i) * 0.001;
+    if (score < pickScore) {
+      pickScore = score;
       pick = o;
     }
   });
@@ -1464,7 +1464,7 @@ const pathLength = P => P.reduce((t, q) => t + q.len, 0);
 // maxArc: leave out combinations with a longer turn than that (radians; a loop)
 // all: every allowed combination, not only the shortest
 function dubins(x0, y0, h0, x1, y1, h1, r, maxArc = Infinity, all = false) {
-  let bestScore = null;
+  let shortest = null;
   const list = [];
   const tw = a => ((a % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
   for (const d1 of [1, -1])
@@ -1488,10 +1488,10 @@ function dubins(x0, y0, h0, x1, y1, h1, r, maxArc = Infinity, all = false) {
         a2 = tw(d2 * (h1 - hs)) * r,
         len = a1 + L + a2;
       if (a1 > maxArc * r || a2 > maxArc * r) continue;
-      if (all || !bestScore || len < bestScore.len) {
+      if (all || !shortest || len < shortest.len) {
         const tx = c1x - r * Math.cos(hs + (d1 * Math.PI) / 2),
           ty = c1y - r * Math.sin(hs + (d1 * Math.PI) / 2);
-        bestScore = {
+        shortest = {
           len,
           P: [
             {x: x0, y: y0, h: h0, d: d1, r, len: a1},
@@ -1499,10 +1499,10 @@ function dubins(x0, y0, h0, x1, y1, h1, r, maxArc = Infinity, all = false) {
             {x: tx + Math.cos(hs) * L, y: ty + Math.sin(hs) * L, h: hs, d: d2, r, len: a2},
           ].filter(q => q.len > 0.01),
         };
-        list.push(bestScore);
+        list.push(shortest);
       }
     }
-  return all ? list : bestScore;
+  return all ? list : shortest;
 }
 // the landing cone: a plane may touch down at most THETA off the runway heading (it still overlaps the runway, and straightens
 // out on it). The cone's two legs run outward from the runway end, where they meet the extended centreline. Each leg has a
@@ -1520,25 +1520,25 @@ const inForbiddenCircle = (p, g) => forbiddenCircles(p, g).some(f => Math.hypot(
 // runway heading (3° to spare: rolling out of the turn it lags its path a little). Unless free, the straight final must be long
 // enough to slow to approach speed and settle (FINAL_MIN), the whole path long enough to descend, and inside your area.
 // Returns the path, its length and its straight final, or null
-function turnIn(p, g, randomBetween, d, free) {
+function turnIn(p, g, radius, d, free) {
   const Tx = g.endX,
     Ty = g.endY,
     rh = g.landHeading,
     tw = a => ((a % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-  const centreX = p.x - d * randomBetween * Math.sin(p.heading),
-    centreY = p.y + d * randomBetween * Math.cos(p.heading),
+  const centreX = p.x - d * radius * Math.sin(p.heading),
+    centreY = p.y + d * radius * Math.cos(p.heading),
     D = Math.hypot(Tx - centreX, Ty - centreY);
-  if (D < randomBetween) return null; // the turn's centre
-  const ta = Math.atan2(Ty - centreY, Tx - centreX) - d * Math.acos(randomBetween / D),
-    tx = centreX + randomBetween * Math.cos(ta),
-    ty = centreY + randomBetween * Math.sin(ta),
+  if (D < radius) return null; // the turn's centre
+  const ta = Math.atan2(Ty - centreY, Tx - centreX) - d * Math.acos(radius / D),
+    tx = centreX + radius * Math.cos(ta),
+    ty = centreY + radius * Math.sin(ta),
     hs = Math.atan2(Ty - ty, Tx - tx); // where it leaves the turn, aimed at the runway end
   if (Math.abs(wrap(hs - rh)) > TOUCHDOWN_ANGLE - rad(3)) return null;
-  const arc = tw(d * (ta - Math.atan2(p.y - centreY, p.x - centreX))) * randomBetween,
+  const arc = tw(d * (ta - Math.atan2(p.y - centreY, p.x - centreX))) * radius,
     L = Math.hypot(Tx - tx, Ty - ty),
     len = arc + L;
   const P = [
-    {x: p.x, y: p.y, h: p.heading, d, r: randomBetween, len: arc},
+    {x: p.x, y: p.y, h: p.heading, d, r: radius, len: arc},
     {x: tx, y: ty, h: hs, d: 0, len: L + 30},
   ].filter(q => q.len > 0.01); // +30: on over the runway end
   if (!free) {
@@ -1574,13 +1574,13 @@ function turnTwice(p, g, free) {
     rh = g.landHeading,
     slow = Math.max(0, p.speed * p.speed - approachSpeed(p) ** 2) / (2 * AIR_ACCEL_PX),
     need = (p.level / climbRateOf(p)) * approachSpeed(p);
-  let bestScore = null;
+  let cheapest = null;
   for (let a = FINAL_MIN + slow; a <= CIRCLE_D + CIRCLE_R + 80; a += 5) {
     const jx = g.endX - g.dirX * a,
       Ty = g.endY - g.dirY * a;
     for (const b of dubins(p.x, p.y, p.heading, jx, Ty, rh, r, MAX_TURN, true)) {
       const len = b.len + a;
-      if (bestScore && len >= bestScore.cost) continue;
+      if (cheapest && len >= cheapest.cost) continue;
       if (!free && len < need) continue; // the cost is never below the length
       const P = [...b.P, {x: jx, y: Ty, h: rh, d: 0, len: a + 30}];
       let ok = true;
@@ -1591,10 +1591,10 @@ function turnTwice(p, g, free) {
         }
       if (!ok) continue;
       const cost = free ? len : pathCost(P, g);
-      if (!bestScore || cost < bestScore.cost) bestScore = {len, P, cost};
+      if (!cheapest || cost < cheapest.cost) cheapest = {len, P, cost};
     }
   }
-  return bestScore;
+  return cheapest;
 }
 // the line-up flown: the cheapest (pathCost: short and close to the landing area) of the one-turn line-ups (either way, at the tightest radius it can fly now) and the two-turn
 // one. A one-turn line-up may then be flown wider: LANDING_ARC picks the radius between the tightest (0) and the widest that
@@ -1610,10 +1610,10 @@ function lineUp(p, g, free = false, arc = LANDING_ARC) {
   const two = turnTwice(p, g, free);
   if (two) cand.push(two);
   if (!cand.length) return null;
-  const bestScore = cand.reduce((a, b) => (b.cost < a.cost ? b : a)); // the cheapest: short, and close to the landing areaif(!best.d||free||arc<=0)return best.P;
-  const fits = randomBetween => {
-    const c = turnIn(p, g, randomBetween, bestScore.d);
-    return c && c.len <= bestScore.len * (1 + LEN_SLACK) ? c : null;
+  const cheapest = cand.reduce((a, b) => (b.cost < a.cost ? b : a)); // the cheapest: short, and close to the landing areaif(!best.d||free||arc<=0)return best.P;
+  const fits = radius => {
+    const c = turnIn(p, g, radius, cheapest.d);
+    return c && c.len <= cheapest.len * (1 + LEN_SLACK) ? c : null;
   };
   // the widest: grow the radius 5% at a time, then narrow it down
   let ok = r,
@@ -1631,8 +1631,8 @@ function lineUp(p, g, free = false, arc = LANDING_ARC) {
       if (fits(m)) ok = m;
       else bad = m;
     }
-  const randomBetween = r + arc * (Math.max(r, 0.95 * ok) - r);
-  return ((randomBetween > r && turnIn(p, g, randomBetween, bestScore.d)) || bestScore).P;
+  const radius = r + arc * (Math.max(r, 0.95 * ok) - r);
+  return ((radius > r && turnIn(p, g, radius, cheapest.d)) || cheapest).P;
 }
 // which way to circle while no line-up fits yet (too high, runway busy): with the centre on the inside of the turn, so it stays
 // in the zone; nose straight at the centre, either way works, so the way the shortest line-up turns
