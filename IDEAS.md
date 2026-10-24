@@ -1,6 +1,6 @@
 # Tower Power: ideas for later
 
-The game is deliberately simplified: named levels instead of real heights, eight directions, every rule switched on step by step through the levels.
+The game is deliberately simplified: named levels instead of real heights, eight directions, one endless shift with every rule on.
 
 ## In the game
 
@@ -13,9 +13,10 @@ The game is deliberately simplified: named levels instead of real heights, eight
 - **Taxiing**: departures taxi from the apron to the runway end and wait there until the runway is free. Arrivals roll out after touchdown, and the runway stays busy until they turn off.
 - **Readback errors**: now and then a pilot mishears a turn or a level, and the reply shows it.
 - **Neighbouring sector**: in a shift, after 10 planes, purple overflights start crossing your area.
-- **Scoring by delay**: 100 per plane, less a point for every second beyond par.
-- **Traffic scenarios as data**: each level lists its traffic and which rules are on (`LEVELS` and `RULES` in index.html).
-- **Roguelike shift**: three strikes end a shift and pay a token per 100 points. Tokens buy permanent upgrades: more height levels (top, peak), a second runway, navigation (departures turn to their exit by themselves, and `land` works anywhere) and bigger tanks.
+- **Money**: every type pays its own fare (prop $400 to private jet $4,000), 1% less per second beyond par, 10% more per plane in a streak.
+- **Priority flights**: VIP private jets and MEDEVAC air ambulances go first both ways, with a deadline. Military fighters now and then.
+- **Tuning in one place**: every number sits in the TUNING block at the top of index.html.
+- **Roguelike shift**: three strikes end a shift and pay a token per $1,000. Tokens buy permanent upgrades in small steps: tanks, height (top, peak), nav, less wake rest, and runways (a parallel one, then crossing runways N-S, NE-SW, NW-SE at steep prices).
 - **Daily shift**: seeded by the date, so everyone gets the same traffic, with no upgrades. Today's five best scores are kept locally (no online leaderboard yet).
 
 ## Still to do
@@ -24,7 +25,7 @@ The game is deliberately simplified: named levels instead of real heights, eight
 - **Realistic distances**: nautical miles on the radar, separation of 3 to 5 nm, speeds in knots.
 - **Low visibility**: longer final approaches in bad weather.
 - **Schedules**: a timetable of arrivals and departures, delays that build up, rewards for on-time handling.
-- **Crossing runways**, and runway crossings by taxiing planes.
+- **Runway crossings by taxiing planes**: taxiing across a runway in use (crossing runways exist, the taxiways ignore them).
 - **Handoffs**: neighbouring sectors that only accept planes at a given level and direction.
 - **A second airport**: the radar zooms out once the neighbouring sector opens, and its arrivals and departures share your airspace.
 - **An online leaderboard** for the daily shift (needs a server).
