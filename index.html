@@ -22,7 +22,7 @@ body{display:flex;flex-direction:column;background:radial-gradient(ellipse 70% 8
 main{flex:1;min-height:0;display:flex}
 /* radar */
 #view{flex:1;position:relative;min-width:0} canvas{position:absolute;inset:0;width:100%;height:100%}
-#over{position:absolute;inset:0;display:none;place-items:safe center;overflow:auto;padding:16px;box-sizing:border-box;font-size:30px;font-weight:600;background:rgba(2,8,5,.6);backdrop-filter:blur(3px);text-align:center;line-height:1.6;text-shadow:0 0 18px rgba(126,224,168,.4)}
+#over{position:absolute;inset:0;display:none;place-items:center;place-content:center;overflow:hidden;padding:16px;box-sizing:border-box;font-size:30px;font-weight:600;background:rgba(2,8,5,.6);backdrop-filter:blur(3px);text-align:center;line-height:1.6;text-shadow:0 0 18px rgba(126,224,168,.4)}
 #over small{font-size:16px;font-weight:400;color:var(--dim)} #over .big{display:inline-block;font-size:64px;font-weight:800;color:#0b2a10;background:#86d48a;padding:4px 30px;margin:6px 0;border-radius:6px;box-shadow:inset 0 0 0 9px #86d48a,inset 0 0 0 12px rgba(11,42,16,.45),0 6px 0 #2b6131;text-shadow:none;line-height:1.25}
 #over .tally{font-size:16px;font-weight:500;text-shadow:none;display:grid;grid-template-columns:auto auto;gap:2px 28px;justify-content:center;margin-top:10px} #over .tally span:nth-child(odd){color:var(--dim);text-align:right} #over .tally span:nth-child(even){text-align:left}
 #over .shop{font-size:15px;font-weight:400;line-height:1.45;text-align:left;margin:18px auto 0;width:min(600px,100%);text-shadow:none} #over .shop b{color:var(--gold);font-weight:500}
@@ -61,10 +61,10 @@ main{flex:1;min-height:0;display:flex}
 #sug{display:flex;gap:6px;flex-wrap:wrap;min-height:26px;padding-top:8px}
 #sug i{font-style:normal;font-size:13px;padding:2px 9px;border-radius:5px;background:var(--chip);color:var(--dim)} #sug i.on{background:var(--chipon);color:var(--fg)}
 /* help card over everything */
-#help{position:fixed;inset:0;display:grid;place-items:center;background:rgba(2,8,5,.75);backdrop-filter:blur(4px);overflow:auto;z-index:5}
-#help .card{max-width:min(1000px,calc(100% - 24px));max-height:calc(100% - 24px);overflow:auto;box-sizing:border-box;font-size:14px;margin:12px;padding:16px 26px;background:linear-gradient(#0a1912,#06100b);border:1px solid var(--chipon);border-radius:12px;line-height:1.5;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+#help{position:fixed;inset:0;display:grid;place-items:center;place-content:center;background:rgba(2,8,5,.75);backdrop-filter:blur(4px);overflow:hidden;z-index:5}
+#help .card{width:min(1000px,calc(100vw - 24px));min-width:min-content;box-sizing:border-box;font-size:14px;margin:12px;padding:16px 26px;background:linear-gradient(#0a1912,#06100b);border:1px solid var(--chipon);border-radius:12px;line-height:1.5;box-shadow:0 20px 60px rgba(0,0,0,.5)}
 #help h2{margin:0 0 6px;color:var(--acc);letter-spacing:.2em;text-transform:uppercase;font-size:18px;text-shadow:0 0 14px rgba(126,224,168,.45)} #help p{margin:8px 0} #help table{border-collapse:collapse;margin:8px 0} #help td{padding:2px 14px 2px 0;vertical-align:top}
-#help td:first-child{color:var(--acc);white-space:nowrap} #help .ac td{font-size:12.5px;padding-right:10px} #help .ac th{text-align:left;color:var(--gold);font-size:12.5px;padding:2px 10px 2px 0} #help .ac tr.sec td{color:var(--dim);padding-top:8px;text-transform:uppercase;letter-spacing:.1em;font-size:11px} #help .go{color:var(--dim);margin-top:12px} #help code{color:var(--gold)}
+#help td:first-child{color:var(--acc);white-space:nowrap} #help .ac td{font-size:12.5px;padding-right:10px} #help .ac th{text-align:left;color:var(--gold);font-size:12.5px;padding:2px 10px 2px 0} #help .ac tr.sec td{color:var(--dim);padding-top:8px;text-transform:uppercase;letter-spacing:.1em;font-size:11px} #help .go{color:var(--dim);margin-top:12px} #help .pg{display:none} #help .pg.on{display:block} #pnav span{cursor:pointer;padding:0 4px} #pnav span.on{color:var(--acc)} #help code{color:var(--gold)}
 @media (max-width:760px){main{flex-direction:column}#term{width:auto;height:50%;overflow:hidden}#bar{gap:10px;padding:8px 12px}#brand{display:none}#todo small{display:none}}   /* narrow: the bar keeps the numbers and buttons */
 </style></head><body>
 <div id="bar"><span id="brand">TOWER POWER</span><b id="lvl"></b><span id="todo"></span><button id="tut" class="rb" title="a short guided first landing, departure and hold">tutorial</button><button id="ff" class="rb" title="game speed: 1× 2× 4×"></button><button id="snd" class="rb" title="sound on/off"></button><button id="qm" class="rb" title="help">?</button></div>
@@ -84,8 +84,8 @@ main{flex:1;min-height:0;display:flex}
 <div id="sug"></div>
 </section>
 </main>
-<div id="help" style="display:none"><div class="card" id="admcard" style="display:none"></div><div class="card">
-<h2>Tower Power</h2>
+<div id="help" style="display:none"><div class="card" id="admcard" style="display:none"></div><div class="card" id="helpcard">
+<section class="pg"><h2>Tower Power</h2>
 <p>You are the air traffic controller. Every command has the same shape:</p>
 <p><code>plane&nbsp;&nbsp;action&nbsp;&nbsp;[direction]</code> &nbsp; the direction is only needed for some actions.</p>
 <table>
@@ -99,7 +99,8 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>heron abort</td><td>ends a hold (straight on) or a landing: it goes around, climbing to mid</td></tr>
 <tr><td>tutorial · speed</td><td>a guided first landing, departure and hold (<b>skip</b> leaves it) · time 1×, 2×, 4×, 8× (both also buttons top right)</td></tr>
 </table>
-<table>
+<p>Faded text in the prompt is a suggestion: <b>→</b> takes all of it, <b>Tab</b> takes one word. Capitals don't matter. Typos are fixed for you (<b>nt</b> = north): the reply shows what was understood. <b>Esc</b> pauses, <b>help</b> shows this card.</p></section>
+<section class="pg"><h2>Traffic</h2><table>
 <tr><td>blue planes</td><td><b>Arrivals.</b> They come in high: bring them down to low, into a landing circle, and clear them to land.</td></tr>
 <tr><td>gold planes</td><td><b>Departures.</b> Each wants to leave through one of 8 slices of your area (the gold one). Take it off the runway way closest to it, then turn it that way before it reaches the edge.</td></tr>
 <tr><td>purple planes</td><td><b>Overflights</b> from the neighbouring sector, after 10 planes. They cross in a straight line: keep them apart and let them leave through their slice.</td></tr>
@@ -112,22 +113,29 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>fuel</td><td>Arrivals carry fuel (the jerrycan by the name): below 45 s they call MAYDAY, land them next. Departures have patience (the clock): when it runs out the flight is cancelled.</td></tr>
 <tr><td>wind · storms</td><td>Planes take off and land into the wind (top left): landing circles with the wind behind them close, a runway across the wind stays open. Storm cells drift with the wind and close the circles they cover.</td></tr>
 <tr><td>readback</td><td>A pilot sometimes mishears: the reply shows what it understood. Say it again.</td></tr>
-</table>
-<table>
+</table></section>
+<section class="pg"><h2>Money</h2><table>
 <tr><td>money</td><td>Every plane pays its fare: prop $400, jet $1,000, heavy $1,600, fighter $1,500, private jet $4,000, air ambulance $3,500. It loses 1% per second beyond par (down to 10%); late priority flights pay a quarter. A <b>streak</b> (planes in a row without a strike) adds 10% a plane, up to +50%.</td></tr>
 <tr><td>shift</td><td>One shift that never ends: the first five planes in slow motion, the traffic growing for 15 minutes. It pays a token per $1,000 when it ends.</td></tr>
 <tr><td>buy</td><td>Upgrades for every later shift, one step at a time: <b>tanks</b> +20 s fuel, <b>height</b> levels top and peak, <b>nav</b> departures turn by themselves then land anywhere, <b>runway</b> less wake rest (10, 20, 50 … tokens), <b>runways</b> a parallel one (50), then crossing ones N-S (100), NE-SW (500), NW-SE (2000). Crossing runways share the centre (one busy, all busy) but open new circles and takeoff ways.</td></tr>
 <tr><td>daily · hard</td><td><b>daily</b>: today's shift, the same for everyone, no upgrades. <b>hard</b> (after a $10,000 shift): no autopilot; <b>land</b> only once you have flown the plane onto the lit strip yourself, low and facing the runway, and <b>hold alpha</b> only at ALPHA.</td></tr>
-</table>
-<p>Faded text in the prompt is a suggestion: <b>→</b> takes all of it, <b>Tab</b> takes one word. Capitals don't matter. Typos are fixed for you (<b>nt</b> = north): the reply shows what was understood. <b>Esc</b> pauses, <b>help</b> shows this card.</p>
-<h2 id="acdata" style="margin-top:18px">Aircraft</h2><div id="actable" style="overflow-x:auto"></div>
-<p class="go">Enter or Esc to close · click anywhere</p></div></div>
+</table></section>
+<section class="pg"><h2 id="acdata">Aircraft</h2><div id="actable"></div></section>
+<p class="go" id="pnav"></p></div></div>
 <script>
 /* ---------- terminal: plane action [direction]; every word is read as its most likely meaning ---------- */
 const cmd=document.getElementById('cmd'),sugEl=document.getElementById('sug'),outEl=document.getElementById('out'),ghostEl=document.getElementById('ghost');
 const hintEl=document.getElementById('hint'),helpEl=document.getElementById('help');
 const T={hist:[],hi:0,sel:0,cands:[],ghost:''};
-const helpOpen=()=>helpEl.style.display!=='none',showHelp=on=>{helpEl.style.display=on?'grid':'none';if(on){helpEl.querySelector('#admcard').style.display='none';helpEl.querySelector('.card:not(#admcard)').style.display=''}};
+// no scrolling anywhere: the help card comes in pages (← →), and every overlay shrinks to fit the window
+const PAGES=[...helpEl.querySelectorAll('.pg')],pnav=document.getElementById('pnav');
+function fit(el,pad=24){el.style.transform='';const box=el.parentElement,z=Math.min(1,(box.clientWidth-pad)/el.offsetWidth,(box.clientHeight-pad)/el.offsetHeight);
+  if(z<1)el.style.transform=`scale(${z})`}
+function setPage(i){T.page=(i+PAGES.length)%PAGES.length;PAGES.forEach((p,j)=>p.classList.toggle('on',j===T.page));
+  pnav.innerHTML=`← ${PAGES.map((p,j)=>`<span class="${j===T.page?'on':''}" data-p="${j}">${p.querySelector('h2').textContent.toLowerCase()}</span>`).join('·')} → · Enter or Esc to close`;
+  fit(document.getElementById('helpcard'))}
+pnav.addEventListener('click',e=>{e.stopPropagation();if(e.target.dataset.p)setPage(+e.target.dataset.p)});
+const helpOpen=()=>helpEl.style.display!=='none',showHelp=(on,pg=0)=>{helpEl.style.display=on?'grid':'none';if(on){helpEl.querySelector('#admcard').style.display='none';helpEl.querySelector('#helpcard').style.display='';setPage(pg)}};
 const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
 // the eight directions are typed and shown short: n ne e se s sw w nw
 const ABBR={n:'north',ne:'northeast',e:'east',se:'southeast',s:'south',sw:'southwest',w:'west',nw:'northwest'};
@@ -182,6 +190,7 @@ function logCmd(v){T.log=[...(T.log||[]),{c:v,r:outEl.textContent,bad:outEl.clas
   say('');histEl.innerHTML=T.log.map((h,i)=>`<div class="h${h.bad?' bad':''}" style="opacity:${(.25+.6*(i+1)/T.log.length).toFixed(2)}"><div class="c">${esc(h.c)}</div>${h.r?`<div class="r">${esc(h.r)}</div>`:''}</div>`).join('')}
 cmd.addEventListener('input',()=>{T.sel=0;SFX.key();refreshSug()});
 cmd.addEventListener('keydown',e=>{
+  if(helpOpen()&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){e.preventDefault();setPage(T.page+(e.key==='ArrowRight'?1:-1));return}
   const atEnd=cmd.selectionStart===cmd.value.length;
   if(e.key==='Tab'||(e.key==='ArrowRight'&&atEnd&&T.ghost)){e.preventDefault();if(!T.ghost)return;
     SFX.tab();const take=e.key==='Tab'?T.ghost.match(/^\s*\S*\s?/)[0]:T.ghost;cmd.value+=take.endsWith(' ')?take:take+' ';T.sel=0;refreshSug();return}
@@ -823,7 +832,7 @@ function exec(words){
   if(w0==='speed')return cycleFF();
   if(w0==='sound'){soundBtn();return`sound ${SFX.toggle()?'on':'off'}`}
   if(w0==='help'){showHelp(true);return''}
-  if(w0==='aircraft'){showHelp(true);document.getElementById('acdata').scrollIntoView();return''}
+  if(w0==='aircraft'){showHelp(true,PAGES.length-1);return''}
   if(w0==='tutorial')return startTutorial();
   if(w0==='skip'){endTutorial();return'tutorial closed: a new shift'}
   if(w0==='daily'){startShift(false,true);return`daily shift ${today()}: the same traffic for everyone today, no upgrades`}
@@ -998,7 +1007,7 @@ function adminManual(){
   <tr><td>rules</td><td>lists the rule switches · <b>set readback 0.2</b> changes one (levels runways nav fuel types readback wind storms ovf tank)</td></tr>
   </table><p class="go">Enter or Esc to close · help shows this again</p>`}
 const admEl=()=>document.getElementById('admcard');
-function showAdmin(html){admEl().innerHTML=html;helpEl.querySelector('.card:not(#admcard)').style.display='none';admEl().style.display='';helpEl.style.display='grid'}
+function showAdmin(html){admEl().innerHTML=html;helpEl.querySelector('.card:not(#admcard)').style.display='none';admEl().style.display='';helpEl.style.display='grid';fit(admEl())}
 function enterAdmin(){bannerEl.style.display='none';startShift(true);
   CFG={...RULES,...SHIFT.rules,storms:0,ovf:false};S.admin=true;S.next=Infinity;S.paths=true;S.windAt=Infinity;   // the wind stays put until 'wind auto'
   
@@ -1068,6 +1077,7 @@ const cv=document.getElementById('cv'),cx=cv.getContext('2d');let sc=1,ox=0,oy=0
 function resize(){const r=cv.getBoundingClientRect(),d=devicePixelRatio||1;cv.width=r.width*d;cv.height=r.height*d;
   sc=Math.min(r.width/W,r.height/H)*d;ox=(cv.width-W*sc)/2;oy=(cv.height-H*sc)/2}
 addEventListener('resize',resize);resize();
+addEventListener('resize',()=>{if(helpOpen())fit(helpEl.querySelector('.card:not([style*="none"])'))});document.fonts.ready.then(()=>helpOpen()&&setPage(T.page));
 const LABEL={arr:'#8fd8ff',dep:'#f2c94c',ovf:'#c9a3ff'};
 // what a plane is doing, shown after its level and type (flying on, it shows nothing, or that it is cleared)
 const STATE_TAG={hold:' ⟳',final:' landing',roll:' taking off',taxi:' taxi',lineup:' waiting',enter:' lining up',rollout:' landed',taxiin:' taxi in'};
@@ -1350,7 +1360,7 @@ function ui(){const sw=S.sweep;
   const focus=typedHead(),ready=S.planes.filter(p=>p.state==='ready'),busy=runwayUser()&&ready.length?'<span class="busy">runway busy</span>':'';
   $('ready').innerHTML=ready.map(p=>`<b style="color:${p.name===focus?'#fff':LABEL.dep}">${p.name}${clockSVG(p)}${p.T.tag?' '+p.T.tag:''} → ${U(p.dest)}</b>`).join(' ')+busy||'<span style="color:var(--dim)">none</span>';
   const show=(S.over&&!S.practice)||S.paused;over.style.display=show?'grid':'none';
-  if(show)over.innerHTML=`<div>${S.paused?'paused<br><small>esc</small>':shiftOver()}</div>`}   // one box, so the grid centres it as a whole
+  if(show){over.innerHTML=`<div>${S.paused?'paused<br><small>esc</small>':shiftOver()}</div>`;fit(over.firstChild,40)}}   // one box, so the grid centres it as a whole
 requestAnimationFrame(frame);
 // the tutorial is a button next to the speed button: never forced. A new player sees it nudging until they open it once
 const tutEl=document.getElementById('tut');if(!store('tower-tut')&&!best)tutEl.classList.add('new');
