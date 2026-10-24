@@ -444,7 +444,7 @@ function dubins(x0,y0,h0,x1,y1,h1,r){let best=null;const tw=a=>((a%(2*Math.PI))+
 // forbidden circle: radius the plane's turn radius r, touching the leg at the runway end, its centre on the line through the
 // runway end square to the leg, on the outer side. Turning along it, a plane reaches the runway end at exactly THETA; from
 // inside one it is too close beside the runway end to turn in, so it goes round the landing circle's centre until it is out
-const THETA=rad(15),DEBUG_LANDING=true,FINAL_MIN=35;   // FINAL_MIN: the shortest straight final, time to settle on its line
+const THETA=rad(15),FINAL_MIN=35;   // FINAL_MIN: the shortest straight final, time to settle on its line
 const forbidden=(p,g)=>{const r=turnR(p),Tx=AX-g.dir*RW;
   return[-1,1].map(s=>({x:Tx+g.dir*r*Math.sin(THETA),y:g.rw.y+s*r*Math.cos(THETA),r}))};   // s: the north and the south leg
 const inForbidden=(p,g)=>forbidden(p,g).some(f=>Math.hypot(p.x-f.x,p.y-f.y)<f.r);
@@ -944,14 +944,6 @@ function draw(){
     if(open){cx.lineWidth=2;cx.strokeStyle=c;for(const o of[-12,0,12]){cx.globalAlpha=ready?.5+.5*((S.t*2+o/12*g.dir)%1.5>.75):.8;
       cx.beginPath();cx.moveTo(g.x+o-g.dir*5,g.y-8);cx.lineTo(g.x+o+g.dir*5,g.y);cx.lineTo(g.x+o-g.dir*5,g.y+8);cx.stroke()}}
     cx.globalAlpha=1;cx.lineWidth=1;cx.fillStyle=open?c:'#66706b';cx.fillText(open?`${k} landing circle`:`${k}: closed (${stormOver(k)?'storm':'wind'})`,g.x,g.rw.i?g.y+GATE_R+13:g.y-GATE_R-11)}   // runway 2's labels go below, clear of runway 1's circles
-  // debug (DEBUG_LANDING): the landing cone at each open runway end, and each nearby arrival's forbidden circle
-  if(DEBUG_LANDING){for(const[k,g]of Object.entries(GATES)){if(!gateOpen(k))continue;const Tx=AX-g.dir*RW,L=GATE_D+GATE_R+80;
-      cx.strokeStyle='rgba(255,200,90,.45)';cx.setLineDash([5,4]);cx.beginPath();for(const sg of[-1,1]){cx.moveTo(Tx,g.y);cx.lineTo(Tx-g.dir*L*Math.cos(THETA),g.y+sg*L*Math.sin(THETA))}cx.stroke();
-      for(const p of S.planes){if(p.kind!=='arr'||onGround(p)||p.state==='final'||Math.hypot(p.x-g.x,p.y-g.y)>2*GATE_R+70)continue;
-        for(const f of forbidden(p,g)){const inside=Math.hypot(p.x-f.x,p.y-f.y)<f.r;
-          cx.strokeStyle=inside?'rgba(255,107,94,.8)':'rgba(255,200,90,.6)';cx.beginPath();cx.arc(f.x,f.y,f.r,0,7);cx.stroke();
-          font(9);cx.fillStyle=cx.strokeStyle;cx.fillText(p.name,f.x,f.y+(f.y<g.y?-f.r-5:f.r+9))}}}
-    cx.setLineDash([])}
   // apron and taxiways: from the apron north of the field along to both ends, down to every runway
   // one wide taxiway with two lanes (out inner, in outer), stubs to every runway end, amber holding-point bars
   const bot=RUNWAYS[RUNWAYS.length-1].y,tx=(OUT_X+IN_X)/2,ty=(OUT_Y+IN_Y)/2,lane=(x,y)=>{cx.beginPath();cx.moveTo(AX-x,bot);cx.lineTo(AX-x,y);cx.lineTo(AX+x,y);cx.lineTo(AX+x,bot);cx.stroke()};
