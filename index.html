@@ -33,8 +33,8 @@ main{flex:1;min-height:0;display:flex}
 #over .uh{display:flex;align-items:baseline;justify-content:space-between} #over .uh b{color:var(--acc);font-size:19px;font-weight:600} #over .pip{color:var(--dim);font-size:11px;letter-spacing:2px}
 #over .un{display:flex;justify-content:space-between;gap:8px;margin-top:4px;font-size:14px;color:var(--dim)} #over .up.ok .un{color:var(--fg)}
 #over .un em{font-style:normal;color:var(--fg);white-space:nowrap} #over .up.ok .un em{color:var(--gold)}
-#demo{position:absolute;top:12px;left:50%;transform:translateX(-50%);display:none;width:min(560px,calc(100% - 32px));box-sizing:border-box;padding:9px 16px;background:rgba(14,32,24,.92);border:1px solid var(--chipon);border-radius:10px;font-size:14px;line-height:1.45;box-shadow:0 8px 30px rgba(0,0,0,.4)}
-#demo small{color:var(--dim)} #demo .tc{color:var(--fg);font-weight:500;white-space:nowrap;background:#132a1e;border:1px solid var(--chipon);border-bottom-width:3px;border-radius:5px;padding:0 6px;margin:0 1px}
+#banner{position:absolute;top:12px;left:50%;transform:translateX(-50%);display:none;width:min(560px,calc(100% - 32px));box-sizing:border-box;padding:9px 16px;background:rgba(14,32,24,.92);border:1px solid var(--chipon);border-radius:10px;font-size:14px;line-height:1.45;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+#banner small{color:var(--dim)} #banner .tc{color:var(--fg);font-weight:500;white-space:nowrap;background:#132a1e;border:1px solid var(--chipon);border-bottom-width:3px;border-radius:5px;padding:0 6px;margin:0 1px}
 /* terminal */
 #term{width:370px;flex:none;display:flex;flex-direction:column;border-left:1px solid var(--line);background:linear-gradient(180deg,#08150f,#050d09);padding:16px 18px 16px;box-sizing:border-box;min-height:0;box-shadow:-10px 0 30px rgba(0,0,0,.25)}
 .lbl{color:var(--dim);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;width:64px;flex:none}
@@ -69,7 +69,7 @@ main{flex:1;min-height:0;display:flex}
 </style></head><body>
 <div id="bar"><span id="brand">TOWER POWER</span><b id="lvl"></b><span id="todo"></span><button id="tut" class="rb" title="a short guided first landing, departure and hold">tutorial</button><button id="ff" class="rb" title="game speed: 1× 2× 4×"></button><button id="snd" class="rb" title="sound on/off"></button><button id="qm" class="rb" title="help">?</button></div>
 <main>
-<div id="view"><canvas id="cv"></canvas><div id="demo"></div><div id="over"></div></div>
+<div id="view"><canvas id="cv"></canvas><div id="banner"></div><div id="over"></div></div>
 <section id="term">
 <div class="srow"><span class="lbl">strikes</span><span id="strikes"></span></div>
 <div id="guide"><div class="tpl"><span>plane</span> <em>action</em> <u>&lt;direction&gt;</u></div>
@@ -119,7 +119,7 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>buy</td><td>Upgrades for every later shift, one step at a time: <b>tanks</b> +20 s fuel, <b>height</b> levels top and peak, <b>nav</b> departures turn by themselves then land anywhere, <b>runway</b> less wake rest (10, 20, 50 … tokens), <b>runways</b> a parallel one (50), then crossing ones N-S (100), NE-SW (500), NW-SE (2000). Crossing runways share the centre (one busy, all busy) but open new circles and takeoff ways.</td></tr>
 <tr><td>daily · hard</td><td><b>daily</b>: today's shift, the same for everyone, no upgrades. <b>hard</b> (after a $10,000 shift): no autopilot; <b>land</b> only once you have flown the plane onto the lit strip yourself, low and facing the runway, and <b>hold alpha</b> only at ALPHA.</td></tr>
 </table>
-<p>Faded text in the prompt is a suggestion: <b>→</b> takes all of it, <b>Tab</b> takes one word. Capitals don't matter. Typos are fixed for you (<b>nt</b> = north): the reply shows what was understood. <b>demo</b> shows a good controller at work, <b>Esc</b> pauses, <b>help</b> shows this card.</p>
+<p>Faded text in the prompt is a suggestion: <b>→</b> takes all of it, <b>Tab</b> takes one word. Capitals don't matter. Typos are fixed for you (<b>nt</b> = north): the reply shows what was understood. <b>Esc</b> pauses, <b>help</b> shows this card.</p>
 <h2 id="acdata" style="margin-top:18px">Aircraft</h2><div id="actable"></div>
 <p class="go">Enter or Esc to close · click anywhere</p></div></div>
 <script>
@@ -182,7 +182,6 @@ function logCmd(v){T.log=[...(T.log||[]),{c:v,r:outEl.textContent,bad:outEl.clas
   say('');histEl.innerHTML=T.log.map((h,i)=>`<div class="h${h.bad?' bad':''}" style="opacity:${(.25+.6*(i+1)/T.log.length).toFixed(2)}"><div class="c">${esc(h.c)}</div>${h.r?`<div class="r">${esc(h.r)}</div>`:''}</div>`).join('')}
 cmd.addEventListener('input',()=>{T.sel=0;SFX.key();refreshSug()});
 cmd.addEventListener('keydown',e=>{
-  if(D.on&&e.isTrusted){e.preventDefault();if(e.key==='Escape')stopDemo();return}
   const atEnd=cmd.selectionStart===cmd.value.length;
   if(e.key==='Tab'||(e.key==='ArrowRight'&&atEnd&&T.ghost)){e.preventDefault();if(!T.ghost)return;
     SFX.tab();const take=e.key==='Tab'?T.ghost.match(/^\s*\S*\s?/)[0]:T.ghost;cmd.value+=take.endsWith(' ')?take:take+' ';T.sel=0;refreshSug();return}
@@ -316,7 +315,7 @@ const ceil=p=>Math.min(CFG.levels-1,p.T.top);
 const climbRate=p=>p.T.fpm/60*TIME_SCALE/LEVEL_GAP,runAcc=p=>toGame(p.T.acc);
 
 /* ---------- world ---------- */
-const W=848,H=828,AX=W/2,AY=H/2,RING=250;  // the canvas (room for the radar and its compass letters), the airport centre, where waiting planes circle
+const W=848,H=828,AX=W/2,AY=H/2;  // the canvas (room for the radar and its compass letters), the airport centre, where waiting planes circle
 const HEADINGS={north:-90,northeast:-45,east:0,southeast:45,south:90,southwest:135,west:180,northwest:-135};
 // the compass word for a heading (radians)
 const wordAt=a=>Object.keys(HEADINGS).find(k=>Math.abs(wrap(rad(HEADINGS[k])-a))<=Math.PI/8+1e-9);
@@ -421,18 +420,18 @@ if(!store('tower-money')){best*=10;hardBest*=10;store('tower-best-score',best);s
 const meta={tokens:0,height:0,runway:0,runways:0,nav:0,tanks:0,...load('tower-meta',{})},saveMeta=()=>store('tower-meta',JSON.stringify(meta));
 if(!meta.v){Object.assign(meta,{v:2,tanks:Math.min(5,meta.tanks*3),nav:meta.nav*2,runway:meta.runway*3});saveMeta()}   // old saves: the big upgrades become all their small steps
 if(meta.v<3){Object.assign(meta,{v:3,runways:meta.runway>=3?1:0,runway:Math.min(2,meta.runway)});saveMeta()}   // the second runway moved to its own upgrade
-function startShift(demo=false,daily=false,hard=false){const L=SHIFT;
+function startShift(practice=false,daily=false,hard=false){const L=SHIFT;
   rnd=daily?seeded([...today()].reduce((h,c)=>h*31+c.charCodeAt(0)|0,7)):Math.random;
-  CFG={...RULES,...(demo?{}:L.rules)};
+  CFG={...RULES,...(practice?{}:L.rules)};
   // what the shift upgrades bought (not in the daily shift); hard mode: no navigation, you fly every plane
-  if(!demo&&!daily)Object.assign(CFG,{levels:3+meta.height,nav:hard?0:meta.nav,tank:TANK_STEP*meta.tanks,wakeRest:WAKE_REST*[1,.5,0][meta.runway],
+  if(!practice&&!daily)Object.assign(CFG,{levels:3+meta.height,nav:hard?0:meta.nav,tank:TANK_STEP*meta.tanks,wakeRest:WAKE_REST*[1,.5,0][meta.runway],
     runways:meta.runways>=1?2:1,axes:Object.keys(AXES).slice(0,Math.max(0,meta.runways-1))});
   // the main runway east-west through the centre, a parallel one 110 south of it, and the crossing ones; each with a landing
   // circle off both ends (dir +1: landing the runway's forward way, from the circle behind its start), named for where it lies
   RUNWAYS=[{x:AX,y:AY,a:0,hub:1},...(CFG.runways>1?[{x:AX,y:AY+110,a:0}]:[]),...CFG.axes.map(k=>({x:AX,y:AY,a:AXES[k],hub:1}))].map((r,i)=>({...r,i,wake:0}));GATES={};
   for(const r of RUNWAYS)for(const dir of[1,-1]){const h=wrap(r.a+(dir>0?0:Math.PI)),gd=r.a===0?GATE_D:GATE_DX,c=rwPt(r,-dir*(RW+gd)),t=rwPt(r,-dir*RW);
     GATES[wordAt(h+Math.PI)+(r.y!==AY?' 2':'')]={x:c.x,y:c.y,gd,dir,rw:r,h,ux:Math.cos(h),uy:Math.sin(h),tx:t.x,ty:t.y,hw:wordAt(h)}}
-  S={L,t:0,planes:[],fx:[],done:0,score:0,strikes:0,next:1,over:false,paused:false,pairs:new Set(),demo,daily,hard,
+  S={L,t:0,planes:[],fx:[],done:0,score:0,strikes:0,next:1,over:false,paused:false,pairs:new Set(),practice,daily,hard,
     rwdir:rnd()<.5?1:-1,windAt:160+rnd()*90,storms:[],stormAt:25,shake:0,ovfOn:false,earned:0};
   document.getElementById('tkw').innerHTML=[...new Set(Object.values(GATES).map(g=>g.hw))].map(w=>`<b>${SHORT[w]}</b>`).join(' ');   // the ways your runways take off
   say('')}
@@ -496,7 +495,7 @@ function strike(msg,x,y){if(S.over)return;SFX.strike();say('!'+msg);S.fx.push({x
   if(S.streak>1&&!free)pop({x,y:y-28,chips:[{kind:'bad',text:'streak lost'}],size:14,life:1.5});S.streak=0;
   if(free)return;S.strikes++;S.lastStrike=msg;if(S.strikes>=3)endShift()}
 // three strikes: a shift pays tokens for its score, and the daily shift keeps today's five best
-function endShift(){S.over=true;S.overShown=0;S.overAt=performance.now();SFX.lose();if(S.demo)return;
+function endShift(){S.over=true;S.overShown=0;S.overAt=performance.now();SFX.lose();if(S.practice)return;
   if(S.hard){if(S.score>hardBest){hardBest=S.score;store('tower-hard-best',hardBest)}}
   else if(S.score>best){S.unlockedHard=best<HARD_UNLOCK&&S.score>=HARD_UNLOCK;best=S.score;store('tower-best-score',best)}
   S.earned=Math.floor(S.score/TOKEN_PER);meta.tokens+=S.earned;saveMeta();
@@ -663,9 +662,7 @@ function weather(dt){
 function step(dt){
   const turns=t=>Math.floor((t*1.1+Math.PI/2)/(2*Math.PI));if(turns(S.t+dt)>turns(S.t))SFX.sweep();   // the sweep (angle 1.1·t) passing north
   S.t+=dt;
-  if(S.script){while(S.script.length&&S.script[0][0]<=S.t){const[,k,a,b]=S.script.shift();k==='arr'?spawnArr(a):spawnDep(a)}
-    if(!S.script.length){S.script=null;S.next=6}}
-  else if(S.tut){}   // the tutorial brings its own planes
+  if(S.tut){}   // the tutorial brings its own planes
   else if(S.admin){if(S.adminTraffic&&(S.next-=dt)<=0&&freshName()){spawnRandom();S.next=Math.max(14,26-S.t/40)*(.75+rnd()*.5)}}
   else{if(freshName()&&(S.spawnClock=(S.spawnClock||0)+dt/spawnGap())>=1){S.spawnClock=0;spawnRandom()}
     if(CFG.ovf&&!S.ovfOn&&S.done>=10){S.ovfOn=true;say('the neighbouring sector opened: its traffic (purple) now crosses your area')}}
@@ -768,8 +765,8 @@ function step(dt){
 /* ---------- commands: plane action [direction] ---------- */
 const plane=n=>S.planes.find(p=>p.name===n);
 const compass=(x,y)=>Object.keys(HEADINGS).find(k=>Math.abs(wrap(rad(HEADINGS[k])-Math.atan2(y,x)))<=Math.PI/8+1e-9);
-const toward=p=>compass(AX-p.x,AY-p.y),fromAirport=p=>Math.hypot(p.x-AX,p.y-AY);
-const shopOpen=()=>S.over&&!S.demo&&!S.daily;
+const fromAirport=p=>Math.hypot(p.x-AX,p.y-AY);
+const shopOpen=()=>S.over&&!S.practice&&!S.daily;
 function actions(p){
   if(p.state==='ready')return['takeoff'];
   if(p.state==='taxi'||p.state==='lineup'||p.state==='enter'||p.state==='roll')return['turn'];
@@ -784,8 +781,8 @@ function argsFor(p,act){
   if(act==='hold')return Object.keys(FIXES);
   return[]}
 function options(words){
-  if(!words.length)return[...(S.over?[]:S.planes.map(p=>p.name)),'help','aircraft','demo','pause','speed','restart','sound',...(S.tut?['skip']:['tutorial']),
-    ...(!S.demo?['daily']:[]),...(best>=HARD_UNLOCK&&!S.demo?['hard']:[]),...(shopOpen()?['buy']:[])];
+  if(!words.length)return[...(S.over?[]:S.planes.map(p=>p.name)),'help','aircraft','pause','speed','restart','sound',...(S.tut?['skip']:['tutorial']),
+    ...(!S.practice?['daily']:[]),...(best>=HARD_UNLOCK&&!S.practice?['hard']:[]),...(shopOpen()?['buy']:[])];
   if(words[0]==='buy')return words.length===1?Object.keys(UPGRADES):[];
   const p=plane(words[0]);if(!p||S.over)return[];
   if(words.length===1)return actions(p);
@@ -816,7 +813,7 @@ function steer(p,d){
   else p.tgt=wrap((p.state==='hold'?p.hdg:p.tgt)+rad(RELATIVE[d]));
   p.turned=true;if(p.state==='hold'||p.state==='tofix')p.state='fly'}
 // now and then a pilot mishears: a compass turn 45° off, or the other level in the same direction. The readback shows it.
-const mishear=()=>CFG.readback&&!S.demo&&rnd()<CFG.readback;
+const mishear=()=>CFG.readback&&!S.practice&&rnd()<CFG.readback;
 const KEYS=Object.keys(HEADINGS),nextTo=d=>KEYS[(KEYS.indexOf(d)+(rnd()<.5?1:7))%8];
 function exec(words){
   const[w0,act,arg]=words;
@@ -826,7 +823,6 @@ function exec(words){
   if(w0==='sound'){soundBtn();return`sound ${SFX.toggle()?'on':'off'}`}
   if(w0==='help'){showHelp(true);return''}
   if(w0==='aircraft'){showHelp(true);document.getElementById('acdata').scrollIntoView();return''}
-  if(w0==='demo'){startDemo();return''}
   if(w0==='tutorial')return startTutorial();
   if(w0==='skip'){endTutorial();return'tutorial closed: a new shift'}
   if(w0==='daily'){startShift(false,true);return`daily shift ${today()}: the same traffic for everyone today, no upgrades`}
@@ -875,7 +871,7 @@ function exec(words){
   if(act==='abort'&&(p.state==='hold'||p.state==='tofix')){p.state='fly';p.tgt=p.hdg;return`${n}: stops circling, flying straight ahead`}
   if(act==='abort'){p.state='fly';p.tgt=p.hdg;p.cleared=false;p.inGate=null;p.orbit=0;p.navGate=null;setLevel(p,1);return`${n}: going around, climbing to mid (${FEET[1]} ft), straight ahead`}}
 function togglePause(){if(!S.over)S.paused=!S.paused}
-function onEmptyEnter(){if(S.tut&&TUT[S.tut.i].end){endTutorial();return}if(S.over&&!S.demo)startShift(false,S.daily,S.hard)}
+function onEmptyEnter(){if(S.tut&&TUT[S.tut.i].end){endTutorial();return}if(S.over&&!S.practice)startShift(false,S.daily,S.hard)}
 // hard mode: may this plane land now? It must already be on final by your own flying: low, nose within THETA of the runway
 // heading, at most HARD_ALIGN off the extended centreline, between the landing circle's far edge and FINAL_MIN short of the
 // runway end, that end open and its runway free. The end (a GATES key), or why not (starting with '!')
@@ -898,7 +894,7 @@ const km=px=>px*M_PER_PX<1000?Math.round(px*M_PER_PX/10)*10+' m':(px*M_PER_PX/10
 const headingFor=(p,d)=>p.state!=='hold'&&p.state!=='tofix'&&Math.abs(wrap(p.tgt-rad(HEADINGS[d])))<rad(5);
 const bar=p=>{const f=Math.abs(p.tgtAlt-p.altFrom)<.01?1:1-Math.abs(p.tgtAlt-p.alt)/Math.abs(p.tgtAlt-p.altFrom),k=Math.round(f*6);return'▓'.repeat(k)+'░'.repeat(6-k)};
 function hintFor(n){
-  if(S.over)return S.demo?'':shopOpen()?'buy upgrades (buy …), then Enter for the next shift':'press Enter to try again';
+  if(S.over)return S.practice?'':shopOpen()?'buy upgrades (buy …), then Enter for the next shift':'press Enter to try again';
   const p=plane(n);
   if(!p){if(cmd.value.trim())return'';if(!S.planes.length)return'waiting for the next plane…';
     // nothing typed: show what the most urgent plane is waiting for (fuel, a level change, the runway…)
@@ -924,118 +920,11 @@ function hintFor(n){
   const d=toGate(p);if(headingFor(p,d))return`${fuel}${p.name} is heading for the ${nearestGate(p)} circle: land once it is inside${p.alt>.05?` · descending ${bar(p)}`:''}`;
   return`${fuel}${p.name} must fly into ${Object.keys(GATES).every(gateOpen)?'a landing circle':`the ${nearestGate(p)} landing circle (${Object.keys(GATES).filter(k=>!gateOpen(k)).map(k=>`${k}: ${closedWhy(k)}`).join(', ')})`} → ${p.name} turn ${U(d)}`}
 
-/* ---------- a good controller: plays the demo ---------- */
-// where a plane will be in t seconds if nothing changes; a circling plane is its circle's centre, widened by its radius
-function future(p,t,alt=p.tgtAlt){
-  const c=climbRate(p),lvl=p.alt+Math.sign(alt-p.alt)*Math.min(Math.abs(alt-p.alt),c*t);
-  if(p.state==='hold'){const c=p.hc||spotCentre(p);return[c.x,c.y,lvl,turnR(p,vHold(p))]}   // also a plane asked to hold here
-  // landing: to the runway end, then along it; taking off: down the runway, then out
-  const gf=GATES[p.gk],gr=GATES[p.tk],legs=p.state==='final'&&gf?[[gf.tx,gf.ty],[gf.rw.x,gf.rw.y]]:p.state==='roll'?[[gr.tx+gr.ux*2*RW,gr.ty+gr.uy*2*RW]]:[];
-  const v=Math.max(p.spd,vApp(p)),tgt=p.state==='tofix'?Math.atan2(FIXES[p.fix].y-p.y,FIXES[p.fix].x-p.x):p.tgt;
-  let x=p.x,y=p.y,go=v*t,lv=lvl;
-  for(const[lx,ly]of legs){const d=Math.hypot(lx-x,ly-y);if(go<=d)return[x+(lx-x)*go/d,y+(ly-y)*go/d,p.state==='roll'?0:lvl,0];go-=d;x=lx;y=ly}
-  if(p.state==='roll')lv=Math.min(alt,c*go/v);          // climbing only starts at the end of the runway
-  if(p.state==='final')return[p.rw.x,p.rw.y,0,0];
-  return[x+Math.cos(tgt)*go,y+Math.sin(tgt)*go,lv,0]}
-function meets(a,b,altA=a.tgtAlt,altB=b.tgtAlt){
-  for(let t=0;t<=20;t+=.5){const[ax,ay,al,ar]=future(a,t,altA),[bx,by,bl,br]=future(b,t,altB);
-    if(Math.abs(al-bl)<.7&&Math.hypot(ax-bx,ay-by)<sepOf(a,b)+16+ar+br)return true}return false}
-const clearAt=(p,alt)=>alt<=ceil(p)&&S.planes.every(o=>o===p||onGround(o)||!meets(p,o,alt));
-// the first level (from the wanted list) where this plane could circle without meeting anyone
-const holdLevel=(p,levels)=>levels.find(lv=>S.planes.every(o=>o===p||onGround(o)||!meets({...p,state:'hold'},o,lv)));
-// shortest form: ascend = the top level, descend = low
-const levelCmd=(p,lv)=>lv===ceil(p)&&lv>p.tgtAlt?[p.name,'ascend']:lv===0?[p.name,'descend']:[p.name,lv>p.tgtAlt?'ascend':'descend',LV[lv]];
-// would this plane, flying straight on (or that way), run into a storm cell in the next 14 s
-const stormAhead=(p,d)=>{const q=d?{...p,state:'fly',tgt:rad(HEADINGS[d])}:p;
-  return S.storms.some(s=>{for(let t=0;t<=14;t++){const[x,y,,r]=future(q,t);if(Math.hypot(x-s.x-s.vx*t,y-s.y-s.vy*t)<s.r+14+r)return true}return false})};
-const D={on:false,steps:[],wait:0,cool:new Map()};
-// returns [command words, reason]
-function decide(){
-  const air=S.planes.filter(p=>!onGround(p)),free=p=>p.state==='fly'||p.state==='hold'||p.state==='tofix';
-  const runwayBusy=RUNWAYS.some(rwBusy)||S.planes.some(p=>p.state==='taxi'||p.state==='lineup'||p.state==='enter');
-  const landing=S.planes.some(p=>p.state==='final'||p.state==='rollout'||p.cleared);
-  const once=(p,k,sec)=>{const key=p.name+k;if((D.cool.get(key)||0)>S.t)return false;D.cool.set(key,S.t+sec);return true};
-  const ups=[...Array(CFG.levels-1)].map((_,i)=>CFG.levels-1-i);   // every level but low, highest first
-  // the one arrival allowed down to low: a mayday first, then whoever is low already, else the closest
-  const arrs=S.planes.filter(p=>p.kind==='arr'&&free(p)&&!p.cleared).sort((x,y)=>(!!y.mayday-!!x.mayday)||(!!y.T.prio-!!x.T.prio)||(x.tgtAlt-y.tgtAlt)||(fromAirport(x)-fromAirport(y)));
-  const next=arrs[0];
-  // compare with the true bearing, and allow more than the 22.5° a compass word can be off, or turns flip-flop
-  const pointing=p=>p.state==='hold'||Math.abs(wrap(Math.atan2(AY-p.y,AX-p.x)-p.tgt))<=rad(35);
-  // a departure is let go only if its whole climb-out misses everyone
-  const climbOut=(p,way)=>{const k=Object.keys(GATES).find(k=>GATES[k].hw===way),g=GATES[k];return{...p,state:'roll',tk:k,rw:g.rw,x:g.tx,y:g.ty,hdg:g.h,tgt:rad(HEADINGS[p.dest]),spd:vApp(p),alt:0,tgtAlt:1}};
-  // 1. separation before anything else: give one of the two a different level
-  for(const a of air)for(const b of air){if(a===b||!meets(a,b))continue;
-    for(const p of [a,b].filter(q=>free(q)&&!q.cleared).sort((x,y)=>(y.kind!=='arr')-(x.kind!=='arr'))){const o=p===a?b:a;
-      for(const lv of p.kind!=='arr'?ups:p===next?[0,...ups.slice().reverse()]:ups)if(lv!==p.tgtAlt&&clearAt(p,lv)&&once(p,'sep',4))
-        return[levelCmd(p,lv),`${p.name} and ${o.name} are heading for the same spot at the same level. ${p.name} goes ${LV[lv]}, so one passes over the other.`];
-      const nearEdge=fromAirport(p)>RADAR-2*turnR(p,vHold(p))-25;   // its circle would be pulled far inward to stay in your area
-      if(p.kind==='arr'&&p.state!=='hold'&&!nearEdge&&holdLevel(p,[p.tgtAlt])!==undefined&&once(p,'sep',4))
-        return[[p.name,'hold'],`${p.name} would get too close to ${o.name}. It circles on the spot until the way is clear.`]}}
-  // storms: turn away to the nearest heading that misses them
-  for(const p of air.filter(q=>free(q)&&!q.cleared))if(stormAhead(p)){
-    const d=[...KEYS].sort((x,y)=>Math.abs(wrap(rad(HEADINGS[x])-p.tgt))-Math.abs(wrap(rad(HEADINGS[y])-p.tgt))).find(k=>!stormAhead(p,k));
-    if(d&&once(p,'storm',4))return[[p.name,'turn',d],`${p.name} is heading into a storm cell. Turn it ${U(d)}, around it.`]}
-  // an arrival heading out near the edge of the circle is turned back before it leaves your area
-  for(const p of arrs){const out=Math.cos(p.tgt-Math.atan2(p.y-AY,p.x-AX));
-    if(p.state==='fly'&&!p.cleared&&fromAirport(p)>RADAR-70&&out>0&&once(p,'edge',5))
-      return[[p.name,'turn',toward(p)],`${p.name} is heading out of your area. Turn it ${U(toward(p))}, back toward the airport.`]}
-  // 2. the next arrival comes down and lands
-  if(next){const p=next;
-    if(landing&&p.tgtAlt>=2&&fromAirport(p)<RING+20&&clearAt(p,1)&&once(p,'down',8))
-      return[levelCmd(p,1),`${p.name} is next to land, but the runway is still in use. Bring it down to mid for now.`];
-    if(landing&&p.state==='fly'&&fromAirport(p)<RING-40&&holdLevel(p,[p.tgtAlt])!==undefined&&once(p,'hold',6))
-      return[[p.name,'hold'],`${p.name} is next, but someone is still landing. It circles until the runway is free.`];
-    if(!landing&&p.tgtAlt>0&&clearAt(p,0)&&once(p,'down',8))
-      return[levelCmd(p,0),`${p.name} is next to land. Bring it down to low first: that takes a while.`];
-    // pointed at the nearest open landing circle, re-aimed as it closes in; cleared once inside
-    const k=inGate(p);
-    if(!landing&&p.tgtAlt===0&&!(k&&gateOpen(k))&&!headingFor(p,toGate(p))&&!stormAhead(p,toGate(p))&&once(p,'aimgate',3))
-      return[[p.name,'turn',toGate(p)],`${p.name} is next to land. Point it at the ${nearestGate(p)} landing circle: landing is only possible inside one${Object.keys(GATES).every(gateOpen)?'':' that is open (no storm over it, approaches into the wind)'}.`];
-    if(!landing&&p.tgtAlt===0&&k&&gateOpen(k)&&once(p,'land',1))
-      return[[p.name,'land'],`${p.name} is inside the landing circle. Clear it to land: it turns onto the runway by itself.`]}
-  // 3. everyone else waits, circling near the airport on a free level
-  for(const p of arrs){
-    if(p!==next&&p.state==='fly'&&fromAirport(p)<RING-40){const hl=holdLevel(p,[p.tgtAlt,...ups]);
-      if(hl===p.tgtAlt&&once(p,'hold',6))return[[p.name,'hold'],`Only one plane lands at a time and ${next.name} is first. ${p.name} circles here, ${LV[hl]}, until its turn.`];
-      if(hl!==undefined&&hl!==p.tgtAlt&&once(p,'stack',6))return[levelCmd(p,hl),`${p.name} must wait for ${next.name}, but its level is taken near the airport. Move it to ${LV[hl]} first.`]}
-    if(p.state==='fly'&&fromAirport(p)>=RING-40&&!pointing(p)&&!stormAhead(p,toward(p))&&once(p,'aim',6))return[[p.name,'turn',toward(p)],`${p.name} is not pointing at the airport. Turn it ${U(toward(p))}.`]}
-  // 4. departures: take off down the runway end closest to their direction (or into the wind), then turn them that way;
-  // overflights are turned back to their exit after any detour
-  for(const p of S.planes.filter(p=>p.kind!=='arr').sort((a,b)=>!!b.T.prio-!!a.T.prio)){const way=runwayFor(p.dest);
-    if(p.state==='ready'&&!runwayBusy&&!landing&&!(next&&next.tgtAlt===0)&&air.every(o=>!meets(climbOut(p,way),o))&&once(p,'go',3))
-      return[[p.name,'takeoff',way],`The runway is free. ${p.name} wants to leave ${U(p.dest)}: take off ${U(way)}, ${CFG.wind?'into the wind':'the runway direction closest to it'}.`];
-    if((free(p)||p.state==='roll')&&!headingFor(p,p.dest)&&!stormAhead(p,p.dest)&&once(p,'dir',4))
-      return[[p.name,'turn',p.dest],`${p.name} is on its way out. Turn it ${U(p.dest)}, so it leaves the circle on the ${U(p.dest)} side.`]}
-  return null}
 // the shift's first planes in slow motion: WARMUP_SCALE at the start, full speed once WARMUP_PLANES are handled
-const warmup=()=>S.admin||S.demo?1:Math.min(1,WARMUP_SCALE+(1-WARMUP_SCALE)*S.done/WARMUP_PLANES);
-const shortCmd=words=>words.map(w=>SHORT[w]||w);
+const warmup=()=>S.admin||S.practice?1:Math.min(1,WARMUP_SCALE+(1-WARMUP_SCALE)*S.done/WARMUP_PLANES);
 
-/* ---------- demo: the controller plays, typing into the real prompt and saying why ---------- */
-// [time, kind, …]: a calm opening that shows a landing, a departure, a level split and a holding pattern
-const DEMO_SCRIPT=[[.5,'arr',-125],[2,'dep','northeast'],[10,'arr',-15],[18,'dep','west'],[26,'arr',80],[38,'arr',35],[41,'arr',160],[50,'dep','south']];
-const demoEl=document.getElementById('demo');
-function startDemo(){startShift(true);S.script=DEMO_SCRIPT.map(r=>[...r]);
-  Object.assign(D,{on:true,steps:[],wait:1.5,cool:new Map()});cmd.value='';showDemo('Watching a controller. Every command is typed below, with the reason here.')}
-function stopDemo(){D.on=false;demoEl.style.display='none';cmd.value='';startShift()}
-function showDemo(why){demoEl.style.display='block';demoEl.innerHTML=`${why}<br><small>demo · esc to stop</small>`}
-// turn a command into keystrokes: the shortest unique start of each word, then Tab to complete it
-function keystrokes(words){const keys=[];let prev=[];
-  for(const w of words){const opts=options(prev),abbr=ABBR[w]&&!opts.includes(w);let k=1;
-    if(abbr)k=w.length;      // n, ne …: typed in full, no Tab
-    else while(k<w.length&&opts.filter(o=>o.startsWith(w.slice(0,k))).length>1)k++;
-    for(const c of w.slice(0,k))keys.push(c);keys.push(k<w.length?'Tab':' ');prev=[...prev,abbr?ABBR[w]:w]}
-  keys.push('Enter');return keys}
-function demoTick(dt){
-  if(S.over||S.t>150){D.wait-=dt;if(D.wait<-3)startDemo();return}  // a short, clean shift, then again
-  if((D.wait-=dt)>0)return;
-  if(!D.steps.length){const plan=decide();if(!plan){D.wait=.3;return}
-    D.steps=keystrokes(shortCmd(plan[0]));showDemo(plan[1]);D.wait=.4;return}
-  const k=D.steps.shift(),key=x=>cmd.dispatchEvent(new KeyboardEvent('keydown',{key:x}));
-  if(k==='Tab'){key('Tab');D.wait=.25}else if(k==='Enter'){key('Enter');D.wait=1.4}
-  else{cmd.value+=k;cmd.dispatchEvent(new Event('input'));D.wait=.11}}
-
-/* ---------- tutorial: one scripted plane at a time, each step waits until you have typed it. Opens by itself on the first visit ---------- */
+/* ---------- tutorial: one scripted plane at a time, each step waits until you have typed it. Optional: the tutorial button ---------- */
+const bannerEl=document.getElementById('banner');
 // each step: what to do (P = its planes by role), optional setup (a new section: clears the sky and brings its planes), and
 // when it is done. A plane lost on the way restarts its section
 const cmdB=c=>`<b class="tc">${c}</b>`;
@@ -1052,15 +941,15 @@ const TUT=[
   {say:P=>`${P.c.name} waits: ${cmdB(`${P.c.name} hold`)} circles it where it is (${cmdB(`${P.c.name} hold alpha`)} sends it to the ALPHA fix instead).`,done:P=>P.c.state==='hold'||P.c.state==='tofix'},
   {say:P=>`Land ${P.b.name}: turn it toward a circle, then ${cmdB(`${P.b.name} land`)} inside it.`,done:P=>P.b.ok},
   {say:P=>`Now ${P.c.name}: ${cmdB(`${P.c.name} descend`)}, a turn toward a circle (a turn ends its hold), then ${cmdB(`${P.c.name} land`)}.`,done:P=>P.c.ok},
-  {end:true,say:()=>`That is the job. The shift adds fuel, wind (take off and land into it), storms, aircraft types and overflights, and three strikes end it. ${cmdB('help')} lists every command, ${cmdB('demo')} shows a controller playing.<br><b>Press Enter to start your first shift.</b>`,done:()=>false}];
+  {end:true,say:()=>`That is the job. The shift adds fuel, wind (take off and land into it), storms, aircraft types and overflights, and three strikes end it. ${cmdB('help')} lists every command.<br><b>Press Enter to start your first shift.</b>`,done:()=>false}];
 // an arrival from bearing b (degrees, 0 = east, clockwise), aimed at the airport
 function tutArr(b){spawnArr(b);const p=S.planes[S.planes.length-1];p.hdg=p.tgt=Math.atan2(AY-p.y,AX-p.x);return p}
 function startTutorial(){store('tower-tut','seen');tutEl.classList.remove('new');startShift(true);S.L={...SHIFT,scale:.7};S.tut={i:0,P:{},wait:0};tutSetup();return''}
 function tutSetup(){const t=S.tut;let i=t.i;while(!TUT[i].setup&&!TUT[i].end)i--;t.i=i;   // back to the start of the section
   if(TUT[i].setup){S.planes=[];t.P={};TUT[i].setup(t.P)}showTut()}
-function showTut(){const t=S.tut,st=TUT[t.i];demoEl.style.display='block';
-  demoEl.innerHTML=`${st.say(t.P)}<br><small>tutorial ${t.i+1}/${TUT.length}${st.end?'':' · skip to leave'}</small>`}
-function endTutorial(){store('tower-tut','done');demoEl.style.display='none';startShift()}
+function showTut(){const t=S.tut,st=TUT[t.i];bannerEl.style.display='block';
+  bannerEl.innerHTML=`${st.say(t.P)}<br><small>tutorial ${t.i+1}/${TUT.length}${st.end?'':' · skip to leave'}</small>`}
+function endTutorial(){store('tower-tut','done');bannerEl.style.display='none';startShift()}
 function tutTick(dt){const t=S.tut;if(!t)return;S.strikes=0;
   if(Object.values(t.P).some(p=>!p.ok&&!S.planes.includes(p))){say(`!${Object.values(t.P).find(p=>!p.ok&&!S.planes.includes(p)).name} was lost: once more`);tutSetup();return}
   if(t.wait>0){if((t.wait-=dt)<=0){t.i++;if(TUT[t.i].setup)tutSetup();else showTut()}return}
@@ -1109,7 +998,7 @@ function adminManual(){
   </table><p class="go">Enter or Esc to close · help shows this again</p>`}
 const admEl=()=>document.getElementById('admcard');
 function showAdmin(html){admEl().innerHTML=html;helpEl.querySelector('.card:not(#admcard)').style.display='none';admEl().style.display='';helpEl.style.display='grid'}
-function enterAdmin(){D.on=false;demoEl.style.display='none';startShift(true);
+function enterAdmin(){bannerEl.style.display='none';startShift(true);
   CFG={...RULES,...SHIFT.rules,storms:0,ovf:false};S.admin=true;S.next=Infinity;S.paths=true;S.windAt=Infinity;   // the wind stays put until 'wind auto'
   
   showAdmin(adminManual());return'admin: sandbox open, nothing arrives by itself · help for the manual'}
@@ -1447,7 +1336,7 @@ let last=performance.now();
 const BUMP={score:-1e9,tok:-1e9},SHOWN={score:0};
 const bump=(t,c)=>{const u=Math.exp(-(performance.now()-t)/220);return`display:inline-block;transform:scale(${(1+.5*u).toFixed(3)}) rotate(${(-6*u*Math.sin((performance.now()-t)/40)).toFixed(2)}deg);${u>.05?`background:${c};color:#04140b`:''}`};
 function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;
-  for(let i=0;i<FF;i++){if(!S.paused&&!S.over&&!helpOpen())step(dt*S.L.scale*warmup());if(D.on&&!S.paused)demoTick(dt);if(S.tut&&!S.paused&&!helpOpen())tutTick(dt)}
+  for(let i=0;i<FF;i++){if(!S.paused&&!S.over&&!helpOpen())step(dt*S.L.scale*warmup());if(S.tut&&!S.paused&&!helpOpen())tutTick(dt)}
   tween(dt);draw();ui();requestAnimationFrame(frame)}
 // the numbers count up: the bar's score toward the real one, the shift-over score from 0 (ticking as it goes)
 function tween(dt){const d=S.score-SHOWN.score;SHOWN.score=d<0?S.score:SHOWN.score+Math.max(Math.min(d,1),d*Math.min(1,dt*6));
@@ -1455,20 +1344,19 @@ function tween(dt){const d=S.score-SHOWN.score;SHOWN.score=d<0?S.score:SHOWN.sco
 // everything around the radar: the bar, the strikes, the READY list, the overlay
 function ui(){const sw=S.sweep;
   tutEl.textContent=S.tut?'leave tutorial':'tutorial';
-  $('lvl').textContent=S.tut?'tutorial':S.admin?`admin${sw?` · sweep ${sw.log.length+1}/${sw.log.length+sw.list.length+1}`:''}`:S.demo?'demo':
-    S.daily?`daily · ${today()}`:S.hard?`hard · best ${money(hardBest)}`:`shift · best ${money(best)}`;
+  $('lvl').textContent=S.tut?'tutorial':S.admin?`admin${sw?` · sweep ${sw.log.length+1}/${sw.log.length+sw.list.length+1}`:''}`:S.daily?`daily · ${today()}`:S.hard?`hard · best ${money(hardBest)}`:`shift · best ${money(best)}`;
   const streak=S.streak>1&&!S.over?` · <b style="background:#ff7a45;color:#04140b">×${S.streak} streak</b>`:'';
   const tokens=`<span class="tok" title="tokens buy upgrades after a shift: it pays 1 per $1,000 earned when it ends"><b style="${bump(BUMP.tok,'#f2c94c')}">${COIN}${meta.tokens}</b>`+
     `${S.over?'':` <small>+${Math.floor(S.score/TOKEN_PER)} at shift end · 1 per ${money(TOKEN_PER)}</small>`}</span>`;
-  $('todo').innerHTML=S.demo?'':`${S.done} planes · <b style="${bump(BUMP.score,'#86d48a')}">${money(SHOWN.score)}</b>${streak}${S.daily?'':' · '+tokens}`;
+  $('todo').innerHTML=S.practice?'':`${S.done} planes · <b style="${bump(BUMP.score,'#86d48a')}">${money(SHOWN.score)}</b>${streak}${S.daily?'':' · '+tokens}`;
   $('strikes').innerHTML=[0,1,2].map(i=>`<i class="${i<S.strikes?'on':''}"></i>`).join('');
   const focus=typedHead(),ready=S.planes.filter(p=>p.state==='ready'),busy=runwayUser()&&ready.length?'<span class="busy">runway busy</span>':'';
   $('ready').innerHTML=ready.map(p=>`<b style="color:${p.name===focus?'#fff':LABEL.dep}">${p.name}${clockSVG(p)}${p.T.tag?' '+p.T.tag:''} → ${U(p.dest)}</b>`).join(' ')+busy||'<span style="color:var(--dim)">none</span>';
-  over.style.display=(S.over&&!S.demo)||S.paused?'grid':'none';
+  over.style.display=(S.over&&!S.practice)||S.paused?'grid':'none';
   over.innerHTML=`<div>${S.paused?'paused<br><small>esc</small>':shiftOver()}</div>`}   // one box, so the grid centres it as a whole
 requestAnimationFrame(frame);
 // the tutorial is a button next to the speed button: never forced. A new player sees it nudging until they open it once
 const tutEl=document.getElementById('tut');if(!store('tower-tut')&&!best)tutEl.classList.add('new');
 tutEl.addEventListener('click',e=>{e.stopPropagation();S.tut?endTutorial():startTutorial();cmd.focus()});
-if(location.hash==='#dev')window.G={get S(){return S},get CFG(){return CFG},meta,step,exec,options,resolve,meaning,run,D,decide,demoTick,startShift,draw};
+if(location.hash==='#dev')window.G={get S(){return S},get CFG(){return CFG},meta,step,exec,options,resolve,meaning,run,startShift,draw};
 </script></body></html>
