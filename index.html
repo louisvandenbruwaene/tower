@@ -14,7 +14,9 @@ body{display:flex;flex-direction:column;background:radial-gradient(ellipse 70% 8
 #lvl{font-weight:500;font-size:13px;padding:3px 12px;border:1px solid var(--chipon);border-radius:99px;background:var(--chip)}
 #todo{margin-left:auto;color:var(--dim);font-size:13px} #todo .tok{color:var(--fg)} #todo .tok small{color:var(--dim);font-size:11.5px} #todo b{font-weight:600;color:var(--fg);border-radius:3px;padding:0 3px}
 .coin{display:inline-block;width:.78em;height:.78em;border-radius:50%;background:var(--gold);box-shadow:inset 0 0 0 .14em #a87f12,0 .1em 0 #3a2c06;vertical-align:-.06em;margin-right:.3em}
-#ff+#snd,#snd+#qm{margin-left:-8px} #ff{width:auto;padding:0 8px;border-radius:13px;font-size:12px}
+#tut+#ff,#ff+#snd,#snd+#qm{margin-left:-8px} #ff,#tut{width:auto;padding:0 8px;border-radius:13px;font-size:12px}
+#tut.new{color:#04140b;background:var(--gold);border-color:var(--gold);animation:nudge 1.6s ease-in-out infinite}   /* a first visit: the tutorial is here, if you want it */
+@keyframes nudge{0%,100%{transform:none}10%{transform:translateY(-3px) rotate(-3deg)}20%{transform:none}}
 .rb{width:26px;height:26px;padding:0;border-radius:50%;border:1px solid var(--chipon);background:var(--chip);color:var(--acc);font:600 14px var(--mono);cursor:pointer}
 .rb:hover{background:var(--chipon);box-shadow:0 0 12px rgba(126,224,168,.3)}
 main{flex:1;min-height:0;display:flex}
@@ -65,7 +67,7 @@ main{flex:1;min-height:0;display:flex}
 #help td:first-child{color:var(--acc);white-space:nowrap} #help .ac td{font-size:12.5px;padding-right:10px} #help .ac th{text-align:left;color:var(--gold);font-size:12.5px;padding:2px 10px 2px 0} #help .ac tr.sec td{color:var(--dim);padding-top:8px;text-transform:uppercase;letter-spacing:.1em;font-size:11px} #help .go{color:var(--dim);margin-top:12px} #help code{color:var(--gold)}
 @media (max-width:760px){main{flex-direction:column}#term{width:auto;height:50%}}
 </style></head><body>
-<div id="bar"><span id="brand">TOWER POWER</span><b id="lvl"></b><span id="todo"></span><button id="ff" class="rb" title="game speed: 1× 2× 4×"></button><button id="snd" class="rb" title="sound on/off"></button><button id="qm" class="rb" title="help">?</button></div>
+<div id="bar"><span id="brand">TOWER POWER</span><b id="lvl"></b><span id="todo"></span><button id="tut" class="rb" title="a short guided first landing, departure and hold">tutorial</button><button id="ff" class="rb" title="game speed: 1× 2× 4×"></button><button id="snd" class="rb" title="sound on/off"></button><button id="qm" class="rb" title="help">?</button></div>
 <main>
 <div id="view"><canvas id="cv"></canvas><div id="demo"></div><div id="over"></div></div>
 <section id="term">
@@ -94,7 +96,7 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>heron hold</td><td>circle on the spot until you give it a turn, or <b>land</b> inside a landing circle · <b>heron hold kilo</b> flies to the fix KILO (also ALPHA, BRAVO, ZULU) and circles it, right turns, slowed down. Holds always stay inside your area</td></tr>
 <tr><td>heron land</td><td>only inside an open landing circle (also ends a hold). It only starts its landing at <b>low</b>: higher up it circles the circle's centre for as long as it takes, until you <b>descend</b> it. At low it flies the shortest line-up that stays close to the landing area (one turn, or turn, straight, turn), arriving at most 15° off the runway heading at its approach speed. With the runway busy it circles until it is free (four times round at most, else it goes around).</td></tr>
 <tr><td>wren takeoff e</td><td>departures in the <b>ready</b> list: it taxis from the apron to that runway end, waits there until the runway is free, takes off <b>east</b> or <b>west</b>, climbs to mid and flies straight on until you turn it (you may turn it while it taxis).</td></tr>
-<tr><td>tutorial</td><td>a guided first landing, departure and hold (opens by itself on the first visit; <b>skip</b> leaves it)</td></tr>
+<tr><td>tutorial</td><td>a guided first landing, departure and hold (also the <b>tutorial</b> button top right; <b>skip</b> leaves it)</td></tr>
 <tr><td>speed</td><td>time runs 1×, 2×, 4×, 8× and back (also the <b>1×</b> button top right)</td></tr>
 <tr><td>abort</td><td>cancel a hold (flies straight on) or a landing: it goes around, climbing to mid straight ahead</td></tr>
 </table>
@@ -984,7 +986,7 @@ const TUT=[
   {end:true,say:()=>`That is the job. The shift adds fuel, wind (take off and land into it), storms, aircraft types and overflights, and three strikes end it. ${cmdB('help')} lists every command, ${cmdB('demo')} shows a controller playing.<br><b>Press Enter to start your first shift.</b>`,done:()=>false}];
 // an arrival from bearing b (degrees, 0 = east, clockwise), aimed at the airport
 function tutArr(b){spawnArr(b);const p=S.planes[S.planes.length-1];p.hdg=p.tgt=Math.atan2(AY-p.y,AX-p.x);return p}
-function startTutorial(){startShift(true);S.L={...SHIFT,scale:.7};S.tut={i:0,P:{},wait:0};tutSetup();return''}
+function startTutorial(){store('tower-tut','seen');tutEl.classList.remove('new');startShift(true);S.L={...SHIFT,scale:.7};S.tut={i:0,P:{},wait:0};tutSetup();return''}
 function tutSetup(){const t=S.tut;let i=t.i;while(!TUT[i].setup&&!TUT[i].end)i--;t.i=i;   // back to the start of the section
   if(TUT[i].setup){S.planes=[];t.P={};TUT[i].setup(t.P)}showTut()}
 function showTut(){const t=S.tut,st=TUT[t.i];demoEl.style.display='block';
@@ -1345,6 +1347,7 @@ function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;
   if(S.score<SHOWN.score)SHOWN.score=S.score;else SHOWN.score+=Math.max(Math.min(S.score-SHOWN.score,1),(S.score-SHOWN.score)*Math.min(1,dt*6));
   if(S.over&&S.overShown<S.score){const before=Math.floor(S.overShown/7);S.overShown=Math.min(S.score,S.overShown+Math.max(1,S.score*dt/1.4));if(Math.floor(S.overShown/7)>before)SFX.tick()}
   for(let i=0;i<FF;i++){if(!S.paused&&!S.over&&!helpOpen())step(dt*S.L.scale*warmup());if(D.on&&!S.paused)demoTick(dt);if(S.tut&&!S.paused&&!helpOpen())tutTick(dt)}draw();
+  tutEl.textContent=S.tut?'leave tutorial':'tutorial';
   $('lvl').textContent=S.tut?'tutorial':S.admin?`admin${S.sweep?` · sweep ${S.sweep.log.length+1}/${S.sweep.log.length+S.sweep.list.length+1}`:''}`:S.demo?'demo':S.daily?`daily · ${today()}`:S.hard?`hard · best ${hardBest}`:`shift · best ${best}`;
   $('todo').innerHTML=S.demo?'':`${S.done} planes · <b style="${bump(BUMP.score,'#7ee0a8')}">${Math.round(SHOWN.score)}</b> pts${S.streak>1&&!S.over?` · <b style="background:#ff7a45;color:#04140b">×${S.streak} streak</b>`:''}${!S.daily?` · <span class="tok" title="tokens buy upgrades after a shift: it pays 1 per 100 points when it ends"><b style="${bump(BUMP.tok,'#f2c94c')}">${COIN}${meta.tokens}</b> ${S.over?'':`<small>+${Math.floor(S.score/100)} at shift end · 1 per 100 pts</small>`}</span>`:''}`;
   $('strikes').innerHTML=[0,1,2].map(i=>`<i class="${i<S.strikes?'on':''}"></i>`).join('');
@@ -1354,6 +1357,8 @@ function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;
   over.innerHTML=`<div>${S.paused?'paused<br><small>esc</small>':shiftOver()}</div>`;   // one box, so the grid centres it as a whole
   requestAnimationFrame(frame)}
 requestAnimationFrame(frame);
-if(!store('tower-tut')&&!best)startTutorial();   // the first visit starts with the tutorial
+// the tutorial is a button next to the speed button: never forced. A new player sees it nudging until they open it once
+const tutEl=document.getElementById('tut');if(!store('tower-tut')&&!best)tutEl.classList.add('new');
+tutEl.addEventListener('click',e=>{e.stopPropagation();S.tut?endTutorial():startTutorial();cmd.focus()});
 if(location.hash==='#dev')window.G={get S(){return S},get CFG(){return CFG},meta,step,exec,options,resolve,meaning,run,D,decide,demoTick,startShift,draw};
 </script></body></html>
