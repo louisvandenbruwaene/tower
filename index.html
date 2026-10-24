@@ -98,7 +98,7 @@ main{flex:1;min-height:0;display:flex}
 <table>
 <tr><td>realistic</td><td>1 px is about 25 m and time runs 4.5× fast: the runway is 3 km. Airspeeds are per type and level, slower low down: a jet flies 190 kt at 3000 ft, 250 kt at 7000 ft, slows to 140 kt once cleared to land and holds at 190 kt. Every turn is flown at the type's turn rate, so its radius grows with speed. Speeds change gradually, planes roll into turns, departures taxi out and need a takeoff run (a heavy the longest), landed planes brake down the runway and taxi in. Levels are 3000, 5000, 7000 ft.</td></tr>
 <tr><td>types</td><td><b>prop</b> slow, turns tight · <b>jet</b> · <b>bizjet</b> fast, climbs quickly · <b>heavy</b> big, turns wide, climbs slowly, needs more room around it, and its runway rests a few seconds after it (wake)</td></tr>
-<tr><td>fuel</td><td>From level 5, arrivals carry fuel: the tank next to the name, full when they enter. How long it lasts depends on the type (a bizjet is thirsty for its small tanks, a prop lasts longest). Amber below half, red below a quarter; below 45 s it glows and calls MAYDAY: land it next. Empty: a strike.</td></tr>
+<tr><td>fuel</td><td>From level 5, arrivals carry fuel: the jerrycan next to the name, full when they enter. How long it lasts depends on the type (a bizjet is thirsty for its small tanks, a prop lasts longest). Amber below half, red below a quarter; below 45 s it glows and calls MAYDAY: land it next. Empty: a strike.</td></tr>
 <tr><td>wind</td><td>From level 6, planes take off and land into the wind (top left): only the landing circles whose approach faces the wind are open (the others grey out), and departures roll from the end marked in gold. Now and then the wind turns: cleared arrivals already circling in a circle that closes keep circling there until it turns back (abort sends one off). A storm over a circle closes it too.</td></tr>
 <tr><td>storms</td><td>From level 7, storm cells drift across with the wind. A plane that flies into one loses control and crash-lands: a strike.</td></tr>
 <tr><td>readback</td><td>From level 6, a pilot sometimes mishears: the reply shows what it understood (a turn 45° off, another level). Say it again.</td></tr>
@@ -366,10 +366,19 @@ function spawnOvf(bearing){const b=rad(bearing),ex=Math.cos(b)*(RADAR-6),ey=Math
   const ux=Math.cos(h),uy=Math.sin(h),eu=ex*ux+ey*uy,t=-eu+Math.sqrt(eu*eu-(ex*ex+ey*ey-RADAR*RADAR)),r=rnd(),name=freshName();if(!name)return;SFX.contact();
   const p=newPlane({name,kind:'ovf',dest:compass(ex+ux*t,ey+uy*t),state:'fly',x:AX+ex,y:AY+ey,hdg:h,tgt:h}),lv=1+Math.floor(r*ceil(p));   // any level from mid up to its type's highest
   p.alt=p.tgtAlt=p.altFrom=lv;p.spd=speedFor(p);S.planes.push(p)}
+// does any part of a storm cell lie inside the 45° slice of your area around compass bearing b (degrees, 0 = east)?
+// Its centre is inside the slice's angle, or the cell reaches over one of the slice's two edges
+function stormInSlice(b){const c=rad(Math.round(b/45)*45);
+  return S.storms.some(s=>{const dx=s.x-AX,dy=s.y-AY,d=Math.hypot(dx,dy);if(d-s.r>=RADAR)return false;if(d<=s.r)return true;
+    if(Math.abs(wrap(Math.atan2(dy,dx)-c))<=rad(22.5))return true;
+    return[-1,1].some(e=>{const a=c+e*rad(22.5),ux=Math.cos(a),uy=Math.sin(a),t=Math.max(0,Math.min(RADAR,dx*ux+dy*uy));return Math.hypot(dx-ux*t,dy-uy*t)<s.r})})}
+// an arrival or overflight enters at a random point of the edge, away from other traffic if it can, and never through a
+// slice with a storm in it; false when every slice has one (try again later)
 function spawnKind(kind){
-  if(kind==='dep')return spawnDep(Object.keys(HEADINGS)[rnd()*8|0]);
-  for(let k=0;k<40;k++){const b=rnd()*360,x=AX+Math.cos(rad(b))*RADAR,y=AY+Math.sin(rad(b))*RADAR;
-    if(!S.planes.some(p=>!onGround(p)&&Math.hypot(p.x-x,p.y-y)<180)||k===39)return kind==='ovf'?spawnOvf(b):spawnArr(b)}}
+  if(kind==='dep'){spawnDep(Object.keys(HEADINGS)[rnd()*8|0]);return true}
+  let spot=null;for(let k=0;k<40;k++){const b=rnd()*360,x=AX+Math.cos(rad(b))*RADAR,y=AY+Math.sin(rad(b))*RADAR;if(stormInSlice(b))continue;
+    spot=b;if(!S.planes.some(p=>!onGround(p)&&Math.hypot(p.x-x,p.y-y)<180))break}
+  if(spot===null)return false;kind==='ovf'?spawnOvf(spot):spawnArr(spot);return true}
 // traffic starts at 70% of the full rate and builds up to it over the first eight minutes
 const traffic=()=>Math.min(1,.7+.3*S.t/480);
 function spawnRandom(){const r=rnd();spawnKind(S.ovfOn&&r<.22?'ovf':r<(S.ovfOn?.52:.38)&&S.planes.filter(p=>p.state==='ready').length<3?'dep':'arr')}
@@ -493,7 +502,7 @@ function step(dt){
     if(!S.script.length){S.script=null;S.next=6}}
   else if(S.L.endless){if((S.next-=dt)<=0&&freshName()){spawnRandom();S.next=Math.max(14,26-S.t/40)*(.75+rnd()*.5)/traffic()}
     if(CFG.ovf&&!S.ovfOn&&S.done>=10){S.ovfOn=true;say('the neighbouring sector opened: its traffic (purple) now crosses your area')}}
-  else if(S.queue.length){if(S.planes.filter(p=>p.state!=='taxiin').length<S.L.max&&(S.next-=dt)<=0&&freshName()){spawnKind(S.queue.shift());S.next=S.L.gap/traffic()}}
+  else if(S.queue.length){if(S.planes.filter(p=>p.state!=='taxiin').length<S.L.max&&(S.next-=dt)<=0&&freshName()){const k=S.queue.shift();if(spawnKind(k))S.next=S.L.gap/traffic();else{S.queue.unshift(k);S.next=2}}}
   else if(!S.planes.length){S.over=true;S.result='won';SFX.win();unlocked=Math.max(unlocked,S.lvl+1);store('tower-unlocked',unlocked);return}
   weather(dt);
   for(const r of RUNWAYS)r.wake=Math.max(0,r.wake-dt);
@@ -984,24 +993,27 @@ function draw(){
     let tag=p.state==='hold'?' ⟳':p.state==='tofix'?` →${p.fix.toUpperCase()}`:p.state==='final'?' landing':p.state==='roll'?' taking off':p.state==='taxi'?' taxi':p.state==='lineup'?' waiting':p.state==='enter'?' lining up':p.state==='rollout'?' landed':p.state==='taxiin'?' taxi in':p.cleared?(p.inGate&&tailwind(p.inGate)?' · waits for wind':' · cleared'):'';
     if(p.kind==='arr'&&p.state!=='final'&&!p.cleared&&landGate(p))tag+=rwBusy(GATES[landGate(p)].rw)?' · wait':' · can land';
     const rest=`${ground?'':' '+lvTxt}${p.T.tag?' '+p.T.tag:''}${tag}${p.kind!=='arr'&&!ground?' → '+U(p.dest):''}`;font(ground?11:12.5,hot?600:500);
-    const gauge=p.kind==='arr'&&!ground&&isFinite(p.fuel0),nw=cx.measureText(p.name).width,gw=gauge?12:0;   // the fuel gauge sits right after the name
+    const gauge=p.kind==='arr'&&!ground&&isFinite(p.fuel0),nw=cx.measureText(p.name).width,gw=gauge?15:0;   // the fuel gauge sits right after the name
     const lx=p.x+18,ly=p.y-20,tw=nw+gw+cx.measureText(rest).width;
     cx.strokeStyle=col;cx.globalAlpha=.5;cx.beginPath();cx.moveTo(p.x+6,p.y-6);cx.lineTo(lx-4,ly+6);cx.stroke();cx.globalAlpha=1;
     cx.fillStyle=p.mayday&&S.t%1<.5?'rgba(80,14,10,.85)':'rgba(4,11,8,.72)';cx.beginPath();cx.roundRect(lx-5,ly-9,tw+10,19,4);cx.fill();
     cx.textAlign='left';cx.fillStyle=hot?'#fff':p.mayday?'#ff8a7e':col;cx.fillText(p.name,lx,ly+.5);cx.fillText(rest,lx+nw+gw,ly+.5);cx.textAlign='center';
-    if(gauge)fuelGauge(lx+nw+4,ly,p);
+    if(gauge)fuelGauge(lx+nw+5,ly,p);
     if(moving&&!ground){const f=1-Math.abs(p.tgtAlt-p.alt)/Math.max(.01,Math.abs(p.tgtAlt-p.altFrom));
       cx.fillStyle='rgba(211,234,217,.15)';cx.fillRect(lx-5,ly+9,tw+10,2);cx.fillStyle=col;cx.fillRect(lx-5,ly+9,(tw+10)*f,2)}
     p.warn=0}
   for(const f of S.fx)drawFx(f);
   glow('',0)}
-// a small tank: four cells, as full as the tanks are (full on entry). Green, amber below half, red below a quarter;
+// a small jerrycan, filled as full as the tanks are (full on entry). Green, amber below half, red below a quarter;
 // at MAYDAY it glows red and pulses
-function fuelGauge(x,y,p){const f=Math.max(0,p.fuel/p.fuel0),cells=Math.ceil(f*4),c=f>.5?'#7ee0a8':f>.25?'#f2c94c':'#ff6b5e';
-  if(p.mayday){glow('#ff3b2e',8+6*Math.sin(S.t*8))}
-  cx.strokeStyle=p.mayday?'#ff6b5e':'rgba(211,234,217,.6)';cx.lineWidth=1;cx.strokeRect(x+.5,y-6.5,6,12);
-  cx.fillStyle=cx.strokeStyle;cx.fillRect(x+2,y-8,3,1.5);   // the cap
-  cx.fillStyle=c;for(let i=0;i<cells;i++)cx.fillRect(x+2,y+3.5-i*3,3,2);glow('',0)}
+function fuelGauge(x,y,p){const f=Math.max(0,p.fuel/p.fuel0),c=f>.5?'#7ee0a8':f>.25?'#f2c94c':'#ff6b5e',line=p.mayday?'#ff6b5e':'rgba(211,234,217,.65)';
+  const body=new Path2D(`M${x} ${y-2.5} L${x+2.5} ${y-5} L${x+8} ${y-5} L${x+8} ${y+6} L${x} ${y+6} Z`);   // the can, one top corner cut off
+  if(p.mayday)glow('#ff3b2e',8+6*Math.sin(S.t*8));
+  cx.save();cx.clip(body);cx.fillStyle=c;cx.fillRect(x,y+6-11*f,8,11*f);cx.restore();   // the fuel, from the bottom up
+  cx.strokeStyle=line;cx.lineWidth=1;cx.stroke(body);
+  cx.strokeRect(x+4,y-7.5,3,2.5);   // the handle
+  cx.lineWidth=1.4;cx.beginPath();cx.moveTo(x+1.2,y-3.8);cx.lineTo(x-.8,y-7.2);cx.stroke();cx.lineWidth=1;   // the spout
+  glow('',0)}
 const over=document.getElementById('over'),$=id=>document.getElementById(id);
 // after a shift: the score, tokens earned, and the upgrades to buy (or today's best, for the daily shift)
 function shiftOver(){
