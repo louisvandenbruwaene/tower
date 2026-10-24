@@ -125,430 +125,55 @@ main{flex:1;min-height:0;display:flex}
 <p class="go" id="pnav"></p></div></div>
 <script>
 /* =====================================================================================================================
-   TOWER POWER: you are the air traffic controller. Planes are steered by typed orders of the shape
-   "plane action [direction]" (heron turn s, heron descend, wren takeoff e). Arrivals must be brought down to low,
-   into a landing circle off a runway end, and cleared to land; departures take off and must leave your area through
-   the slice they want; overflights cross. Two planes less than 400 m apart in height and too close is a strike; three
-   strikes end the shift. Each plane pays a fare; a shift pays tokens; tokens buy upgrades for later shifts.
+   TOWER POWER
 
-   HOW THIS FILE IS ORGANISED (top to bottom)
-     the prompt ........... reading typed words, suggestions, the help card
-     TUNING ............... every number that sets how the game plays, in real units, then converted to game units
-     the world ............ compass words, levels, runways, landing circles, holding fixes
-     the shift ............ rules, upgrades, saving, startShift
-     sound ................ every effect synthesised (no sound files), and the music
-     planes and traffic ... making planes, when new ones come, strikes, payment
-     the airport .......... taxiing, runway timing, landing circles
-     line-ups ............. the path a cleared plane flies onto the runway (turns of a fixed radius and straights)
-     one tick of the world  advanceWorld: everything that happens in one step of game time
-     orders ............... executeOrder: carrying out what was typed; the hint line
-     tutorial, admin ...... the optional guided start, and a hidden sandbox for testing ("admin fly")
-     drawing .............. the radar, planes, effects, payment chips, the shift-over screen with the shop
+   WHAT  You are the air traffic controller of one airport. Planes are steered by typed orders of the shape
+         "plane action [direction]" (heron turn s, heron descend, wren takeoff e). Arrivals come in high: bring them down
+         to low, into a landing circle off a runway end, and clear them to land. Departures wait in the READY list: take
+         them off and turn them to the slice of the edge they want to leave through. Overflights cross your area. Two
+         planes less than 400 m apart in height and too close is a strike; three strikes end the shift. Every plane pays
+         a fare, a shift pays tokens, tokens buy upgrades (more levels, more room, timing help, more runways).
+   WHY   A game about calm planning under growing pressure: realistic distances, speeds and turns, simple orders.
+   HOW   One file, no libraries. Every step of game time (advanceWorld) moves traffic, weather and planes; every screen
+         frame draws the radar (drawRadar) and the panels around it. Typed words are read as their most likely meaning
+         (readWords) and carried out (executeOrder).
 
-   UNITS AND WORDS
-     distances on screen are px: 1 px = METRES_PER_PIXEL m (25). Game time runs TIME_SCALE (4.5) times faster than
-     real time; "game seconds" are what the code counts (seconds in advanceWorld). Speeds are px per game second.
-     Headings are radians, 0 = east, growing clockwise (screen y grows downward). A level is a number: 0 = low
-     (3,000 ft), each 1 more is 1,000 ft higher; while climbing a plane is between two (2.5 = 5,500 ft).
-     A landing circle is the ring off a runway end where arrivals are cleared to land; it is also the record of that
-     runway end (CIRCLES, see startShift). A line-up is the path from where a cleared plane is onto the runway.
+   FINDING YOUR WAY: search for the section mark, e.g. "§ 1".
+      § 1  SETTINGS ............. every number and piece of content that decides how the game plays: change the game here
+      § 2  GAME UNITS ........... the settings converted to the units the simulation counts in
+      § 3  THE WORLD ............ angles, compass words, levels, runway geometry
+      § 4  SAVING AND THE SHIFT . what is saved, upgrades, starting a shift
+      § 5  SOUND ................ every sound effect, synthesised; the music
+      § 6  PLANES AND TRAFFIC ... new planes, strikes, payment
+      § 7  THE AIRPORT .......... taxiing, runway use and timing, landing circles
+      § 8  LINE-UPS ............. the path a cleared arrival flies onto the runway
+      § 9  ONE TICK OF THE WORLD  advanceWorld and everything it does
+      § 10 ORDERS AND HINTS ..... what typed orders do, and the hint line
+      § 11 THE PROMPT AND HELP .. reading typed words, suggestions, keys, the help card
+      § 12 TUTORIAL ............. the optional guided start
+      § 13 ADMIN ................ a hidden sandbox for testing (type "admin fly")
+      § 14 DRAWING .............. the radar, planes, effects, payment chips
+      § 15 THE SCREEN ........... the panels around the radar, the shift-over screen and shop, the frame loop
+      § 16 START ................ what runs once the page has loaded
+
+   UNITS AND WORDS: distances on screen are px (1 px = METRES_PER_PIXEL, 25 m). Game time runs TIME_SCALE (4.5) times
+   faster than real time; the code counts game seconds. Speeds are px per game second. Headings are radians, 0 = east,
+   growing clockwise (screen y grows downward). A level is a number: 0 = low (3,000 ft), each 1 more is 1,000 ft
+   higher, fractions while climbing. A landing circle is the ring off a runway end where arrivals are cleared to land;
+   the record of that runway end (CIRCLES) is described in startShift. A line-up is the path from where a cleared
+   plane is onto the runway.
    ===================================================================================================================== */
-/* ---------- terminal: plane action [direction]; every word is read as its most likely meaning ---------- */
-const commandInput = document.getElementById('cmd'),
-  suggestionsEl = document.getElementById('sug'),
-  replyEl = document.getElementById('out'),
-  ghostEl = document.getElementById('ghost');
-// the hint line under the prompt (what the plane you are typing needs next) and the help card behind the ? button
-const hintEl = document.getElementById('hint'),
-  helpEl = document.getElementById('help');
-// what the prompt remembers: orders typed before (history, walked with the up and down arrows), which suggestion is chosen,
-// the suggestions for the word being typed, and the faded rest of the chosen one (ghost)
-const typing = {history: [], historyAt: 0, chosen: 0, suggestions: [], ghost: ''};
-// no scrolling anywhere: the help card comes in pages (← →), and every overlay shrinks to fit the window
-const HELP_PAGES = [...helpEl.querySelectorAll('.pg')],
-  helpNav = document.getElementById('pnav');
-// shrinks an overlay (the help card, the shift-over screen) just enough to fit its container, never grows it; margin: room left around it
-function fitToWindow(element, margin = 24) {
-  element.style.transform = '';
-  const container = element.parentElement,
-    scale = Math.min(
-      1,
-      (container.clientWidth - margin) / element.offsetWidth,
-      (container.clientHeight - margin) / element.offsetHeight,
-    );
-  if (scale < 1) element.style.transform = `scale(${scale})`;
-}
-// shows one page of the help card and the page names under it (← → or a click flips pages)
-function showHelpPage(i) {
-  typing.helpPage = (i + HELP_PAGES.length) % HELP_PAGES.length;
-  HELP_PAGES.forEach((page, pageIndex) => page.classList.toggle('on', pageIndex === typing.helpPage));
-  helpNav.innerHTML = `← ${HELP_PAGES.map((page, pageIndex) => `<span class="${pageIndex === typing.helpPage ? 'on' : ''}" data-p="${pageIndex}">${page.querySelector('h2').textContent.toLowerCase()}</span>`).join('·')} → · Enter or Esc to close`;
-  fitToWindow(document.getElementById('helpcard'));
-}
-helpNav.addEventListener('click', event => {
-  event.stopPropagation();
-  if (event.target.dataset.p) showHelpPage(+event.target.dataset.p);
-});
-// the help card: is it open, and opening or closing it (on the given page)
-const helpShown = () => helpEl.style.display !== 'none',
-  showHelp = (show, page = 0) => {
-    helpEl.style.display = show ? 'grid' : 'none';
-    if (show) {
-      helpEl.querySelector('#admcard').style.display = 'none';
-      helpEl.querySelector('#helpcard').style.display = '';
-      showHelpPage(page);
-    }
-  };
-// text as safe HTML: & and < cannot start markup
-const escapeHtml = text => text.replace(/&/g, '&amp;').replace(/</g, '&lt;');
-// the eight directions are typed and shown short: n ne e se s sw w nw
-const ABBREVIATIONS = {
-  n: 'north',
-  ne: 'northeast',
-  e: 'east',
-  se: 'southeast',
-  s: 'south',
-  sw: 'southwest',
-  w: 'west',
-  nw: 'northwest',
-};
-// the other way round: a full compass word to its short form (north -> n)
-const SHORT_WORD = Object.fromEntries(Object.entries(ABBREVIATIONS).map(([key, value]) => [value, key]));
-// turns relative to the heading: sl sr 45°, l r 90°, hl hr 135°
-Object.assign(ABBREVIATIONS, {sl: 'softleft', l: 'left', hl: 'hardleft', sr: 'softright', radius: 'right', hr: 'hardright'});
-// a compass word as shown on screen: north -> N, northeast -> NE; any other word as it is
-const shortWayUpper = word => (SHORT_WORD[word] ? SHORT_WORD[word].toUpperCase() : word);
-// '!' = error (red)
-function showReply(text) {
-  const isError = text[0] === '!';
-  replyEl.textContent = isError ? text.slice(1) : text;
-  replyEl.className = isError ? 'bad' : '';
-}
-// edit distance (with swapped neighbours) for typos
-function editDistance(first, second) {
-  const table = [...Array(first.length + 1)].map((_, i) => [i, ...Array(second.length).fill(0)]);
-  for (let j = 1; j <= second.length; j++) table[0][j] = j;
-  for (let i = 1; i <= first.length; i++)
-    for (let j = 1; j <= second.length; j++) {
-      table[i][j] = Math.min(
-        table[i - 1][j] + 1,
-        table[i][j - 1] + 1,
-        table[i - 1][j - 1] + (first[i - 1] === second[j - 1] ? 0 : 1),
-      );
-      if (i > 1 && j > 1 && first[i - 1] === second[j - 2] && first[i - 2] === second[j - 1])
-        table[i][j] = Math.min(table[i][j], table[i - 2][j - 2] + 1);
-    }
-  return table[first.length][second.length];
-}
-// does the typed word appear in this word letter by letter, in order (with gaps)? 'hrl' fits 'hardleft'
-const lettersInOrder = (typed, word) => {
-  let i = 0;
-  for (const letter of word) if (letter === typed[i]) i++;
-  return i === typed.length;
-};
-// what a typed word most likely means: exact or abbreviation, then the start of a word, then its letters in order
-// (same first letter), then the closest spelling. Ties: the shortest direction, else the earliest option.
-function meaningOf(typed, choices) {
-  if (choices.includes(typed)) return typed;
-  if (/^\d+$/.test(typed) && levelTyped(typed) >= 0 && choices.includes(LEVEL_NAMES[levelTyped(typed)]))
-    return LEVEL_NAMES[levelTyped(typed)]; // a level by number
-  if (ABBREVIATIONS[typed] && choices.includes(ABBREVIATIONS[typed])) return ABBREVIATIONS[typed];
-  let pick = null,
-    pickScore = 1e9;
-  choices.forEach((option, i) => {
-    let score;
-    if (option.startsWith(typed)) score = 1;
-    else if (option[0] === typed[0] && lettersInOrder(typed, option)) score = 2;
-    else {
-      const typos = Math.min(editDistance(typed, option), editDistance(typed, option.slice(0, typed.length)) + 0.5);
-      if (typos > (typed.length <= 3 ? 1 : 2)) return;
-      score = 3 + typos;
-    }
-    score += (option in SHORT_WORD ? option.length : i) * 0.001;
-    if (score < pickScore) {
-      pickScore = score;
-      pick = option;
-    }
-  });
-  return pick;
-}
-// reads typed words as an order: each word becomes the option it most likely means, where options depend on the words
-// before it (a plane name, then that plane's actions, then that action's arguments). Returns {words} or {err: the message}
-function readWords(typedWords) {
-  const understood = [];
-  for (const typed of typedWords) {
-    const choices = optionsAfter(understood);
-    // nothing left to choose: after an action, let the action say why
-    if (!choices.length) {
-      if (understood.length === 2) break;
-      return {err: '!too many words: plane action [direction]'};
-    }
-    const meant = meaningOf(typed, choices);
-    if (!meant) return {err: `!${typed}? ${validOptions(understood).slice(0, 8).map(shortWayUpper).join(' · ')}`};
-    understood.push(meant);
-  }
-  return {words: understood};
-}
-// the prompt split in the words already finished and the part of the word being typed
-function typedParts() {
-  const words = commandInput.value.toLowerCase().split(/\s+/);
-  return {done: words.slice(0, -1).filter(Boolean), part: words[words.length - 1]};
-}
-// the rest of the chosen suggestion after what is typed, shown faded in the prompt
-function ghostCompletion() {
-  const {part} = typedParts();
-  return part && typing.suggestions.length ? typing.suggestions[typing.chosen].slice(part.length) : '';
-}
-// after every key: the suggestions for the word being typed (only orders that would work), the ghost text, the hint line
-function refreshSuggestions() {
-  const {done, part} = typedParts();
-  const read = readWords(done);
-  typing.suggestions =
-    read.err || !commandInput.value.trim() ? [] : validOptions(read.words).filter(option => option.startsWith(part));
-  if (game.admin) {
-    const words = commandInput.value.toLowerCase().split(/\s+/),
-      i = words.length - 1,
-      adminArguments = ADMIN_ARGS[words[0]]; // in admin: its own words first
-    if (i === 0 && part)
-      typing.suggestions = [...new Set([...ADMIN_WORDS.filter(option => option.startsWith(part)), ...typing.suggestions])];
-    else if (adminArguments && adminArguments[i - 1])
-      typing.suggestions = adminArguments[i - 1].filter(option => option.startsWith(part));
-  }
-  if (typing.chosen >= typing.suggestions.length) typing.chosen = 0;
-  typing.ghost = ghostCompletion();
-  ghostEl.innerHTML = `<span class="t">${escapeHtml(commandInput.value)}</span>${escapeHtml(typing.ghost)}`;
-  suggestionsEl.innerHTML =
-    typing.suggestions.length > 1
-      ? typing.suggestions
-          .slice(0, 12)
-          .map((suggestion, i) => `<i class="${i === typing.chosen ? 'on' : ''}">${suggestion}</i>`)
-          .join('')
-      : '';
-  hintEl.textContent = helpShown() ? '' : hintFor(typedPlaneName());
-}
-// the plane the prompt is about: what its first word most likely means, if that is a plane's name
-function typedPlaneName() {
-  const firstWord = commandInput.value.toLowerCase().trim().split(/\s+/)[0];
-  return firstWord ? meaningOf(firstWord, optionsAfter([])) : null;
-}
-// runs at once; when a word was read differently from how it was typed, the reply starts with what was understood
-function runTyped(typed) {
-  // the only way into admin; anything else is just an unknown word
-  if (typed === 'admin fly' && !game.admin) {
-    sound.ok();
-    showReply(enterAdmin());
-    return logOrder(typed);
-  }
-  if (game.admin) {
-    const reply = adminCommand(typed);
-    if (reply !== null) {
-      reply[0] === '!' ? sound.err() : sound.ok();
-      showReply(reply);
-      return logOrder(typed);
-    }
-  }
-  const typedWords = typed.split(/\s+/),
-    parsed = readWords(typedWords);
-  if (parsed.err) {
-    sound.err();
-    showReply(parsed.err);
-    return logOrder(typed);
-  }
-  const reply = executeOrder(parsed.words) || '';
-  reply[0] === '!' ? sound.err() : planeNamed(parsed.words[0]) ? sound.radio() : sound.ok();
-  const readAs = parsed.words.map(shortWayUpper).join(' '),
-    same = parsed.words.every((word, i) => word === typedWords[i] || ABBREVIATIONS[typedWords[i]] === word);
-  showReply(same || !reply ? reply : reply[0] === '!' ? `!(${readAs}) ${reply.slice(1)}` : `(${readAs}) ${reply}`);
-  logOrder(typed);
-}
-// the last few orders and their replies, fading upward above the prompt
-const recentEl = document.getElementById('hist');
-// adds an order and the reply it got to the recent orders above the prompt, and clears the reply line
-function logOrder(typed) {
-  typing.recent = [
-    ...(typing.recent || []),
-    {command: typed, reply: replyEl.textContent, bad: replyEl.className === 'bad'},
-  ].slice(-5);
-  showReply('');
-  recentEl.innerHTML = typing.recent
-    .map(
-      (entry, i) =>
-        `<div class="h${entry.bad ? ' bad' : ''}" style="opacity:${(0.25 + (0.6 * (i + 1)) / typing.recent.length).toFixed(2)}"><div class="c">${escapeHtml(entry.command)}</div>${entry.reply ? `<div class="r">${escapeHtml(entry.reply)}</div>` : ''}</div>`,
-    )
-    .join('');
-}
-commandInput.addEventListener('input', () => {
-  typing.chosen = 0;
-  sound.key();
-  refreshSuggestions();
-});
-commandInput.addEventListener('keydown', event => {
-  if (helpShown() && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
-    event.preventDefault();
-    showHelpPage(typing.helpPage + (event.key === 'ArrowRight' ? 1 : -1));
-    return;
-  }
-  if (overScreenUp() && shopOpen() && !commandInput.value && event.key.startsWith('Arrow')) {
-    event.preventDefault();
-    shopMove(event.key);
-    return;
-  }
-  const atEnd = commandInput.selectionStart === commandInput.value.length;
-  if (event.key === 'Tab' || (event.key === 'ArrowRight' && atEnd && typing.ghost)) {
-    event.preventDefault();
-    if (!typing.ghost) return;
-    sound.tab();
-    const take = event.key === 'Tab' ? typing.ghost.match(/^\s*\S*\s?/)[0] : typing.ghost;
-    commandInput.value += take.endsWith(' ') ? take : take + ' ';
-    typing.chosen = 0;
-    refreshSuggestions();
-    return;
-  }
-  if ((event.key === 'ArrowUp' || event.key === 'ArrowDown') && typing.suggestions.length > 1 && typedParts().part) {
-    event.preventDefault();
-    typing.chosen = (typing.chosen + (event.key === 'ArrowDown' ? 1 : typing.suggestions.length - 1)) % typing.suggestions.length;
-    refreshSuggestions();
-    return;
-  }
-  if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-    event.preventDefault();
-    if (!typing.history.length) return;
-    typing.historyAt = Math.max(0, Math.min(typing.history.length, typing.historyAt + (event.key === 'ArrowUp' ? -1 : 1)));
-    commandInput.value = typing.history[typing.historyAt] || '';
-    refreshSuggestions();
-    return;
-  }
-  if (event.key === 'Escape') {
-    event.preventDefault();
-    if (helpShown()) showHelp(false);
-    else if (commandInput.value) commandInput.value = '';
-    else togglePause();
-    refreshSuggestions();
-    return;
-  }
-  if (event.key === 'Enter') {
-    event.preventDefault();
-    const typed = commandInput.value.trim().toLowerCase();
-    if (helpShown()) {
-      showHelp(false);
-      if (!typed) return;
-    }
-    if (!typed) {
-      onEmptyEnter();
-      return;
-    }
-    typing.history.push(typed);
-    typing.historyAt = typing.history.length;
-    commandInput.value = '';
-    runTyped(typed);
-    refreshSuggestions();
-  }
-});
-addEventListener('mousedown', event => {
-  event.preventDefault();
-  commandInput.focus();
-});
-// the help card only opens from the ? button (or typing help); any click closes it
-document.getElementById('qm').addEventListener('click', event => {
-  event.stopPropagation();
-  showHelp(!helpShown());
-  refreshSuggestions();
-});
-helpEl.addEventListener('click', () => {
-  showHelp(false);
-  refreshSuggestions();
-});
-setInterval(refreshSuggestions, 400);
-// the aircraft data sheet in the help card: every number comes from TYPES and the constants the game flies with
-// (game time runs TIME_SCALE times fast; rates are shown per real second)
-function aircraftSheet() {
-  const typeList = Object.entries(TYPES),
-    number = (x, decimals = 0) => x.toLocaleString('en', {maximumFractionDigits: decimals, minimumFractionDigits: decimals});
-  const metresPerSecond = knots => knots * 0.5144,
-    row = (label, cell) =>
-      `<tr><td>${label}</td>${typeList.map(([typeName, type]) => `<td>${cell(type, typeName)}</td>`).join('')}</tr>`,
-    section = title => `<tr class="sec"><td colspan="${typeList.length + 1}">${title}</td></tr>`;
-  const radius = (type, knots) => metresPerSecond(knots) / degreesToRadians(type.turnDegreesPerSecond) / 1000; // km
-  return (
-    `<table class="ac"><tr><th></th>${typeList.map(([typeName, type]) => `<th>${type.tag || 'jet'}</th>`).join('')}</tr>` +
-    row('model', type => type.model) +
-    row('role', type => type.role) +
-    section('weight and size') +
-    row('max takeoff weight', type => number(type.maxTakeoffTonnes, 1) + ' t') +
-    row('empty weight', type => number(type.emptyTonnes, 1) + ' t') +
-    row('wingspan', type => number(type.wingspanMetres, 1) + ' m') +
-    row('length', type => number(type.lengthMetres, 1) + ' m') +
-    row('wake', type =>
-      type.heavyWake
-        ? `heavy: +${number((WAKE_EXTRA * METRES_PER_PIXEL) / 1000, 1)} km separation, runway rests ${number(WAKE_REST * TIME_SCALE)} s`
-        : 'medium/light',
-    ) +
-    section('speed') +
-    SPEED_TABLE_FEET.map((feet, i) =>
-      row(`${LEVEL_NAMES[LEVEL_FEET.indexOf(feet)]} (${feet} ft)`, type =>
-        i <= type.ceilingRow ? number(type.knotsAtLevels[i]) + ' kt' : '·',
-      ),
-    ).join('') +
-    row('highest level', type => `${LEVEL_NAMES[typeTopLevel(type)]} (${LEVEL_FEET[typeTopLevel(type)]} ft)`) +
-    row('holding', type => number(type.knotsAtLevels[0]) + ' kt') +
-    row('approach and rotation', type => number(type.approachKt) + ' kt') +
-    row('max cruise (not flown here)', type => number(type.cruiseKnots) + ' kt') +
-    row('taxi', () => number(TAXI_SPEED / PX_PER_KT) + ' kt') +
-    row('speed change in the air', () => number(AIR_ACCEL, 1) + ' kt/s') +
-    section('turning') +
-    row('turn rate', type => number(type.turnDegreesPerSecond, 1) + ' °/s') +
-    row('turn radius at low', type => number(radius(type, type.knotsAtLevels[0]), 2) + ' km') +
-    row('turn radius on approach', type => number(radius(type, type.approachKt), 2) + ' km') +
-    section('climb and runway') +
-    row('climb and descent', type => number(type.climbFeetPerMinute) + ' ft/min') +
-    row(`one level (${FEET_PER_LEVEL} ft)`, type => number((FEET_PER_LEVEL / type.climbFeetPerMinute) * 60) + ' s') +
-    row('takeoff acceleration', type => number(type.takeoffAcceleration, 1) + ' m/s²') +
-    row(
-      'takeoff run to rotation',
-      type => number(metresPerSecond(type.approachKt) ** 2 / (2 * type.takeoffAcceleration)) + ' m',
-    ) +
-    row('runway', () => number((2 * RUNWAY_HALF_LENGTH * METRES_PER_PIXEL) / 1000, 1) + ' km') +
-    row('hardest braking after touchdown', () => number(ROLLOUT_BRAKE, 1) + ' m/s²') +
-    section('fuel') +
-    row('tanks', type => number(type.tankKg) + ' kg') +
-    row('burn', type => number(type.burnKgPerHour) + ' kg/h') +
-    row('reserve on arrival', type => `${number((type.reserveSeconds * TIME_SCALE) / 60)} min`) +
-    `</table><p style="color:var(--dim);font-size:12.5px">1 px on the radar is ${METRES_PER_PIXEL} m, your area is ${number((AREA_RADIUS * METRES_PER_PIXEL) / 1000, 1)} km across the radius (${number((AREA_RADIUS_WIDER * METRES_PER_PIXEL) / 1000, 1)} with the range upgrade), and the game runs ${TIME_SCALE}× faster than real time. Separation: ${number((SEPARATION * METRES_PER_PIXEL) / 1000, 2)} km between planes less than ${VERTICAL_SEPARATION_METRES} m apart in height. Touchdown at most ${TOUCHDOWN_ANGLE_DEGREES}° off the runway heading.</p>`
-  );
-}
-// the ♪ button: sound and music on or off (the label shows which)
-const soundButton = document.getElementById('snd'),
-  showSoundState = () => setTimeout(() => (soundButton.textContent = sound.on ? '♪' : '×'));
-soundButton.addEventListener('click', event => {
-  event.stopPropagation();
-  sound.toggle();
-  showSoundState();
-});
-showSoundState();
-// fast-forward: 1×, 2×, 4× or 8×, on top of the game's own pace. Each frame runs step() that many times, so the physics
-// keeps its usual time step. Kept across restarts, not saved.
-let fastForward = 1;
-// the speed button and the 'speed' command: 1×, 2×, 4×, 8×, then back to 1×
-const speedButton = document.getElementById('ff'),
-  showSpeed = () => (speedButton.textContent = fastForward + '×');
-const cycleFastForward = () => {
-  fastForward = fastForward >= 8 ? 1 : fastForward * 2;
-  showSpeed();
-  return `time runs ${fastForward}×`;
-};
-speedButton.addEventListener('click', event => {
-  event.stopPropagation();
-  cycleFastForward();
-});
-showSpeed();
 
 /* =====================================================================================================================
-   TUNING: every number that sets how the game plays, in one place. Change them here; the rest of the code reads them.
-   Real-world units where there are any (kt, ft, ft/min, m/s², °/s, t, m, kg); distances on screen in px (1 px = M_PER_PX m);
-   seconds marked "game" run TIME_SCALE times faster than real ones.
+   § 1  SETTINGS
+
+   WHAT  Every number and every piece of content that decides how the game plays: scale, speeds, distances, the aircraft
+         types, call signs, traffic, weather, money, the airport layout, upgrades and prices.
+   WHY   To change the game you only edit this section; the code below reads these names and hard-codes no game value.
+   HOW   Real-world units where there are any (kt, ft, ft/min, m/s², °/s, t, m, kg); distances on screen in px
+         (1 px = METRES_PER_PIXEL m); seconds marked "game" run TIME_SCALE times faster than real ones. § 2 converts
+         them to the units the simulation counts in. Each setting says what it does in its comment.
    ===================================================================================================================== */
-const degreesToRadians = degrees => (degrees * Math.PI) / 180,
-  normaliseAngle = angle => Math.atan2(Math.sin(angle), Math.cos(angle));
 // scale
 const METRES_PER_PIXEL = 25; // 1 px on screen is 25 m
 const TIME_SCALE = 4.5; // game time runs 4.5x faster than real time
@@ -635,58 +260,66 @@ const TYPES={
   military:{tag:'MIL',fare:1500,model:'Eurofighter Typhoon',role:'fighter',knotsAtLevels:[250,300,350,380,400],approachKt:150,ceilingRow:4,turnDegreesPerSecond:9,climbFeetPerMinute:8000,takeoffAcceleration:6,heavyWake:0,drawScale:.8,reserveSeconds:160,
     maxTakeoffTonnes:23.5,emptyTonnes:11,wingspanMetres:10.95,lengthMetres:15.96,cruiseKnots:540,tankKg:4996,burnKgPerHour:3000}};
 const TYPE_MIX = {light: 0.22, bizjet: 0.13, jet: 0.36, heavy: 0.12, cargo: 0.1, vip: 0.05, medevac: 0.04, military: 0.04}; // how often each type shows up (once types are on)
-/* ---------- derived from the tuning above, in game units (px, game s) ---------- */
-let areaRadius = AREA_RADIUS; // this shift's area: RADAR0, more with the range upgrade or a diagonal runway
-const PX_PER_KT = (0.5144 * TIME_SCALE) / METRES_PER_PIXEL; // px per game s, per knot
-// the tuning numbers in game units: airspeed change in px per game second², taxi speed in px per game second, the touchdown cone's
-// half-angle in radians
-const AIR_ACCEL_PX = AIR_ACCEL * TIME_SCALE * PX_PER_KT,
-  TAXI_SPEED = TAXI_KT * PX_PER_KT,
-  TOUCHDOWN_ANGLE = degreesToRadians(TOUCHDOWN_ANGLE_DEGREES);
-const accelToGame = metresPerSecondSquared => (metresPerSecondSquared * TIME_SCALE * TIME_SCALE) / METRES_PER_PIXEL; // m/s² to px per game s²
-// one level is 1,000 ft; VERTICAL_SEPARATION_LEVELS is VERTICAL_SEPARATION_METRES counted in levels (about 1.3)
-const FEET_PER_LEVEL = LEVEL_FEET[1] - LEVEL_FEET[0],
-  VERTICAL_SEPARATION_LEVELS = VERTICAL_SEPARATION_METRES / 0.3048 / FEET_PER_LEVEL; // VSEP in levels
-// a type's highest level (its top is an index into KT_FT) and its speed at a height (interpolated between the KT_FT heights)
-const typeTopLevel = type => LEVEL_FEET.indexOf(SPEED_TABLE_FEET[type.ceilingRow]);
-// a type's airspeed in knots at a height (a level number, fractions while climbing), read from its speed table between the
-// two nearest table heights
-const knotsAt = (type, level) => {
-  const feet = LEVEL_FEET[0] + level * FEET_PER_LEVEL;
-  let i = 0;
-  while (i < SPEED_TABLE_FEET.length - 2 && feet > SPEED_TABLE_FEET[i + 1]) i++;
-  const between = Math.max(0, Math.min(1, (feet - SPEED_TABLE_FEET[i]) / (SPEED_TABLE_FEET[i + 1] - SPEED_TABLE_FEET[i])));
-  return type.knotsAtLevels[i] + (type.knotsAtLevels[i + 1] - type.knotsAtLevels[i]) * between;
-};
-// a random type by TYPE_MIX; an overflight is never a priority flight (it only crosses, nothing to give way to)
-const pickRandomType = kind => {
-  const mix = Object.entries(TYPE_MIX).filter(([typeName]) => kind !== 'ovf' || !TYPES[typeName].priority);
-  let roll = trafficRandom() * mix.reduce((sum, [, weight]) => sum + weight, 0);
-  for (const [typeName, weight] of mix) if ((roll -= weight) < 0) return typeName;
-  return 'jet';
-};
-// the highest level a plane goes to: its type's, or lower when your airspace has fewer levels
-const highestLevel = plane => Math.max(...rules.levels.filter(i => i <= typeTopLevel(plane.type)));
-// climbing and descending, in levels per game s; the takeoff run's acceleration in px per game s²
-const climbRateOf = plane => ((plane.type.climbFeetPerMinute / 60) * TIME_SCALE) / FEET_PER_LEVEL,
-  takeoffAccel = plane => accelToGame(plane.type.takeoffAcceleration);
+// --- traffic: where and how new planes appear ---
+const SPAWN_EDGE_INSET = 6; // px: new planes appear this far inside the edge of your area
+const ARRIVAL_AIM_SPREAD_DEG = 40; // a new arrival heads at the airport, up to half this many degrees off either way
+const OVERFLIGHT_AIM_SPREAD = 200; // px: an overflight aims at a point up to half this far from the airport centre, either way
+const SPAWN_TRIES = 40; // how many random edge points to try for a new plane before taking the last one
+const SPAWN_CLEAR_DISTANCE = 180; // px: a new plane prefers an edge point at least this far from every plane in the air
+const TRAFFIC_LONGEST_GAP = 120; // game s: never longer than this between two new planes
+const OVERFLIGHT_SHARE = 0.22; // once overflights are on: a share of the new planes that are overflights
+const DEPARTURE_SHARE = 0.38; // the share of new planes that are departures (a random roll below this)
+const DEPARTURE_SHARE_WITH_OVERFLIGHTS = 0.52; // the same once overflights are on (rolls between OVERFLIGHT_SHARE and this)
+const MAX_WAITING_DEPARTURES = 3; // no new departure while this many wait in the READY list
+const OVERFLIGHTS_AFTER_PLANES = 10; // the neighbouring sector's overflights start once you have handled this many planes
+// --- strikes and pay ---
+const STRIKES_TO_END = 3; // the shift ends at this many strikes
+const LATE_PERCENT_PER_SECOND = 1; // a fare loses this many percent for every game second beyond par
+const LOWEST_FARE_SHARE = 0.1; // ... but never below this share of the fare
+const LATE_PRIORITY_SHARE = 0.25; // a priority flight that was late pays only this share
+const PAR_EXTRA_KT = 220; // with a wider area, par grows by the extra distance flown at this speed (knots)
+const DAILY_BEST_KEPT = 5; // the daily shift keeps this many best scores
+// --- weather ---
+const WIND_FIRST_TURN = 160,
+  WIND_FIRST_TURN_SPREAD = 90; // game s: the wind first turns after 160 to 250 game s
+const WIND_TURN_EVERY = 170,
+  WIND_TURN_SPREAD = 100; // game s: then every 170 to 270 game s
+const FIRST_STORM_AT = 25; // game s: the first storm cell may come this early
+const STORM_GAP = 30; // game s: after a storm cell leaves, the next comes no sooner than this
+const STORM_RADIUS = 32,
+  STORM_RADIUS_SPREAD = 14; // px: a storm cell's radius, 32 to 46
+const STORM_NORTH_OFFSET = 110,
+  STORM_NORTH_SPREAD = 110; // px: a storm north of the main runway passes 110 to 220 north of it
+const STORM_SOUTH_OFFSET = 110,
+  STORM_SOUTH_SPREAD = 90; // px: one south of it passes 110 to 200 south of it
+const STORM_DRIFT = 4.5; // px per game s: how fast storm cells drift with the wind
+// --- flying, taxiing and landing behaviour ---
+const GROUND_TURN_RATE = 2.5; // rad per game s: how fast a plane turns on the ground (taxiing, lining up)
+const TAXI_GAP_PER_SIZE = 8; // px: on the ground a plane keeps this far behind another, per unit of their two drawn sizes
+const ROLL_IN_RATE = 1.4; // how fast the turn rate builds up, in turn rates per game s (full bank in about 0.7 s)
+const CORRECTION_BANK = 1.15; // following a path a plane may turn this much faster than its turn rate, to correct onto it
+const HOLD_CAPTURE_RADII = 1.5; // a plane flying to a fix starts holding once within this many turn radii of it
+const WANDER_OFF_RADII = 2.6; // a cleared plane circling a landing circle goes around beyond this many turn radii outside it
+const ORBIT_LAPS_BEFORE_GO_AROUND = 4; // ... or after this many laps without a line-up (unless it is waiting for wind or height)
+const PLAN_EVERY = 0.25; // game s: how often a circling cleared plane looks for a line-up (planning is costly)
+const REPLAN_EVERY = 0.5; // game s: how often a plane on final looks for a better line-up
+const REPLAN_MIN_LEFT = 40; // px: no new line-up once less than SHORTEST_FINAL plus this is left
+const REPLAN_MIN_SAVING = 5; // px: a new line-up must cost at least this much less than the rest of the old one
+const LINE_UP_CUTOFF = 10; // px: closer than this before the runway end, a plane cannot line up any more
+const TRAIL_EVERY = 0.7,
+  TRAIL_DOTS = 9; // game s between two dots of a plane's trail, and how many dots it keeps
+const DRAW_SIZE_GROUND = 0.045,
+  DRAW_SIZE_LOW = 0.065,
+  DRAW_SIZE_PER_LEVEL = 0.005; // pictogram scale on the ground, at low, more per level
+// --- the tutorial ---
+const TUTORIAL_PACE = 0.7; // the tutorial runs at this share of normal speed
+const TUTORIAL_STEP_PAUSE = 0.9; // game s between a finished tutorial step and the next
 
-/* ---------- world ---------- */
+// --- the airspace on screen and the airport layout ---
 const WORLD_W = 848,
   WORLD_H = 828,
   AIRPORT_X = WORLD_W / 2,
   AIRPORT_Y = WORLD_H / 2; // the world's frame: the airport centre (AX,AY), where waiting planes circle
-// the view: the area and room for its compass letters; it zooms out when the area grows, text staying the same size (ZOOM)
-const viewLeft = () => AIRPORT_X - areaRadius - 40,
-  viewTop = () => AIRPORT_Y - areaRadius - 30,
-  viewWidth = () => 2 * (areaRadius + 40),
-  viewHeight = () => 2 * (areaRadius + 30),
-  textZoom = () => areaRadius / AREA_RADIUS;
-// the eight compass words and their headings in degrees, as drawn on screen: 0 = east, 90 = south (y grows downward)
-const HEADINGS = {north: -90, northeast: -45, east: 0, southeast: 45, south: 90, southwest: 135, west: 180, northwest: -135};
-// the compass word for a heading (radians)
-const compassWordOf = heading =>
-  Object.keys(HEADINGS).find(word => Math.abs(normaliseAngle(degreesToRadians(HEADINGS[word]) - heading)) <= Math.PI / 8 + 1e-9);
 // runways: a centre (x,y) and the heading a of its forward way (0 = east). The main one runs east-west through the airport
 // centre; EXTRA_RUNWAYS are the ones the runway upgrade adds, in buying order (centre from the airport, heading)
 const EXTRA_RUNWAYS = [
@@ -694,31 +327,8 @@ const EXTRA_RUNWAYS = [
   [-205, -90, -Math.PI / 4],
   [-205, 90, Math.PI / 4],
 ];
-// a point given along a runway (along: from its centre, toward its forward end) and beside it (across: to its right)
-const runwayPoint = (runway, along, across = 0) => ({
-  x: runway.x + along * Math.cos(runway.forwardHeading) - across * Math.sin(runway.forwardHeading),
-  y: runway.y + along * Math.sin(runway.forwardHeading) + across * Math.cos(runway.forwardHeading),
-});
-// a landing circle (gate) knows its runway end: tx,ty where planes touch down, h the landing heading, ux,uy its direction.
-// along: how far past that end a point is, along the landing heading; across: how far right of the centreline
-const distancePastEnd = (circle, point) => (point.x - circle.endX) * circle.dirX + (point.y - circle.endY) * circle.dirY,
-  distanceRightOfCentreline = (circle, point) => -(point.x - circle.endX) * circle.dirY + (point.y - circle.endY) * circle.dirX;
-// turns relative to where a plane points now, in degrees: minus is left
-const RELATIVE_TURNS = {softleft: -45, left: -90, hardleft: -135, softright: 45, right: 90, hardright: 135};
-// every word that can follow 'turn': a compass word or a relative turn
-const TURN_WORDS = [...Object.keys(HEADINGS), ...Object.keys(RELATIVE_TURNS)];
-// the levels' names as typed (low lm mid mh high ht top peak), and their short labels on the planes' data blocks
-const LEVEL_NAMES = ['low', 'lm', 'mid', 'mh', 'high', 'ht', 'top', 'peak'],
-  LEVEL_LABELS = ['L', 'LM', 'M', 'MH', 'H', 'HT', 'T', 'P'];
-// a level typed as a word, a number of thousands (3 = low) or feet (3000)
-const levelTyped = typed => {
-  const number = +typed;
-  return LEVEL_NAMES.includes(typed)
-    ? LEVEL_NAMES.indexOf(typed)
-    : Number.isInteger(number)
-      ? LEVEL_FEET.indexOf(number < 100 ? number * 1000 : number)
-      : -1;
-};
+
+// --- call signs, par times ---
 // plane names (call signs): bird names, each with its own first letter, so typing one letter picks the plane
 const NAMES =
   'heron wren kite swift raven egret finch gull ibis jay lark owl puffin quail robin stork tern crane dove magpie osprey petrel snipe teal falcon grebe hawk vulture plover condor albatross bittern nightjar'.split(
@@ -737,12 +347,11 @@ const ALL_FIXES = {
   november: [0, -385],
   sierra: [0, 385],
 };
-// this shift's holding fixes, each {x, y} on screen (alpha..zulu always, november and sierra with the nav upgrade)
-let FIXES = {};
 // the fare: each type pays its own (pay); it loses 1% for every second beyond par (from appearing to landing or hand-off), down to 10%.
 // Par is about what a plane takes flown well with the sky to itself (measured: arrivals 49-101 game s, departures 60-76)
 const PAR_TIME = {arr: 90, dep: 75, ovf: 40};
-/* ---------- the shift: rules, upgrades, saving ---------- */
+
+// --- the rules of a shift, upgrades and their prices ---
 // the rules; the shift switches some on, and shift upgrades raise them
 const BASE_RULES = {
   levels: BASE_LEVELS,
@@ -789,6 +398,128 @@ const HARD_UPGRADES = {
   nav: {tiers: NORMAL_UPGRADES.nav.tiers.slice(0, 3), what: 'more room, more holds'},
   runway: {tiers: NORMAL_UPGRADES.runway.tiers.slice(2), prices: [10, 20, 50], what: 'more runways'},
 };
+
+// --- sound and screen ---
+// the music: "electro" by Pro Sensory (CC0, opengameart.org/content/electro), looping under the sounds; the ♪ switch turns both off
+const MUSIC_VOL = 0.35;
+// two taxi lanes on one wide taxiway: departures taxi out on the inner one (x AX±OUT_X, apron row OUT_Y) to a holding point
+// HOLD short of the runway, arrivals taxi in on the outer one, so the two never sit on top of each other
+const TAXI_OUT_LANE_X = RUNWAY_HALF_LENGTH + 12,
+  TAXI_IN_LANE_X = RUNWAY_HALF_LENGTH + 20,
+  TAXI_OUT_LANE_Y = AIRPORT_Y - 26,
+  TAXI_IN_LANE_Y = AIRPORT_Y - 34,
+  HOLD_SHORT = 12;
+// on the ground a plane stops while another is just ahead of it, unless that one gives way to it. Who goes first: a landed
+// plane rolling out, then one taxiing in, then a departure entering the runway, then the others in the order they started (gt: a ticket number)
+const TAXI_RIGHT_OF_WAY = {rollout: 3, taxiin: 2, enter: 1.5, taxi: 1, lineup: 1};
+// the shift-over screen waits SHIFT_OVER_DELAY s so you can see what happened; the sky stands still (no shake), only explosions play out
+const SHIFT_OVER_DELAY = 1;
+
+/* =====================================================================================================================
+   § 2  GAME UNITS
+
+   WHAT  The settings converted to the units the simulation counts in: px, game seconds, levels.
+   WHY   Settings stay readable in knots, feet and metres; the code below works in one consistent unit.
+   HOW   Each value is computed once from § 1. The area radius (areaRadius) is set per shift by startShift.
+   ===================================================================================================================== */
+let areaRadius = AREA_RADIUS; // this shift's area: RADAR0, more with the range upgrade or a diagonal runway
+const PX_PER_KT = (0.5144 * TIME_SCALE) / METRES_PER_PIXEL; // px per game s, per knot
+// the tuning numbers in game units: airspeed change in px per game second², taxi speed in px per game second, the touchdown cone's
+// half-angle in radians
+const AIR_ACCEL_PX = AIR_ACCEL * TIME_SCALE * PX_PER_KT,
+  TAXI_SPEED = TAXI_KT * PX_PER_KT,
+  TOUCHDOWN_ANGLE = degreesToRadians(TOUCHDOWN_ANGLE_DEGREES);
+const accelToGame = metresPerSecondSquared => (metresPerSecondSquared * TIME_SCALE * TIME_SCALE) / METRES_PER_PIXEL; // m/s² to px per game s²
+// one level is 1,000 ft; VERTICAL_SEPARATION_LEVELS is VERTICAL_SEPARATION_METRES counted in levels (about 1.3)
+const FEET_PER_LEVEL = LEVEL_FEET[1] - LEVEL_FEET[0],
+  VERTICAL_SEPARATION_LEVELS = VERTICAL_SEPARATION_METRES / 0.3048 / FEET_PER_LEVEL; // VSEP in levels
+// a type's highest level (its top is an index into KT_FT) and its speed at a height (interpolated between the KT_FT heights)
+const typeTopLevel = type => LEVEL_FEET.indexOf(SPEED_TABLE_FEET[type.ceilingRow]);
+// a type's airspeed in knots at a height (a level number, fractions while climbing), read from its speed table between the
+// two nearest table heights
+const knotsAt = (type, level) => {
+  const feet = LEVEL_FEET[0] + level * FEET_PER_LEVEL;
+  let i = 0;
+  while (i < SPEED_TABLE_FEET.length - 2 && feet > SPEED_TABLE_FEET[i + 1]) i++;
+  const between = Math.max(0, Math.min(1, (feet - SPEED_TABLE_FEET[i]) / (SPEED_TABLE_FEET[i + 1] - SPEED_TABLE_FEET[i])));
+  return type.knotsAtLevels[i] + (type.knotsAtLevels[i + 1] - type.knotsAtLevels[i]) * between;
+};
+// a random type by TYPE_MIX; an overflight is never a priority flight (it only crosses, nothing to give way to)
+const pickRandomType = kind => {
+  const mix = Object.entries(TYPE_MIX).filter(([typeName]) => kind !== 'ovf' || !TYPES[typeName].priority);
+  let roll = trafficRandom() * mix.reduce((sum, [, weight]) => sum + weight, 0);
+  for (const [typeName, weight] of mix) if ((roll -= weight) < 0) return typeName;
+  return 'jet';
+};
+// the highest level a plane goes to: its type's, or lower when your airspace has fewer levels
+const highestLevel = plane => Math.max(...rules.levels.filter(i => i <= typeTopLevel(plane.type)));
+// climbing and descending, in levels per game s; the takeoff run's acceleration in px per game s²
+const climbRateOf = plane => ((plane.type.climbFeetPerMinute / 60) * TIME_SCALE) / FEET_PER_LEVEL,
+  takeoffAccel = plane => accelToGame(plane.type.takeoffAcceleration);
+
+/* =====================================================================================================================
+   § 3  THE WORLD
+
+   WHAT  Angles and compass words, levels and their names, runway geometry (points along a runway, distance past a
+         runway end and beside its centreline).
+   WHY   Shared by traffic, orders, the hint line and drawing.
+   HOW   Small functions of their arguments, no state of their own.
+   ===================================================================================================================== */
+// degrees to radians, and an angle brought into -π…π (the same direction): used by settings below, and everywhere
+function degreesToRadians(degrees) {
+  return (degrees * Math.PI) / 180;
+}
+function normaliseAngle(angle) {
+  return Math.atan2(Math.sin(angle), Math.cos(angle));
+}
+// the view: the area and room for its compass letters; it zooms out when the area grows, text staying the same size (ZOOM)
+const viewLeft = () => AIRPORT_X - areaRadius - 40,
+  viewTop = () => AIRPORT_Y - areaRadius - 30,
+  viewWidth = () => 2 * (areaRadius + 40),
+  viewHeight = () => 2 * (areaRadius + 30),
+  textZoom = () => areaRadius / AREA_RADIUS;
+// the eight compass words and their headings in degrees, as drawn on screen: 0 = east, 90 = south (y grows downward)
+const HEADINGS = {north: -90, northeast: -45, east: 0, southeast: 45, south: 90, southwest: 135, west: 180, northwest: -135};
+// the compass word for a heading (radians)
+const compassWordOf = heading =>
+  Object.keys(HEADINGS).find(word => Math.abs(normaliseAngle(degreesToRadians(HEADINGS[word]) - heading)) <= Math.PI / 8 + 1e-9);
+// a point given along a runway (along: from its centre, toward its forward end) and beside it (across: to its right)
+const runwayPoint = (runway, along, across = 0) => ({
+  x: runway.x + along * Math.cos(runway.forwardHeading) - across * Math.sin(runway.forwardHeading),
+  y: runway.y + along * Math.sin(runway.forwardHeading) + across * Math.cos(runway.forwardHeading),
+});
+// a landing circle (gate) knows its runway end: tx,ty where planes touch down, h the landing heading, ux,uy its direction.
+// along: how far past that end a point is, along the landing heading; across: how far right of the centreline
+const distancePastEnd = (circle, point) => (point.x - circle.endX) * circle.dirX + (point.y - circle.endY) * circle.dirY,
+  distanceRightOfCentreline = (circle, point) => -(point.x - circle.endX) * circle.dirY + (point.y - circle.endY) * circle.dirX;
+// turns relative to where a plane points now, in degrees: minus is left
+const RELATIVE_TURNS = {softleft: -45, left: -90, hardleft: -135, softright: 45, right: 90, hardright: 135};
+// every word that can follow 'turn': a compass word or a relative turn
+const TURN_WORDS = [...Object.keys(HEADINGS), ...Object.keys(RELATIVE_TURNS)];
+// the levels' names as typed (low lm mid mh high ht top peak), and their short labels on the planes' data blocks
+const LEVEL_NAMES = ['low', 'lm', 'mid', 'mh', 'high', 'ht', 'top', 'peak'],
+  LEVEL_LABELS = ['L', 'LM', 'M', 'MH', 'H', 'HT', 'T', 'P'];
+// a level typed as a word, a number of thousands (3 = low) or feet (3000)
+const levelTyped = typed => {
+  const number = +typed;
+  return LEVEL_NAMES.includes(typed)
+    ? LEVEL_NAMES.indexOf(typed)
+    : Number.isInteger(number)
+      ? LEVEL_FEET.indexOf(number < 100 ? number * 1000 : number)
+      : -1;
+};
+// this shift's holding fixes, each {x, y} on screen (alpha..zulu always, november and sierra with the nav upgrade)
+let FIXES = {};
+
+/* =====================================================================================================================
+   § 4  SAVING AND THE SHIFT
+
+   WHAT  What is saved (best scores, tokens and upgrades, separately for normal and hard mode), bringing old saves up
+         to date, the shop's prices, and starting a shift.
+   WHY   Upgrades bought with tokens last for every later shift; normal and hard are two games with their own saves.
+   HOW   The browser's local storage (storage, loadJson). startShift builds the rules from the upgrades bought, the
+         runways and their landing circles, the area and the holding fixes, and a fresh game state (game).
+   ===================================================================================================================== */
 // the upgrades the shop offers now: the normal ones, or hard mode's own
 let shopUpgrades = NORMAL_UPGRADES;
 // an upgrade's next step: its price in tokens, and whether every step is bought
@@ -810,9 +541,15 @@ const loadJson = (key, fallback) => {
     return fallback;
   }
 };
-/* ---------- sound: every effect synthesised with Web Audio, no files. Math.random only, so the daily seed is untouched ---------- */
-// the music: "electro" by Pro Sensory (CC0, opengameart.org/content/electro), looping under the sounds; the ♪ switch turns both off
-const MUSIC_VOL = 0.35;
+
+/* =====================================================================================================================
+   § 5  SOUND
+
+   WHAT  Every sound effect (keys, radio, strikes, takeoff, touchdown, money, crashes) and the music.
+   WHY   Effects are synthesised, no sound files: small, and every one can be tuned by its numbers.
+   HOW   Web Audio tones and filtered noise with volume envelopes (tone, hiss). sound.X() plays effect X; nothing
+         plays while sound is off or before the first key or click. Math.random only, so the daily seed is untouched.
+   ===================================================================================================================== */
 const sound = (() => {
   let audio = null,
     mixBus = null,
@@ -1024,8 +761,6 @@ const sound = (() => {
     };
   return controls;
 })();
-addEventListener('keydown', sound.init, true);
-addEventListener('mousedown', sound.init, true);
 // today as YYYY-MM-DD: the daily shift's seed and its best-scores key
 const todayDate = () => new Date().toISOString().slice(0, 10);
 // a seeded random source, so the daily shift brings the same traffic to everyone
@@ -1172,9 +907,9 @@ function startShift(practice = false, daily = false, hard = false) {
     daily,
     hard,
     windDir: trafficRandom() < 0.5 ? 1 : -1,
-    windTurnsAt: 160 + trafficRandom() * 90,
+    windTurnsAt: WIND_FIRST_TURN + trafficRandom() * WIND_FIRST_TURN_SPREAD,
     storms: [],
-    nextStormAt: 25,
+    nextStormAt: FIRST_STORM_AT,
     shake: 0,
     overflightsOn: false,
     tokensEarned: 0,
@@ -1186,10 +921,16 @@ function startShift(practice = false, daily = false, hard = false) {
   document.getElementById('banner').style.display = 'none'; // a new shift ends any tutorial (startTutorial shows it again)
   showReply('');
 }
-startShift(false, false, storage('tower-mode') === 'hard' && bestScore >= HARD_UNLOCK);
-document.getElementById('actable').innerHTML = aircraftSheet();
 
-/* ---------- planes: names, traffic, strikes, pay ---------- */
+/* =====================================================================================================================
+   § 6  PLANES AND TRAFFIC
+
+   WHAT  Making planes (arrivals, departures, overflights), when new ones appear, strikes, and what a plane pays.
+   WHY   The traffic adapts: an emptier sky than expected brings the next plane sooner, a busier one later, and the
+         expected number grows through the shift.
+   HOW   A traffic clock fills by seconds / secondsToNextPlane() each tick; when it is full a random plane comes.
+         Arrivals and overflights enter at the edge (never through a storm), departures appear in the READY list.
+   ===================================================================================================================== */
 // no two planes ever share a first letter, so one letter always picks the plane; null when every letter is in use
 function freeName() {
   const used = game.planes.map(plane => plane.name[0]);
@@ -1229,16 +970,6 @@ const turnRateOf = plane => degreesToRadians(plane.type.turnDegreesPerSecond) * 
 // runway and lining up, rolling out after landing, taxiing in
 const GROUND_STATES = ['ready', 'taxi', 'lineup', 'enter', 'rollout', 'taxiin'],
   onGround = plane => GROUND_STATES.includes(plane.state);
-// two taxi lanes on one wide taxiway: departures taxi out on the inner one (x AX±OUT_X, apron row OUT_Y) to a holding point
-// HOLD short of the runway, arrivals taxi in on the outer one, so the two never sit on top of each other
-const TAXI_OUT_LANE_X = RUNWAY_HALF_LENGTH + 12,
-  TAXI_IN_LANE_X = RUNWAY_HALF_LENGTH + 20,
-  TAXI_OUT_LANE_Y = AIRPORT_Y - 26,
-  TAXI_IN_LANE_Y = AIRPORT_Y - 34,
-  HOLD_SHORT = 12;
-// on the ground a plane stops while another is just ahead of it, unless that one gives way to it. Who goes first: a landed
-// plane rolling out, then one taxiing in, then a departure entering the runway, then the others in the order they started (gt: a ticket number)
-const TAXI_RIGHT_OF_WAY = {rollout: 3, taxiin: 2, enter: 1.5, taxi: 1, lineup: 1};
 const goesFirst = (other, plane) =>
   TAXI_RIGHT_OF_WAY[other.state] > TAXI_RIGHT_OF_WAY[plane.state] ||
   (TAXI_RIGHT_OF_WAY[other.state] === TAXI_RIGHT_OF_WAY[plane.state] && other.taxiTicket < plane.taxiTicket);
@@ -1255,7 +986,7 @@ function blockedOnTaxiway(plane) {
       deltaY = other.y - plane.y,
       distance = Math.hypot(deltaX, deltaY);
     return (
-      distance < 8 * (plane.type.drawScale + other.type.drawScale) &&
+      distance < TAXI_GAP_PER_SIZE * (plane.type.drawScale + other.type.drawScale) &&
       deltaX * directionX + deltaY * directionY > 0.5 * distance &&
       goesFirst(other, plane)
     );
@@ -1291,9 +1022,9 @@ function spawnDeparture(dest) {
 // at high or as high as its type goes, with full tanks
 function spawnArrival(bearing) {
   const bearingRadians = degreesToRadians(bearing),
-    x = AIRPORT_X + Math.cos(bearingRadians) * (areaRadius - 6),
-    y = AIRPORT_Y + Math.sin(bearingRadians) * (areaRadius - 6),
-    heading = normaliseAngle(bearingRadians + Math.PI + degreesToRadians((trafficRandom() - 0.5) * 40));
+    x = AIRPORT_X + Math.cos(bearingRadians) * (areaRadius - SPAWN_EDGE_INSET),
+    y = AIRPORT_Y + Math.sin(bearingRadians) * (areaRadius - SPAWN_EDGE_INSET),
+    heading = normaliseAngle(bearingRadians + Math.PI + degreesToRadians((trafficRandom() - 0.5) * ARRIVAL_AIM_SPREAD_DEG));
   const name = freeName();
   if (!name) return;
   sound.contact();
@@ -1307,9 +1038,12 @@ function spawnArrival(bearing) {
 // an overflight from the neighbouring sector: crosses your area in a straight line, to leave through the slice it is aimed at
 function spawnOverflight(bearing) {
   const bearingRadians = degreesToRadians(bearing),
-    entryX = Math.cos(bearingRadians) * (areaRadius - 6),
-    entryY = Math.sin(bearingRadians) * (areaRadius - 6),
-    heading = Math.atan2((trafficRandom() - 0.5) * 200 - entryY, (trafficRandom() - 0.5) * 200 - entryX);
+    entryX = Math.cos(bearingRadians) * (areaRadius - SPAWN_EDGE_INSET),
+    entryY = Math.sin(bearingRadians) * (areaRadius - SPAWN_EDGE_INSET),
+    heading = Math.atan2(
+      (trafficRandom() - 0.5) * OVERFLIGHT_AIM_SPREAD - entryY,
+      (trafficRandom() - 0.5) * OVERFLIGHT_AIM_SPREAD - entryX,
+    );
   const directionX = Math.cos(heading),
     directionY = Math.sin(heading),
     entryAlong = entryX * directionX + entryY * directionY,
@@ -1361,13 +1095,13 @@ function spawnPlane(kind) {
     return true;
   }
   let spot = null;
-  for (let attempt = 0; attempt < 40; attempt++) {
+  for (let attempt = 0; attempt < SPAWN_TRIES; attempt++) {
     const bearing = trafficRandom() * 360,
       x = AIRPORT_X + Math.cos(degreesToRadians(bearing)) * areaRadius,
       y = AIRPORT_Y + Math.sin(degreesToRadians(bearing)) * areaRadius;
     if (stormInSlice(bearing)) continue;
     spot = bearing;
-    if (!game.planes.some(plane => !onGround(plane) && Math.hypot(plane.x - x, plane.y - y) < 180)) break;
+    if (!game.planes.some(plane => !onGround(plane) && Math.hypot(plane.x - x, plane.y - y) < SPAWN_CLEAR_DISTANCE)) break;
   }
   if (spot === null) return false;
   kind === 'ovf' ? spawnOverflight(spot) : spawnArrival(spot);
@@ -1380,16 +1114,17 @@ function secondsToNextPlane() {
   const active = activePlaneCount();
   if (!active) return TRAFFIC_EMPTY;
   const expected = TRAFFIC_START + TRAFFIC_GROWTH * Math.min(game.time / 60, TRAFFIC_CAP_MIN);
-  return Math.max(TRAFFIC_EMPTY, Math.min(120, TRAFFIC_GAP * TRAFFIC_BUSY ** (active - expected)));
+  return Math.max(TRAFFIC_EMPTY, Math.min(TRAFFIC_LONGEST_GAP, TRAFFIC_GAP * TRAFFIC_BUSY ** (active - expected)));
 }
 // a random new plane for the shift: an overflight (once they are on), a departure (unless three are already waiting) or an
 // arrival
 function spawnRandomPlane() {
   const roll = trafficRandom();
   spawnPlane(
-    game.overflightsOn && roll < 0.22
+    game.overflightsOn && roll < OVERFLIGHT_SHARE
       ? 'ovf'
-      : roll < (game.overflightsOn ? 0.52 : 0.38) && game.planes.filter(plane => plane.state === 'ready').length < 3
+      : roll < (game.overflightsOn ? DEPARTURE_SHARE_WITH_OVERFLIGHTS : DEPARTURE_SHARE) &&
+          game.planes.filter(plane => plane.state === 'ready').length < MAX_WAITING_DEPARTURES
         ? 'dep'
         : 'arr',
   );
@@ -1405,12 +1140,11 @@ function strike(message, x, y) {
   game.streak = 0;
   if (free) return;
   game.strikes++;
-  if (game.strikes >= 3) endShift();
+  if (game.strikes >= STRIKES_TO_END) endShift();
 }
+// is the shift-over screen up yet (the shift is over and the delay has passed)?
+const overScreenUp = () => game.over && performance.now() >= game.overScreenAt;
 // three strikes: a shift pays tokens for its score, and the daily shift keeps today's five best
-// the shift-over screen waits OVER_DELAY s so you can see what happened; the sky stands still (no shake), only explosions play out
-const SHIFT_OVER_DELAY = 1,
-  overScreenUp = () => game.over && performance.now() >= game.overScreenAt;
 function endShift() {
   game.over = true;
   game.shownOverScore = 0;
@@ -1434,16 +1168,25 @@ function endShift() {
   saveProgress();
   if (game.daily) {
     const key = 'tower-daily-' + todayDate();
-    storage(key, JSON.stringify([...loadJson(key, []), game.score].sort((first, second) => second - first).slice(0, 5)));
+    storage(
+      key,
+      JSON.stringify([...loadJson(key, []), game.score].sort((first, second) => second - first).slice(0, DAILY_BEST_KEPT)),
+    );
   }
 }
 // a plane handled: it pays its fare, less for delay and lateness, more in a streak
 function payForPlane(plane, colour, message, keepOnScreen) {
   const late = Math.max(
       0,
-      Math.round(game.time - plane.bornAt - PAR_TIME[plane.kind] - (areaRadius - AREA_RADIUS) / (PX_PER_KT * 220)),
+      Math.round(game.time - plane.bornAt - PAR_TIME[plane.kind] - (areaRadius - AREA_RADIUS) / (PX_PER_KT * PAR_EXTRA_KT)),
     ),
-    pay = Math.round((plane.type.fare * Math.max(0.1, 1 - late / 100) * (plane.late ? 0.25 : 1)) / 10) * 10; // par: a wider area takes a little longer to cross
+    pay =
+      Math.round(
+        (plane.type.fare *
+          Math.max(LOWEST_FARE_SHARE, 1 - (late * LATE_PERCENT_PER_SECOND) / 100) *
+          (plane.late ? LATE_PRIORITY_SHARE : 1)) /
+          10,
+      ) * 10; // par: a wider area takes a little longer to cross
   game.streak = (game.streak || 0) + 1;
   game.bestStreak = Math.max(game.bestStreak || 0, game.streak);
   const bonus = Math.round((((pay * STREAK_PCT) / 100) * (Math.min(game.streak, STREAK_MAX) - 1)) / 10) * 10,
@@ -1492,7 +1235,17 @@ function showPayment(plane, colour, pay, bonus, before) {
       game.shake = Math.max(game.shake, 0.18);
     }, 350);
 }
-/* ---------- the airport: taxiing, runways, landing circles ---------- */
+
+/* =====================================================================================================================
+   § 7  THE AIRPORT
+
+   WHAT  Taxiing (two lanes, right of way), who is on a runway and when the next plane may use it (runway timing), and
+         the landing circles: which one a plane is in, which are open.
+   WHY   One plane at a time per runway, unless the timing upgrade proves a departure fits before the next arrival.
+         Planes take off and land into the wind, so a circle with the wind behind it is closed.
+   HOW   Each plane on a runway can say how soon it is done with it (runwayDoneIn); arrivals say how soon they touch
+         down (timeToTouchdown); departureFits and arrivalFits compare the two with a margin.
+   ===================================================================================================================== */
 // along a taxi route at taxi speed, turning smoothly at the corners; true once at its end
 function taxiAlong(plane, seconds) {
   const [waypointX, waypointY] = plane.path[0],
@@ -1500,7 +1253,8 @@ function taxiAlong(plane, seconds) {
     step = TAXI_SPEED * seconds,
     heading = Math.atan2(waypointY - plane.y, waypointX - plane.x),
     turn = normaliseAngle(heading - plane.heading);
-  if (distance > 0.5) plane.heading = normaliseAngle(plane.heading + Math.sign(turn) * Math.min(Math.abs(turn), 2.5 * seconds));
+  if (distance > 0.5)
+    plane.heading = normaliseAngle(plane.heading + Math.sign(turn) * Math.min(Math.abs(turn), GROUND_TURN_RATE * seconds));
   if (distance <= step) {
     plane.x = waypointX;
     plane.y = waypointY;
@@ -1583,7 +1337,8 @@ const arrivalFits = (arrival, runway, finalSeconds, direction) =>
             TIMING_FACTOR[rules.timing] * (runwayDoneIn(other) + RUNWAY_MARGIN) <= finalSeconds),
       );
 // the pictogram's size: small on the ground, a little bigger the higher it flies (drawn eased, see p.vs)
-const drawSizeFor = plane => (onGround(plane) ? 0.045 : 0.065 + plane.level * 0.005) * plane.type.drawScale;
+const drawSizeFor = plane =>
+  (onGround(plane) ? DRAW_SIZE_GROUND : DRAW_SIZE_LOW + plane.level * DRAW_SIZE_PER_LEVEL) * plane.type.drawScale;
 // the plane using a runway now, if any (any runway when none is given), and whether the runway is busy: a plane on it
 // or its rest after a heavy
 const runwayUser = runway =>
@@ -1652,9 +1407,18 @@ const wayToCircle = plane => {
     circle.y - circle.dirY * CIRCLE_RADIUS * 0.5 - plane.y,
   );
 };
+const tooCloseToLineUp = (plane, circle) => distancePastEnd(circle, plane) > -LINE_UP_CUTOFF; // too close to the runway end to line up any more
 
-const tooCloseToLineUp = (plane, circle) => distancePastEnd(circle, plane) > -10; // too close to the runway end to line up any more
-/* ---------- line-ups: the path a cleared plane flies onto the runway ---------- */
+/* =====================================================================================================================
+   § 8  LINE-UPS
+
+   WHAT  The path a cleared arrival flies from wherever it is onto the runway.
+   WHY   Planes turn at a fixed rate, so the path must be flyable: arcs of the plane's turn radius and straights, reaching
+         the runway end within the touchdown angle, with a straight final long enough to slow down and descend.
+   HOW   One turn then straight in (oneTurnLineUp), or turn-straight-turn onto the extended centreline then straight in
+         (twoTurnLineUp, using turnStraightTurnPaths, known as Dubins paths). planLineUp takes the cheapest: short and close
+         to the landing area (lineUpCost); LANDING_ARC can widen the arc.
+   ===================================================================================================================== */
 // paths are arcs and straights, like real turns at a steady bank: {x,y,h} where a piece starts, d = turn direction (+1 right, -1 left, 0 straight), r, len
 // a point on a path, s along it: position, heading, and the turn it is in (rad per unit of distance)
 function pointOnPath(path, distance) {
@@ -1960,7 +1724,7 @@ const headingNumber = heading =>
 function startFinal(plane, circleName, path) {
   const circle = CIRCLES[circleName];
   plane.landingEnd = circleName;
-  plane.replanAt = game.time + 0.5;
+  plane.replanAt = game.time + REPLAN_EVERY;
   if (game.showPaths) plane.arcPaths = ARC_WIDTH_STEPS.map(arc => planLineUp(plane, circle, false, arc));
   plane.state = 'final';
   plane.runwayDir = circle.runwayDir;
@@ -1985,19 +1749,20 @@ function startRoll(plane) {
   plane.turnRate = 0;
   orderLevel(plane, DEPART_LEVEL);
 }
-
 // wind turns now and then (the runway direction flips); storm cells drift with it, north or south of the runways
 function weather(seconds) {
   if (rules.wind && game.time >= game.windTurnsAt) {
     game.windDir *= -1;
-    game.windTurnsAt = game.time + 170 + trafficRandom() * 100;
+    game.windTurnsAt = game.time + WIND_TURN_EVERY + trafficRandom() * WIND_TURN_SPREAD;
     showReply(`!the wind turned: take off and land heading ${windWord()} now`);
   }
   if (game.storms.length < rules.storms && game.time >= game.nextStormAt) {
-    const radius = 32 + trafficRandom() * 14,
+    const radius = STORM_RADIUS + trafficRandom() * STORM_RADIUS_SPREAD,
       north = trafficRandom() < 0.5,
-      offset = north ? -(110 + trafficRandom() * 110) : 110 + trafficRandom() * 90; // north or south of the main runway
-    const drift = -(rules.wind ? game.windDir : trafficRandom() < 0.5 ? 1 : -1) * 4.5,
+      offset = north
+        ? -(STORM_NORTH_OFFSET + trafficRandom() * STORM_NORTH_SPREAD)
+        : STORM_SOUTH_OFFSET + trafficRandom() * STORM_SOUTH_SPREAD; // north or south of the main runway
+    const drift = -(rules.wind ? game.windDir : trafficRandom() < 0.5 ? 1 : -1) * STORM_DRIFT,
       half = Math.sqrt(Math.max(0, (areaRadius + radius) ** 2 - offset * offset)); // blown downwind: from where the wind comes from
     game.storms.push({
       id: game.time,
@@ -2017,11 +1782,19 @@ function weather(seconds) {
     (storm.x - AIRPORT_X) * storm.vx + (storm.y - AIRPORT_Y) * storm.vy > 0;
   if (game.storms.some(gone)) {
     game.storms = game.storms.filter(storm => !gone(storm));
-    game.nextStormAt = game.time + 30;
+    game.nextStormAt = game.time + STORM_GAP;
   }
 }
 
-/* ---------- one tick of the world ---------- */
+/* =====================================================================================================================
+   § 9  ONE TICK OF THE WORLD
+
+   WHAT  Everything that happens in one step of game time: new traffic, weather, every plane (its clocks, the ground,
+         the takeoff run, the landing run, flying), separation, storms.
+   WHY   Game time advances in small steps (one screen frame, times the game speed), so all of this runs many times a
+         second and each part only does a small change.
+   HOW   advanceWorld(seconds) calls the parts in a fixed order; updatePlane does one plane, choosing by its state.
+   ===================================================================================================================== */
 function advanceWorld(seconds) {
   const sweepTurns = time => Math.floor((time * 1.1 + Math.PI / 2) / (2 * Math.PI));
   if (sweepTurns(game.time + seconds) > sweepTurns(game.time)) sound.sweep(); // the radar sweep (angle 1.1·t) passing north
@@ -2038,7 +1811,6 @@ function advanceWorld(seconds) {
   game.effects = game.effects.filter(effect => effect.age < (effect.life || 1.2));
   game.shake = Math.max(0, (game.shake || 0) - seconds);
 }
-
 // new planes: in a shift by how busy the sky is; in admin only when its traffic is on; the tutorial brings its own
 function bringTraffic(seconds) {
   if (game.admin) {
@@ -2051,13 +1823,12 @@ function bringTraffic(seconds) {
       game.spawnClock = 0;
       spawnRandomPlane();
     }
-    if (rules.ovf && !game.overflightsOn && game.handledCount >= 10) {
+    if (rules.ovf && !game.overflightsOn && game.handledCount >= OVERFLIGHTS_AFTER_PLANES) {
       game.overflightsOn = true;
       showReply('the neighbouring sector opened: its traffic (purple) now crosses your area');
     }
   }
 }
-
 // one tick of one plane: its clocks, then on the ground, rolling or in the air, then moving on
 function updatePlane(plane, seconds) {
   if (!runClocks(plane, seconds)) return;
@@ -2068,7 +1839,6 @@ function updatePlane(plane, seconds) {
   } else fly(plane, seconds);
   moveAhead(plane, seconds);
 }
-
 // a departure's patience, a priority arrival's deadline, an arrival's fuel. False when the plane is gone (or still waiting
 // in the READY list, where nothing else happens to it)
 function runClocks(plane, seconds) {
@@ -2126,7 +1896,6 @@ function runClocks(plane, seconds) {
   }
   return true;
 }
-
 // on the ground: taxi out to the holding point and wait there until the runway is free, then enter it, line up and roll;
 // a landed plane taxis in to the apron. True when the plane's tick ends here
 function moveOnGround(plane, seconds) {
@@ -2137,7 +1906,7 @@ function moveOnGround(plane, seconds) {
         other !== plane &&
         TAXI_RIGHT_OF_WAY[other.state] &&
         !other.atGate &&
-        Math.hypot(other.x - plane.x, other.y - plane.y) < 8 * (plane.type.drawScale + other.type.drawScale),
+        Math.hypot(other.x - plane.x, other.y - plane.y) < TAXI_GAP_PER_SIZE * (plane.type.drawScale + other.type.drawScale),
     );
     if (apronBusy) return true;
     plane.atGate = false;
@@ -2175,13 +1944,14 @@ function moveOnGround(plane, seconds) {
   }
   if (plane.state === 'enter') {
     const turnNeeded = normaliseAngle(CIRCLES[plane.takeoffEnd].landHeading - plane.heading);
-    plane.heading = normaliseAngle(plane.heading + Math.sign(turnNeeded) * Math.min(Math.abs(turnNeeded), 2.5 * seconds));
+    plane.heading = normaliseAngle(
+      plane.heading + Math.sign(turnNeeded) * Math.min(Math.abs(turnNeeded), GROUND_TURN_RATE * seconds),
+    );
     if (Math.abs(turnNeeded) > 0.01 || (rules.timing && !takeoffRollFits(plane))) return true;
     startRoll(plane);
   }
   return false;
 }
-
 // the takeoff run: it lifts off at its rotation speed (a heavy needs more runway), or at the latest at the end of the runway
 function takeoffRun(plane, seconds) {
   plane.speed += takeoffAccel(plane) * seconds;
@@ -2190,7 +1960,6 @@ function takeoffRun(plane, seconds) {
     if (plane.type.heavyWake) plane.runway.wakeRestLeft = rules.wakeRest;
   }
 }
-
 // the landing run: braking so it is down to taxi speed at the end of the runway, then off it and taxiing in to the apron.
 // True once it has left the runway
 function landingRun(plane, seconds) {
@@ -2232,7 +2001,6 @@ function landingRun(plane, seconds) {
   }
   return true;
 }
-
 // in the air: steering (to a landing circle, around it, in a hold, along the final), turning, climbing, speed
 function fly(plane, seconds) {
   // with navigation, a plane cleared outside a circle flies itself to the one it was given
@@ -2268,7 +2036,6 @@ function fly(plane, seconds) {
     plane.state === 'final' && pointOnPath(plane.approachPath, plane.flown).curvature ? TURN_DECEL * AIR_ACCEL_PX : AIR_ACCEL_PX;
   plane.speed += Math.max(-accel * seconds, Math.min(accel * seconds, wantedSpeed - plane.speed));
 }
-
 // a plane cleared to land captures the approach once it enters a circle: it flies a line-up (one turn, then straight into
 // the landing cone, descending on the way) as soon as there is one and the runway is free. Until then (inside its
 // forbidden circle, too high, or the runway busy) it circles the landing circle's centre (chooseOrbitSide), checking four
@@ -2283,7 +2050,7 @@ function circleToLand(plane, seconds) {
   if (!plane.inCircle) return null;
   const circle = CIRCLES[plane.inCircle],
     distance = Math.hypot(circle.x - plane.x, circle.y - plane.y),
-    wanderedOff = distance > CIRCLE_RADIUS + 2.6 * turnRadius(plane), // circling to lose height may poke outside, but not this far
+    wanderedOff = distance > CIRCLE_RADIUS + WANDER_OFF_RADII * turnRadius(plane), // circling to lose height may poke outside, but not this far
     stillHigh = plane.level > 0.05 && wanderedOff;
   if (!plane.orbitSide) {
     plane.orbitSide = chooseOrbitSide(plane, circle);
@@ -2302,7 +2069,7 @@ function circleToLand(plane, seconds) {
     !tooCloseToLineUp(plane, circle) &&
     !inForbiddenCircle(plane, circle) &&
     game.time >= (plane.nextPlanAt || 0) &&
-    ((plane.nextPlanAt = game.time + 0.25), planLineUp(plane, circle)); // planning is costly: 4 tries a second
+    ((plane.nextPlanAt = game.time + PLAN_EVERY), planLineUp(plane, circle)); // planning is costly: 4 tries a second
   if (path) {
     if (!arrivalFits(plane, circle.runway, pathLength(path) / plane.speed, circle.runwayDir)) plane.runwayBlocked = true;
     else startFinal(plane, plane.inCircle, path);
@@ -2310,13 +2077,12 @@ function circleToLand(plane, seconds) {
     stillHigh ||
     wanderedOff ||
     tooCloseToLineUp(plane, circle) ||
-    plane.orbitTime > (4 * 2 * Math.PI) / turnRateOf(plane) ||
+    plane.orbitTime > (ORBIT_LAPS_BEFORE_GO_AROUND * 2 * Math.PI) / turnRateOf(plane) ||
     stormOverCircle(plane.inCircle)
   )
     goAround(plane, stillHigh);
   return wantedTurn;
 }
-
 // a missed approach: climb straight ahead to mid
 function goAround(plane, stillHigh) {
   const circle = plane.inCircle;
@@ -2336,30 +2102,28 @@ function goAround(plane, stillHigh) {
   showReply(`!${plane.name} going around, climbing to mid straight ahead: ${why}. bring it back low into a circle, then land`);
   plane.runwayBlocked = false;
 }
-
 // holding: circling its centre (the fix: right turns; the spot: turning toward the airport); flying to a fix becomes
 // holding once at its ring. Returns the turn rate it wants
 function flyHold(plane) {
   const centre = plane.state === 'tofix' ? FIXES[plane.holdFix] : plane.holdCentre;
   const wantedTurn = flyCircle(plane, centre.x, centre.y, centre.side || 1);
-  if (plane.state === 'tofix' && Math.hypot(centre.x - plane.x, centre.y - plane.y) < 1.5 * turnRadius(plane)) {
+  if (plane.state === 'tofix' && Math.hypot(centre.x - plane.x, centre.y - plane.y) < HOLD_CAPTURE_RADII * turnRadius(plane)) {
     plane.state = 'hold';
     plane.holdCentre = centre;
   }
   return wantedTurn;
 }
-
 // final: following the line-up path to the runway end, touching down there and rolling out. On final it keeps pulling the
 // cord tighter: twice a second it plans again from where it is, at the speed it has now, and takes the new line-up when it
 // costs less than what is left of the old one. Returns the turn rate it wants
 function flyFinal(plane, seconds) {
   if (!plane.flownByHand && game.time >= plane.replanAt && pointOnPath(plane.approachPath, plane.flown).curvature !== undefined) {
-    plane.replanAt = game.time + 0.5;
+    plane.replanAt = game.time + REPLAN_EVERY;
     const end = CIRCLES[plane.landingEnd],
       left = pathLength(plane.approachPath) - plane.flown;
-    if (end && !tooCloseToLineUp(plane, end) && left > SHORTEST_FINAL + 40) {
+    if (end && !tooCloseToLineUp(plane, end) && left > SHORTEST_FINAL + REPLAN_MIN_LEFT) {
       const path = planLineUp(plane, end);
-      if (path && lineUpCost(path, end) < lineUpCost(plane.approachPath, end, plane.flown) - 5) {
+      if (path && lineUpCost(path, end) < lineUpCost(plane.approachPath, end, plane.flown) - REPLAN_MIN_SAVING) {
         plane.approachPath = path;
         plane.flown = 0;
         if (game.showPaths) plane.arcPaths = ARC_WIDTH_STEPS.map(arc => planLineUp(plane, end, false, arc));
@@ -2378,7 +2142,6 @@ function flyFinal(plane, seconds) {
   }
   return wantedTurn;
 }
-
 // turning: at the type's turn rate all the way round, rolling out just in time to stop on the new heading (the turn rate
 // changes gradually, full bank in about 0.7 s). Following a path it may bank 15% more, only to correct back onto it
 function turnToward(plane, wantedTurn, seconds) {
@@ -2387,14 +2150,16 @@ function turnToward(plane, wantedTurn, seconds) {
     const headingError = normaliseAngle(plane.targetHeading - plane.heading);
     wantedTurn =
       Math.sign(headingError) *
-      Math.min(maxTurn, Math.sqrt(2 * 1.4 * maxTurn * Math.abs(headingError)), 6 * Math.abs(headingError));
+      Math.min(maxTurn, Math.sqrt(2 * ROLL_IN_RATE * maxTurn * Math.abs(headingError)), 6 * Math.abs(headingError));
   }
-  wantedTurn = Math.max(-1.15 * maxTurn, Math.min(1.15 * maxTurn, wantedTurn));
+  wantedTurn = Math.max(-CORRECTION_BANK * maxTurn, Math.min(CORRECTION_BANK * maxTurn, wantedTurn));
   plane.turnRate = plane.turnRate || 0;
-  plane.turnRate += Math.max(-1.4 * maxTurn * seconds, Math.min(1.4 * maxTurn * seconds, wantedTurn - plane.turnRate));
+  plane.turnRate += Math.max(
+    -ROLL_IN_RATE * maxTurn * seconds,
+    Math.min(ROLL_IN_RATE * maxTurn * seconds, wantedTurn - plane.turnRate),
+  );
   plane.heading = normaliseAngle(plane.heading + plane.turnRate * seconds);
 }
-
 // moving on along its heading; its drawn size eases toward its level's; a trail of dots; leaving your area: a departure or
 // overflight through its own slice is handed off, anything else is a strike
 function moveAhead(plane, seconds) {
@@ -2404,9 +2169,9 @@ function moveAhead(plane, seconds) {
     (plane.drawSize ?? drawSizeFor(plane)) +
     (drawSizeFor(plane) - (plane.drawSize ?? drawSizeFor(plane))) * Math.min(1, seconds * 1.5);
   if ((plane.trailClock -= seconds) <= 0) {
-    plane.trailClock = 0.7;
+    plane.trailClock = TRAIL_EVERY;
     plane.trail.push([plane.x, plane.y]);
-    if (plane.trail.length > 9) plane.trail.shift();
+    if (plane.trail.length > TRAIL_DOTS) plane.trail.shift();
   }
   if (distanceFromAirport(plane) <= areaRadius) return;
   const went = compassWordFor(plane.x - AIRPORT_X, plane.y - AIRPORT_Y);
@@ -2421,7 +2186,6 @@ function moveAhead(plane, seconds) {
     strike(why, plane.x, plane.y);
   }
 }
-
 // separation: less than VERT_SEP_M apart in height and too close = a strike once per encounter; outlines touching = both
 // lost, in an explosion (two strikes)
 function checkSeparation(airborne) {
@@ -2455,7 +2219,6 @@ function checkSeparation(airborne) {
     }
   game.closePairs = close;
 }
-
 // a storm cell: a plane that flies into one loses control and crash-lands (a strike)
 function crashIntoStorms(airborne) {
   for (const storm of game.storms)
@@ -2468,7 +2231,14 @@ function crashIntoStorms(airborne) {
       }
 }
 
-/* ---------- commands: plane action [direction] ---------- */
+/* =====================================================================================================================
+   § 10 ORDERS AND HINTS
+
+   WHAT  What the typed orders do (executeOrder), which orders would be carried out (isValidOrder), priority flights,
+         pilots who mishear, and the hint line under the prompt (hintFor).
+   WHY   Every order answers: what was done, or why not. The hint line always says what a plane needs next.
+   HOW   Orders arrive as words already read (§ 11). A reply starting with "!" is an error, shown in red.
+   ===================================================================================================================== */
 const planeNamed = name => game.planes.find(plane => plane.name === name);
 // the compass word for a direction given as a vector (x, y)
 const compassWordFor = (x, y) =>
@@ -2850,8 +2620,6 @@ const distanceText = pixels =>
   pixels * METRES_PER_PIXEL < 1000
     ? Math.round((pixels * METRES_PER_PIXEL) / 10) * 10 + ' m'
     : ((pixels * METRES_PER_PIXEL) / 1000).toFixed(1) + ' km';
-
-/* ---------- what each plane needs next (hint line) ---------- */
 const isHeading = (plane, way) =>
   plane.state !== 'hold' &&
   plane.state !== 'tofix' &&
@@ -2933,12 +2701,318 @@ function hintFor(name) {
           .join(', ')})`
   } → ${plane.name} turn ${shortWayUpper(way)}`;
 }
-
 // the shift's first planes in slow motion: WARMUP_SCALE at the start, full speed once WARMUP_PLANES are handled
 const warmupPace = () =>
   game.admin || game.practice ? 1 : Math.min(1, WARMUP_SCALE + ((1 - WARMUP_SCALE) * game.handledCount) / WARMUP_PLANES);
 
-/* ---------- tutorial: one scripted plane at a time, each step waits until you have typed it. Optional: the tutorial button ---------- */
+/* =====================================================================================================================
+   § 11 THE PROMPT AND HELP
+
+   WHAT  Reading typed words, the suggestions and faded ghost text, the keys (Tab, arrows, Enter, Esc), the recent
+         orders, the help card with its aircraft sheet, and the sound and speed buttons.
+   WHY   Typing is the only way to play, so it forgives: one letter can pick a plane, typos and abbreviations are
+         understood, and the reply shows how a word was read.
+   HOW   Each word is matched to the options possible after the words before it (meaningOf: exact, abbreviation, start
+         of a word, letters in order, then the closest spelling).
+   ===================================================================================================================== */
+const commandInput = document.getElementById('cmd'),
+  suggestionsEl = document.getElementById('sug'),
+  replyEl = document.getElementById('out'),
+  ghostEl = document.getElementById('ghost');
+// the hint line under the prompt (what the plane you are typing needs next) and the help card behind the ? button
+const hintEl = document.getElementById('hint'),
+  helpEl = document.getElementById('help');
+// what the prompt remembers: orders typed before (history, walked with the up and down arrows), which suggestion is chosen,
+// the suggestions for the word being typed, and the faded rest of the chosen one (ghost)
+const typing = {history: [], historyAt: 0, chosen: 0, suggestions: [], ghost: ''};
+// no scrolling anywhere: the help card comes in pages (← →), and every overlay shrinks to fit the window
+const HELP_PAGES = [...helpEl.querySelectorAll('.pg')],
+  helpNav = document.getElementById('pnav');
+// shrinks an overlay (the help card, the shift-over screen) just enough to fit its container, never grows it; margin: room left around it
+function fitToWindow(element, margin = 24) {
+  element.style.transform = '';
+  const container = element.parentElement,
+    scale = Math.min(
+      1,
+      (container.clientWidth - margin) / element.offsetWidth,
+      (container.clientHeight - margin) / element.offsetHeight,
+    );
+  if (scale < 1) element.style.transform = `scale(${scale})`;
+}
+// shows one page of the help card and the page names under it (← → or a click flips pages)
+function showHelpPage(i) {
+  typing.helpPage = (i + HELP_PAGES.length) % HELP_PAGES.length;
+  HELP_PAGES.forEach((page, pageIndex) => page.classList.toggle('on', pageIndex === typing.helpPage));
+  helpNav.innerHTML = `← ${HELP_PAGES.map((page, pageIndex) => `<span class="${pageIndex === typing.helpPage ? 'on' : ''}" data-p="${pageIndex}">${page.querySelector('h2').textContent.toLowerCase()}</span>`).join('·')} → · Enter or Esc to close`;
+  fitToWindow(document.getElementById('helpcard'));
+}
+// the help card: is it open, and opening or closing it (on the given page)
+const helpShown = () => helpEl.style.display !== 'none',
+  showHelp = (show, page = 0) => {
+    helpEl.style.display = show ? 'grid' : 'none';
+    if (show) {
+      helpEl.querySelector('#admcard').style.display = 'none';
+      helpEl.querySelector('#helpcard').style.display = '';
+      showHelpPage(page);
+    }
+  };
+// text as safe HTML: & and < cannot start markup
+const escapeHtml = text => text.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+// the eight directions are typed and shown short: n ne e se s sw w nw
+const ABBREVIATIONS = {
+  n: 'north',
+  ne: 'northeast',
+  e: 'east',
+  se: 'southeast',
+  s: 'south',
+  sw: 'southwest',
+  w: 'west',
+  nw: 'northwest',
+};
+// the other way round: a full compass word to its short form (north -> n)
+const SHORT_WORD = Object.fromEntries(Object.entries(ABBREVIATIONS).map(([key, value]) => [value, key]));
+// turns relative to the heading: sl sr 45°, l r 90°, hl hr 135°
+Object.assign(ABBREVIATIONS, {sl: 'softleft', l: 'left', hl: 'hardleft', sr: 'softright', r: 'right', hr: 'hardright'});
+// a compass word as shown on screen: north -> N, northeast -> NE; any other word as it is
+const shortWayUpper = word => (SHORT_WORD[word] ? SHORT_WORD[word].toUpperCase() : word);
+// '!' = error (red)
+function showReply(text) {
+  const isError = text[0] === '!';
+  replyEl.textContent = isError ? text.slice(1) : text;
+  replyEl.className = isError ? 'bad' : '';
+}
+// edit distance (with swapped neighbours) for typos
+function editDistance(first, second) {
+  const table = [...Array(first.length + 1)].map((_, i) => [i, ...Array(second.length).fill(0)]);
+  for (let j = 1; j <= second.length; j++) table[0][j] = j;
+  for (let i = 1; i <= first.length; i++)
+    for (let j = 1; j <= second.length; j++) {
+      table[i][j] = Math.min(
+        table[i - 1][j] + 1,
+        table[i][j - 1] + 1,
+        table[i - 1][j - 1] + (first[i - 1] === second[j - 1] ? 0 : 1),
+      );
+      if (i > 1 && j > 1 && first[i - 1] === second[j - 2] && first[i - 2] === second[j - 1])
+        table[i][j] = Math.min(table[i][j], table[i - 2][j - 2] + 1);
+    }
+  return table[first.length][second.length];
+}
+// does the typed word appear in this word letter by letter, in order (with gaps)? 'hrl' fits 'hardleft'
+const lettersInOrder = (typed, word) => {
+  let i = 0;
+  for (const letter of word) if (letter === typed[i]) i++;
+  return i === typed.length;
+};
+// what a typed word most likely means: exact or abbreviation, then the start of a word, then its letters in order
+// (same first letter), then the closest spelling. Ties: the shortest direction, else the earliest option.
+function meaningOf(typed, choices) {
+  if (choices.includes(typed)) return typed;
+  if (/^\d+$/.test(typed) && levelTyped(typed) >= 0 && choices.includes(LEVEL_NAMES[levelTyped(typed)]))
+    return LEVEL_NAMES[levelTyped(typed)]; // a level by number
+  if (ABBREVIATIONS[typed] && choices.includes(ABBREVIATIONS[typed])) return ABBREVIATIONS[typed];
+  let pick = null,
+    pickScore = 1e9;
+  choices.forEach((option, i) => {
+    let score;
+    if (option.startsWith(typed)) score = 1;
+    else if (option[0] === typed[0] && lettersInOrder(typed, option)) score = 2;
+    else {
+      const typos = Math.min(editDistance(typed, option), editDistance(typed, option.slice(0, typed.length)) + 0.5);
+      if (typos > (typed.length <= 3 ? 1 : 2)) return;
+      score = 3 + typos;
+    }
+    score += (option in SHORT_WORD ? option.length : i) * 0.001;
+    if (score < pickScore) {
+      pickScore = score;
+      pick = option;
+    }
+  });
+  return pick;
+}
+// reads typed words as an order: each word becomes the option it most likely means, where options depend on the words
+// before it (a plane name, then that plane's actions, then that action's arguments). Returns {words} or {err: the message}
+function readWords(typedWords) {
+  const understood = [];
+  for (const typed of typedWords) {
+    const choices = optionsAfter(understood);
+    // nothing left to choose: after an action, let the action say why
+    if (!choices.length) {
+      if (understood.length === 2) break;
+      return {err: '!too many words: plane action [direction]'};
+    }
+    const meant = meaningOf(typed, choices);
+    if (!meant) return {err: `!${typed}? ${validOptions(understood).slice(0, 8).map(shortWayUpper).join(' · ')}`};
+    understood.push(meant);
+  }
+  return {words: understood};
+}
+// the prompt split in the words already finished and the part of the word being typed
+function typedParts() {
+  const words = commandInput.value.toLowerCase().split(/\s+/);
+  return {done: words.slice(0, -1).filter(Boolean), part: words[words.length - 1]};
+}
+// the rest of the chosen suggestion after what is typed, shown faded in the prompt
+function ghostCompletion() {
+  const {part} = typedParts();
+  return part && typing.suggestions.length ? typing.suggestions[typing.chosen].slice(part.length) : '';
+}
+// after every key: the suggestions for the word being typed (only orders that would work), the ghost text, the hint line
+function refreshSuggestions() {
+  const {done, part} = typedParts();
+  const read = readWords(done);
+  typing.suggestions =
+    read.err || !commandInput.value.trim() ? [] : validOptions(read.words).filter(option => option.startsWith(part));
+  if (game.admin) {
+    const words = commandInput.value.toLowerCase().split(/\s+/),
+      i = words.length - 1,
+      adminArguments = ADMIN_ARGS[words[0]]; // in admin: its own words first
+    if (i === 0 && part)
+      typing.suggestions = [...new Set([...ADMIN_WORDS.filter(option => option.startsWith(part)), ...typing.suggestions])];
+    else if (adminArguments && adminArguments[i - 1])
+      typing.suggestions = adminArguments[i - 1].filter(option => option.startsWith(part));
+  }
+  if (typing.chosen >= typing.suggestions.length) typing.chosen = 0;
+  typing.ghost = ghostCompletion();
+  ghostEl.innerHTML = `<span class="t">${escapeHtml(commandInput.value)}</span>${escapeHtml(typing.ghost)}`;
+  suggestionsEl.innerHTML =
+    typing.suggestions.length > 1
+      ? typing.suggestions
+          .slice(0, 12)
+          .map((suggestion, i) => `<i class="${i === typing.chosen ? 'on' : ''}">${suggestion}</i>`)
+          .join('')
+      : '';
+  hintEl.textContent = helpShown() ? '' : hintFor(typedPlaneName());
+}
+// the plane the prompt is about: what its first word most likely means, if that is a plane's name
+function typedPlaneName() {
+  const firstWord = commandInput.value.toLowerCase().trim().split(/\s+/)[0];
+  return firstWord ? meaningOf(firstWord, optionsAfter([])) : null;
+}
+// runs at once; when a word was read differently from how it was typed, the reply starts with what was understood
+function runTyped(typed) {
+  // the only way into admin; anything else is just an unknown word
+  if (typed === 'admin fly' && !game.admin) {
+    sound.ok();
+    showReply(enterAdmin());
+    return logOrder(typed);
+  }
+  if (game.admin) {
+    const reply = adminCommand(typed);
+    if (reply !== null) {
+      reply[0] === '!' ? sound.err() : sound.ok();
+      showReply(reply);
+      return logOrder(typed);
+    }
+  }
+  const typedWords = typed.split(/\s+/),
+    parsed = readWords(typedWords);
+  if (parsed.err) {
+    sound.err();
+    showReply(parsed.err);
+    return logOrder(typed);
+  }
+  const reply = executeOrder(parsed.words) || '';
+  reply[0] === '!' ? sound.err() : planeNamed(parsed.words[0]) ? sound.radio() : sound.ok();
+  const readAs = parsed.words.map(shortWayUpper).join(' '),
+    same = parsed.words.every((word, i) => word === typedWords[i] || ABBREVIATIONS[typedWords[i]] === word);
+  showReply(same || !reply ? reply : reply[0] === '!' ? `!(${readAs}) ${reply.slice(1)}` : `(${readAs}) ${reply}`);
+  logOrder(typed);
+}
+// the last few orders and their replies, fading upward above the prompt
+const recentEl = document.getElementById('hist');
+// adds an order and the reply it got to the recent orders above the prompt, and clears the reply line
+function logOrder(typed) {
+  typing.recent = [
+    ...(typing.recent || []),
+    {command: typed, reply: replyEl.textContent, bad: replyEl.className === 'bad'},
+  ].slice(-5);
+  showReply('');
+  recentEl.innerHTML = typing.recent
+    .map(
+      (entry, i) =>
+        `<div class="h${entry.bad ? ' bad' : ''}" style="opacity:${(0.25 + (0.6 * (i + 1)) / typing.recent.length).toFixed(2)}"><div class="c">${escapeHtml(entry.command)}</div>${entry.reply ? `<div class="r">${escapeHtml(entry.reply)}</div>` : ''}</div>`,
+    )
+    .join('');
+}
+// the aircraft data sheet in the help card: every number comes from TYPES and the constants the game flies with
+// (game time runs TIME_SCALE times fast; rates are shown per real second)
+function aircraftSheet() {
+  const typeList = Object.entries(TYPES),
+    number = (x, decimals = 0) => x.toLocaleString('en', {maximumFractionDigits: decimals, minimumFractionDigits: decimals});
+  const metresPerSecond = knots => knots * 0.5144,
+    row = (label, cell) =>
+      `<tr><td>${label}</td>${typeList.map(([typeName, type]) => `<td>${cell(type, typeName)}</td>`).join('')}</tr>`,
+    section = title => `<tr class="sec"><td colspan="${typeList.length + 1}">${title}</td></tr>`;
+  const radius = (type, knots) => metresPerSecond(knots) / degreesToRadians(type.turnDegreesPerSecond) / 1000; // km
+  return (
+    `<table class="ac"><tr><th></th>${typeList.map(([typeName, type]) => `<th>${type.tag || 'jet'}</th>`).join('')}</tr>` +
+    row('model', type => type.model) +
+    row('role', type => type.role) +
+    section('weight and size') +
+    row('max takeoff weight', type => number(type.maxTakeoffTonnes, 1) + ' t') +
+    row('empty weight', type => number(type.emptyTonnes, 1) + ' t') +
+    row('wingspan', type => number(type.wingspanMetres, 1) + ' m') +
+    row('length', type => number(type.lengthMetres, 1) + ' m') +
+    row('wake', type =>
+      type.heavyWake
+        ? `heavy: +${number((WAKE_EXTRA * METRES_PER_PIXEL) / 1000, 1)} km separation, runway rests ${number(WAKE_REST * TIME_SCALE)} s`
+        : 'medium/light',
+    ) +
+    section('speed') +
+    SPEED_TABLE_FEET.map((feet, i) =>
+      row(`${LEVEL_NAMES[LEVEL_FEET.indexOf(feet)]} (${feet} ft)`, type =>
+        i <= type.ceilingRow ? number(type.knotsAtLevels[i]) + ' kt' : '·',
+      ),
+    ).join('') +
+    row('highest level', type => `${LEVEL_NAMES[typeTopLevel(type)]} (${LEVEL_FEET[typeTopLevel(type)]} ft)`) +
+    row('holding', type => number(type.knotsAtLevels[0]) + ' kt') +
+    row('approach and rotation', type => number(type.approachKt) + ' kt') +
+    row('max cruise (not flown here)', type => number(type.cruiseKnots) + ' kt') +
+    row('taxi', () => number(TAXI_SPEED / PX_PER_KT) + ' kt') +
+    row('speed change in the air', () => number(AIR_ACCEL, 1) + ' kt/s') +
+    section('turning') +
+    row('turn rate', type => number(type.turnDegreesPerSecond, 1) + ' °/s') +
+    row('turn radius at low', type => number(radius(type, type.knotsAtLevels[0]), 2) + ' km') +
+    row('turn radius on approach', type => number(radius(type, type.approachKt), 2) + ' km') +
+    section('climb and runway') +
+    row('climb and descent', type => number(type.climbFeetPerMinute) + ' ft/min') +
+    row(`one level (${FEET_PER_LEVEL} ft)`, type => number((FEET_PER_LEVEL / type.climbFeetPerMinute) * 60) + ' s') +
+    row('takeoff acceleration', type => number(type.takeoffAcceleration, 1) + ' m/s²') +
+    row(
+      'takeoff run to rotation',
+      type => number(metresPerSecond(type.approachKt) ** 2 / (2 * type.takeoffAcceleration)) + ' m',
+    ) +
+    row('runway', () => number((2 * RUNWAY_HALF_LENGTH * METRES_PER_PIXEL) / 1000, 1) + ' km') +
+    row('hardest braking after touchdown', () => number(ROLLOUT_BRAKE, 1) + ' m/s²') +
+    section('fuel') +
+    row('tanks', type => number(type.tankKg) + ' kg') +
+    row('burn', type => number(type.burnKgPerHour) + ' kg/h') +
+    row('reserve on arrival', type => `${number((type.reserveSeconds * TIME_SCALE) / 60)} min`) +
+    `</table><p style="color:var(--dim);font-size:12.5px">1 px on the radar is ${METRES_PER_PIXEL} m, your area is ${number((AREA_RADIUS * METRES_PER_PIXEL) / 1000, 1)} km across the radius (${number((AREA_RADIUS_WIDER * METRES_PER_PIXEL) / 1000, 1)} with the range upgrade), and the game runs ${TIME_SCALE}× faster than real time. Separation: ${number((SEPARATION * METRES_PER_PIXEL) / 1000, 2)} km between planes less than ${VERTICAL_SEPARATION_METRES} m apart in height. Touchdown at most ${TOUCHDOWN_ANGLE_DEGREES}° off the runway heading.</p>`
+  );
+}
+// the ♪ button: sound and music on or off (the label shows which)
+const soundButton = document.getElementById('snd'),
+  showSoundState = () => setTimeout(() => (soundButton.textContent = sound.on ? '♪' : '×'));
+// fast-forward: 1×, 2×, 4× or 8×, on top of the game's own pace. Each frame runs step() that many times, so the physics
+// keeps its usual time step. Kept across restarts, not saved.
+let fastForward = 1;
+// the speed button and the 'speed' command: 1×, 2×, 4×, 8×, then back to 1×
+const speedButton = document.getElementById('ff'),
+  showSpeed = () => (speedButton.textContent = fastForward + '×');
+const cycleFastForward = () => {
+  fastForward = fastForward >= 8 ? 1 : fastForward * 2;
+  showSpeed();
+  return `time runs ${fastForward}×`;
+};
+
+/* =====================================================================================================================
+   § 12 TUTORIAL
+
+   WHAT  The optional guided start: one landing, one departure and a hold, step by step.
+   WHY   New players learn the orders by doing them, at a slower pace, without strikes.
+   HOW   TUTORIAL_STEPS lists the steps: the banner text, an optional setup (new planes), and when the step is done.
+   ===================================================================================================================== */
 const bannerEl = document.getElementById('banner');
 // each step: what to do (P = its planes by role), optional setup (a new section: clears the sky and brings its planes), and
 // when it is done. A plane lost on the way restarts its section
@@ -3029,7 +3103,7 @@ function startTutorial() {
   storage('tower-tut', 'seen');
   tutorialButton.classList.remove('new');
   startShift(true);
-  game.pace = 0.7;
+  game.pace = TUTORIAL_PACE;
   game.tutorial = {step: 0, planes: {}, pause: 0};
   setupTutorialSection();
   return '';
@@ -3082,11 +3156,17 @@ function tutorialTick(seconds) {
   }
   if (TUTORIAL_STEPS[tutorial.step].done(tutorial.planes)) {
     sound.ok();
-    tutorial.pause = 0.9;
+    tutorial.pause = TUTORIAL_STEP_PAUSE;
   }
 }
 
-/* ---------- admin: a hidden sandbox. Only the exact words "admin fly" open it; nothing suggests or mentions it before ---------- */
+/* =====================================================================================================================
+   § 13 ADMIN
+
+   WHAT  A hidden sandbox for testing: place planes, storms and wind by command, sweep test approaches from every angle.
+   WHY   To check landing behaviour and tune numbers without waiting for traffic.
+   HOW   Only the exact words "admin fly" open it; its commands are read before normal orders (adminCommand).
+   ===================================================================================================================== */
 // The line-up radius for each debug path, LANDING_ARC 0 (tightest) to 1 (widest), and their colours
 const ARC_WIDTH_STEPS = [0, 0.25, 0.5, 0.75, 1],
   ARC_COLOURS = ['#5ee0ff', '#7fb8ff', '#b39cff', '#e08cf0', '#ff7ab8'];
@@ -3493,7 +3573,14 @@ function drawPaths() {
   ctx.textAlign = 'center';
 }
 
-/* ---------- drawing ---------- */
+/* =====================================================================================================================
+   § 14 DRAWING
+
+   WHAT  The radar: the area and its slices, storms, the sweep, holding fixes, landing circles, taxiways and runways, the
+         wind, every plane with its cues and data block, explosions and crashes, and the payment chips.
+   WHY   Everything a controller needs is on the radar; nothing is hidden in menus.
+   HOW   drawRadar paints back to front every frame on one canvas, in world coordinates scaled to fit (resize).
+   ===================================================================================================================== */
 const canvas = document.getElementById('cv'),
   ctx = canvas.getContext('2d');
 let viewScale = 1,
@@ -3509,12 +3596,6 @@ function resize() {
   viewX = canvas.width / 2 - AIRPORT_X * viewScale;
   viewY = canvas.height / 2 - AIRPORT_Y * viewScale;
 }
-addEventListener('resize', resize);
-resize();
-addEventListener('resize', () => {
-  if (helpShown()) fitToWindow(helpEl.querySelector('.card:not([style*="none"])'));
-});
-document.fonts.ready.then(() => helpShown() && showHelpPage(typing.helpPage));
 // each kind of plane's colour: arrivals blue, departures gold, overflights purple
 const KIND_COLOUR = {arr: '#8fd8ff', dep: '#f2c94c', ovf: '#c9a3ff'};
 // what a plane is doing, shown after its level and type (flying on, it shows nothing, or that it is cleared)
@@ -3582,7 +3663,6 @@ const polygonsOverlap = (first, second) => {
 const touching = (first, second) =>
   Math.hypot(first.x - second.x, first.y - second.y) < 40 &&
   outlinesOf(first).some(firstPiece => outlinesOf(second).some(secondPiece => polygonsOverlap(firstPiece, secondPiece)));
-
 // crash effects (visual only: Math.random, so seeded daily traffic stays the same)
 const randomBetween = (low, high) => low + Math.random() * (high - low);
 // a collision: flash, fireball, shockwave, both pictograms broken in half and tumbling apart, burning debris, smoke
@@ -3840,7 +3920,6 @@ function drawEffect(effect) {
   ctx.globalAlpha = 1;
   ctx.lineWidth = 1;
 }
-
 // prettier-ignore
 const TYPE_SHAPES={
   get cargo(){return this.heavy},   // a freighter is drawn like a wide-body
@@ -4582,6 +4661,15 @@ function clockSVG(plane) {
       : `<path d="M7 7 L7 1.5 A5.5 5.5 0 ${largeArc} 1 ${7 + 5.5 * Math.cos(endAngle)} ${7 + 5.5 * Math.sin(endAngle)} Z" fill="${colour}"/>`;
   return `<svg width="14" height="14" viewBox="0 0 14 14" style="vertical-align:-2px;margin:0 3px${plane.impatient ? ';filter:drop-shadow(0 0 4px #ff3b2e)' : ''}">${slice}<circle cx="7" cy="7" r="5.5" fill="none" stroke="${plane.impatient ? '#ff6b5e' : 'rgba(211,234,217,.65)'}"/></svg>`;
 }
+
+/* =====================================================================================================================
+   § 15 THE SCREEN
+
+   WHAT  The panels around the radar (the top bar, strikes, the READY list), the overlay (paused, the shift-over screen
+         with the shop), the numbers counting up, and the frame loop.
+   WHY   The radar shows the sky; these show the score and what to do between shifts.
+   HOW   animationFrame runs every screen frame: advance the world, count numbers up, draw, update the panels.
+   ===================================================================================================================== */
 // the overlay over the radar: 'paused', or the shift-over screen with the shop
 const overlay = document.getElementById('over'),
   elementById = id => document.getElementById(id);
@@ -4647,14 +4735,6 @@ function shopTake(choice) {
     runTyped('buy ' + choice);
   }
 }
-overlay.addEventListener('click', event => {
-  const choice = event.target.closest('[data-k]')?.dataset.k;
-  if (choice && overScreenUp() && shopOpen()) {
-    event.stopPropagation();
-    shopTake(choice);
-    refreshSuggestions();
-  }
-});
 let lastFrameTime = performance.now();
 // the score in the bar counts up to the real one and swells when it grows; the tokens flash when one is earned
 const bumpedAt = {score: -1e9, tok: -1e9},
@@ -4726,9 +4806,133 @@ function updatePanels() {
     fitToWindow(overlay.firstChild, 40);
   }
 }
-requestAnimationFrame(animationFrame);
 // the tutorial is a button next to the speed button: never forced. A new player sees it nudging until they open it once
 const tutorialButton = document.getElementById('tut');
+
+/* =====================================================================================================================
+   § 16 START
+
+   WHAT  What runs once the page has loaded: the buttons and keys are connected, the first shift starts, the frame loop
+         begins.
+   WHY   Everything above only defines; this is where the game is switched on, in one place.
+   HOW   Listeners first, then the first shift (in the mode played last), then the frame loop.
+   ===================================================================================================================== */
+helpNav.addEventListener('click', event => {
+  event.stopPropagation();
+  if (event.target.dataset.p) showHelpPage(+event.target.dataset.p);
+});
+commandInput.addEventListener('input', () => {
+  typing.chosen = 0;
+  sound.key();
+  refreshSuggestions();
+});
+commandInput.addEventListener('keydown', event => {
+  if (helpShown() && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+    event.preventDefault();
+    showHelpPage(typing.helpPage + (event.key === 'ArrowRight' ? 1 : -1));
+    return;
+  }
+  if (overScreenUp() && shopOpen() && !commandInput.value && event.key.startsWith('Arrow')) {
+    event.preventDefault();
+    shopMove(event.key);
+    return;
+  }
+  const atEnd = commandInput.selectionStart === commandInput.value.length;
+  if (event.key === 'Tab' || (event.key === 'ArrowRight' && atEnd && typing.ghost)) {
+    event.preventDefault();
+    if (!typing.ghost) return;
+    sound.tab();
+    const take = event.key === 'Tab' ? typing.ghost.match(/^\s*\S*\s?/)[0] : typing.ghost;
+    commandInput.value += take.endsWith(' ') ? take : take + ' ';
+    typing.chosen = 0;
+    refreshSuggestions();
+    return;
+  }
+  if ((event.key === 'ArrowUp' || event.key === 'ArrowDown') && typing.suggestions.length > 1 && typedParts().part) {
+    event.preventDefault();
+    typing.chosen = (typing.chosen + (event.key === 'ArrowDown' ? 1 : typing.suggestions.length - 1)) % typing.suggestions.length;
+    refreshSuggestions();
+    return;
+  }
+  if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+    event.preventDefault();
+    if (!typing.history.length) return;
+    typing.historyAt = Math.max(0, Math.min(typing.history.length, typing.historyAt + (event.key === 'ArrowUp' ? -1 : 1)));
+    commandInput.value = typing.history[typing.historyAt] || '';
+    refreshSuggestions();
+    return;
+  }
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    if (helpShown()) showHelp(false);
+    else if (commandInput.value) commandInput.value = '';
+    else togglePause();
+    refreshSuggestions();
+    return;
+  }
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    const typed = commandInput.value.trim().toLowerCase();
+    if (helpShown()) {
+      showHelp(false);
+      if (!typed) return;
+    }
+    if (!typed) {
+      onEmptyEnter();
+      return;
+    }
+    typing.history.push(typed);
+    typing.historyAt = typing.history.length;
+    commandInput.value = '';
+    runTyped(typed);
+    refreshSuggestions();
+  }
+});
+addEventListener('mousedown', event => {
+  event.preventDefault();
+  commandInput.focus();
+});
+// the help card only opens from the ? button (or typing help); any click closes it
+document.getElementById('qm').addEventListener('click', event => {
+  event.stopPropagation();
+  showHelp(!helpShown());
+  refreshSuggestions();
+});
+helpEl.addEventListener('click', () => {
+  showHelp(false);
+  refreshSuggestions();
+});
+setInterval(refreshSuggestions, 400);
+soundButton.addEventListener('click', event => {
+  event.stopPropagation();
+  sound.toggle();
+  showSoundState();
+});
+showSoundState();
+speedButton.addEventListener('click', event => {
+  event.stopPropagation();
+  cycleFastForward();
+});
+showSpeed();
+addEventListener('keydown', sound.init, true);
+addEventListener('mousedown', sound.init, true);
+startShift(false, false, storage('tower-mode') === 'hard' && bestScore >= HARD_UNLOCK);
+document.getElementById('actable').innerHTML = aircraftSheet();
+addEventListener('resize', resize);
+resize();
+addEventListener('resize', () => {
+  if (helpShown()) fitToWindow(helpEl.querySelector('.card:not([style*="none"])'));
+});
+document.fonts.ready.then(() => helpShown() && showHelpPage(typing.helpPage));
+overlay.addEventListener('click', event => {
+  const choice = event.target.closest('[data-k]')?.dataset.k;
+  if (choice && overScreenUp() && shopOpen()) {
+    event.stopPropagation();
+    shopTake(choice);
+    refreshSuggestions();
+  }
+});
+requestAnimationFrame(animationFrame);
 if (!storage('tower-tut') && !bestScore) tutorialButton.classList.add('new');
 tutorialButton.addEventListener('click', event => {
   event.stopPropagation();
