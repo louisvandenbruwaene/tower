@@ -307,8 +307,18 @@ function newPlane(o){const ty=CFG.types?pickType():'jet',T=TYPES[ty];
   const p={fix:null,trail:[],tt:0,born:S.t,ty,T,w:0,...o};if(p.spd===undefined)p.spd=speedFor(p);return p}
 // the speed a plane flies at: its type's, and faster the higher it is (about 140 kt low, 190 kt high for a jet)
 const speedFor=p=>SPEED*p.T.spd*(1+.15*p.alt);
-const GROUND=['ready','taxi','lineup','rollout','taxiin'],onGround=p=>GROUND.includes(p.state);
-function spawnDep(dest){const name=freshName();if(name)S.planes.push(newPlane({name,kind:'dep',dest,state:'ready',x:AX,y:AY-26,hdg:0,tgt:0,alt:0,tgtAlt:0,altFrom:0,spd:0}))}
+const GROUND=['ready','taxi','lineup','enter','rollout','taxiin'],onGround=p=>GROUND.includes(p.state);
+// two taxi lanes on one wide taxiway: departures taxi out on the inner one (x AX±OUT_X, apron row OUT_Y) to a holding point
+// HOLD short of the runway, arrivals taxi in on the outer one, so the two never sit on top of each other
+const OUT_X=RW+12,IN_X=RW+20,OUT_Y=AY-26,IN_Y=AY-34,HOLD=12;
+// on the ground a plane stops while another is just ahead of it, unless that one gives way to it. Who goes first: a landed
+// plane rolling out, then one taxiing in, then a departure entering the runway, then the others in the order they started (gt: a ticket number)
+const TAXI_RANK={rollout:3,taxiin:2,enter:1.5,taxi:1,lineup:1};
+const outranks=(q,p)=>TAXI_RANK[q.state]>TAXI_RANK[p.state]||TAXI_RANK[q.state]===TAXI_RANK[p.state]&&q.gt<p.gt;
+function heldUp(p){const[wx,wy]=p.path[0],h=Math.atan2(wy-p.y,wx-p.x),ux=Math.cos(h),uy=Math.sin(h);
+  return S.planes.some(q=>{if(q===p||!TAXI_RANK[q.state]||q.atGate)return false;const dx=q.x-p.x,dy=q.y-p.y,d=Math.hypot(dx,dy);
+    return d<8*(p.T.size+q.T.size)&&dx*ux+dy*uy>.5*d&&outranks(q,p)})}
+function spawnDep(dest){const name=freshName();if(name)S.planes.push(newPlane({name,kind:'dep',dest,state:'ready',x:AX,y:OUT_Y,hdg:0,tgt:0,alt:0,tgtAlt:0,altFrom:0,spd:0}))}
 function spawnArr(bearing){const b=rad(bearing),x=AX+Math.cos(b)*(RADAR-6),y=AY+Math.sin(b)*(RADAR-6),h=wrap(b+Math.PI+rad((rnd()-.5)*40));
   const name=freshName();if(name)SFX.contact();if(name)S.planes.push(newPlane({name,kind:'arr',state:'fly',x,y,hdg:h,tgt:h,alt:2,tgtAlt:2,altFrom:2,fuel:CFG.fuel?180+rnd()*120+CFG.tank:Infinity}))}
 // an overflight from the neighbouring sector: crosses your area in a straight line, to leave through the slice it is aimed at
@@ -335,7 +345,7 @@ function taxi(p,dt){const[wx,wy]=p.path[0],d=Math.hypot(wx-p.x,wy-p.y),go=TAXI*d
   if(d>.5)p.hdg=wrap(p.hdg+Math.sign(dh)*Math.min(Math.abs(dh),2.5*dt));
   if(d<=go){p.x=wx;p.y=wy;p.path.shift();return!p.path.length}p.x+=(wx-p.x)*go/d;p.y+=(wy-p.y)*go/d;return false}
 function remove(p){S.planes=S.planes.filter(q=>q!==p)}
-const ONRUNWAY=['final','roll','rollout'];
+const ONRUNWAY=['final','enter','roll','rollout'];
 // the pictogram's size: small on the ground, a little bigger the higher it flies (drawn eased, see p.vs)
 const sizeFor=p=>(onGround(p)?.045:.065+p.alt*.01)*p.T.size;
 const runwayUser=(r)=>S.planes.find(p=>ONRUNWAY.includes(p.state)&&(!r||p.rw===r));
@@ -430,16 +440,20 @@ function step(dt){
       if(p.fuel<=0){remove(p);strike(`${p.name} ran out of fuel`,p.x,p.y);continue}
       if(p.fuel<45&&!p.mayday){p.mayday=true;SFX.mayday();say(`!MAYDAY ${p.name}: low on fuel, land it next`)}}
     // on the ground: taxi along the taxiway to the runway end, wait there until the runway is free, then roll
-    if(p.state==='taxi'||p.state==='taxiin'){if(taxi(p,dt)){if(p.state==='taxi')p.state='lineup';else{remove(p);continue}}
-      if(p.state==='taxiin'||p.path.length)continue}
-    if(p.state==='lineup'){const d=wrap((p.rdir>0?0:Math.PI)-p.hdg);p.hdg=wrap(p.hdg+Math.sign(d)*Math.min(Math.abs(d),2.5*dt));if(rwBusy(p.rw)||Math.abs(d)>.01)continue;startRoll(p)}
+    // on the ground: taxi out to the holding point and wait there until the runway is free, then enter it, line up and roll
+    // cleared to taxi, it stays at its gate (not shown, like a waiting departure) until the apron in front of it is clear
+    if(p.atGate){if(S.planes.some(q=>q!==p&&TAXI_RANK[q.state]&&!q.atGate&&Math.hypot(q.x-p.x,q.y-p.y)<8*(p.T.size+q.T.size)))continue;p.atGate=false;p.gt=S.gt=(S.gt||0)+1}
+    if(p.state==='taxi'||p.state==='enter'||p.state==='taxiin'){if(p.path.length&&!heldUp(p)&&taxi(p,dt)){if(p.state==='taxi')p.state='lineup';else if(p.state==='taxiin'){remove(p);continue}}
+      if(p.state!=='enter'||p.path.length)continue}
+    if(p.state==='lineup'){if(!rwBusy(p.rw)){p.state='enter';p.path=[[p.hx,p.rw.y],[AX-p.rdir*RW,p.rw.y]]}continue}
+    if(p.state==='enter'){const d=wrap((p.rdir>0?0:Math.PI)-p.hdg);p.hdg=wrap(p.hdg+Math.sign(d)*Math.min(Math.abs(d),2.5*dt));if(Math.abs(d)>.01)continue;startRoll(p)}
     // the takeoff run: it lifts off at its rotation speed (a heavy needs more runway), or at the latest at the end of the runway
     if(p.state==='roll'){p.spd+=RUN*p.T.climb*dt;if(p.spd>=.85*SPEED*p.T.spd||p.rdir*(p.x-AX)>RW){p.state='fly';if(p.T.wake)p.rw.wake=6}}
     // the landing run: braking so it is down to taxi speed at the end of the runway, then off it and taxiing in to the apron
     else if(p.state==='rollout'){const left=Math.max(1,p.dir*(AX+p.dir*RW-p.x));p.spd=Math.max(TAXI,p.spd-Math.min(4,Math.max(.5,(p.spd*p.spd-TAXI*TAXI)/(2*left)))*dt);
       const d=wrap(Math.atan2(p.rw.y-p.y,p.dir*20)-p.hdg);p.hdg=wrap(p.hdg+Math.sign(d)*Math.min(Math.abs(d),TURN*dt));
       if(p.dir*(p.x-AX)>=RW){if(p.T.wake)p.rw.wake=6;handled(p,'#7ee0a8',`${p.name} landed, runway ${rwName(p.rw,p.dir)} vacated`,true);
-        const ex=AX+p.dir*(RW+12);p.state='taxiin';p.spd=TAXI;p.path=[[ex,p.rw.y],[ex,AY-26],[AX+p.dir*30,AY-26]];continue}}
+        const ex=AX+p.dir*IN_X;p.state='taxiin';p.gt=S.gt=(S.gt||0)+1;p.spd=TAXI;p.path=[[ex,p.rw.y],[ex,IN_Y],[AX+p.dir*30,IN_Y]];continue}}
     else{
       const turn=TURN*p.T.turn;let wd=null;   // the turn rate it wants, when something steers it more finely than a heading
       // with navigation, a plane cleared outside a circle flies itself to the one it was given
@@ -505,7 +519,7 @@ const toward=p=>compass(AX-p.x,AY-p.y),fromAirport=p=>Math.hypot(p.x-AX,p.y-AY);
 const shopOpen=()=>S.over&&S.L.endless&&!S.demo&&!S.daily;
 function actions(p){
   if(p.state==='ready')return['takeoff'];
-  if(p.state==='taxi'||p.state==='lineup'||p.state==='roll')return['turn'];
+  if(p.state==='taxi'||p.state==='lineup'||p.state==='enter'||p.state==='roll')return['turn'];
   if(p.state==='final')return['abort'];
   if(p.state==='rollout'||p.state==='taxiin')return[];
   return['turn','ascend','descend','hold',...(p.kind==='arr'?['land']:[]),...(p.cleared||p.state==='hold'||p.state==='tofix'?['abort']:[])]}
@@ -572,9 +586,9 @@ function exec(words){
     const dir=arg==='east'?1:-1;
     if(CFG.wind&&dir!==S.rwdir)return`!the wind is from the ${windWord()}: take off ${windWord()}, into the wind`;
     // taxis to the runway end, waits there until the runway is free, rolls, then flies straight on, climbing to mid, until you turn it
-    const queued=r=>S.planes.some(o=>o!==p&&o.rw===r&&(o.state==='taxi'||o.state==='lineup'));
+    const queued=r=>S.planes.some(o=>o!==p&&o.rw===r&&(o.state==='taxi'||o.state==='lineup'||o.state==='enter'));
     p.rdir=dir;p.rw=RUNWAYS.find(r=>!rwBusy(r)&&!queued(r))||RUNWAYS.find(r=>!queued(r))||RUNWAYS[0];
-    const ex=AX-dir*(RW+12);p.state='taxi';p.path=[[ex,AY-26],[ex,p.rw.y],[AX-dir*RW,p.rw.y]];p.turned=false;
+    const ex=AX-dir*OUT_X;p.state='taxi';p.atGate=true;p.hx=ex;p.path=[[ex,OUT_Y],[ex,p.rw.y-HOLD]];p.turned=false;
     if(CFG.nav){p.tgt=rad(HEADINGS[p.dest]);p.turned=true}
     return`${n}: taxi to runway ${rwName(p.rw,dir)}, then cleared for takeoff, climb to mid (${FEET[1]} ft) · ${CFG.nav?`it turns ${U(p.dest)} by itself`:`then turn it ${U(p.dest)}`}`}
   if(act==='abort'&&(p.state==='hold'||p.state==='tofix')){p.state='fly';p.tgt=p.hdg;return`${n}: stops circling, flying straight ahead`}
@@ -593,8 +607,8 @@ function hintFor(n){
     const q=S.planes.find(q=>q.mayday)||S.planes.find(q=>q.state!=='ready')||S.planes[0];return hintFor(q.name)}
   const u=runwayUser(),fuel=p.mayday?`MAYDAY ${Math.ceil(p.fuel)} s of fuel · `:'';
   if(p.state==='ready')return`${p.name} wants to leave ${U(p.dest)} → ${p.name} takeoff ${U(runwayFor(p.dest))} (${CFG.wind?'into the wind':`the runway direction closest to ${U(p.dest)}`})${u?` · it waits at the runway end while ${u.name} uses it`:''}`;
-  if(p.state==='taxi')return`${p.name} is taxiing to the runway end${p.turned?'':` · you can already give it ${p.name} turn ${U(p.dest)}`}`;
-  if(p.state==='lineup')return`${p.name} waits at the runway end until the runway is free${p.rw.wake>0?' (wake turbulence behind a heavy)':''}`;
+  if(p.state==='taxi')return`${p.name} ${p.atGate?'waits at its gate for the apron to clear':'is taxiing to the holding point'}${p.turned?'':` · you can already give it ${p.name} turn ${U(p.dest)}`}`;
+  if(p.state==='lineup')return`${p.name} waits at the holding point until the runway is free${p.rw.wake>0?' (wake turbulence behind a heavy)':''}`;
   if(p.state==='rollout')return`${p.name} is rolling out: the runway is busy until it turns off`;
   if(p.state==='taxiin')return`${p.name} is taxiing in to the apron`;
   if(p.state==='roll')return`${p.name} is taking off ${p.rdir>0?'east':'west'}${headingFor(p,p.dest)?'':` → ${p.name} turn ${U(p.dest)}`}`;
@@ -638,7 +652,7 @@ const D={on:false,steps:[],wait:0,cool:new Map()};
 // returns [command words, reason]; peek = only look, don't start cooldowns (used for the faded suggestion)
 function decide(peek){
   const air=S.planes.filter(p=>!onGround(p)),free=p=>p.state==='fly'||p.state==='hold'||p.state==='tofix';
-  const runwayBusy=RUNWAYS.some(rwBusy)||S.planes.some(p=>p.state==='taxi'||p.state==='lineup');
+  const runwayBusy=RUNWAYS.some(rwBusy)||S.planes.some(p=>p.state==='taxi'||p.state==='lineup'||p.state==='enter');
   const landing=S.planes.some(p=>p.state==='final'||p.state==='rollout'||p.cleared);
   const once=(p,k,sec)=>{const key=p.name+k;if((D.cool.get(key)||0)>S.t)return false;if(!peek)D.cool.set(key,S.t+sec);return true};
   const ups=[...Array(CFG.levels-1)].map((_,i)=>CFG.levels-1-i);   // every level but low, highest first
@@ -841,10 +855,13 @@ function draw(){
       cx.beginPath();cx.moveTo(g.x+o-g.dir*5,g.y-8);cx.lineTo(g.x+o+g.dir*5,g.y);cx.lineTo(g.x+o-g.dir*5,g.y+8);cx.stroke()}}
     cx.globalAlpha=1;cx.lineWidth=1;cx.fillStyle=open?c:'#66706b';cx.fillText(open?`${k} landing circle`:`${k}: closed (${stormOver(k)?'storm':'wind'})`,g.x,g.rw.i?g.y+GATE_R+13:g.y-GATE_R-11)}   // runway 2's labels go below, clear of runway 1's circles
   // apron and taxiways: from the apron north of the field along to both ends, down to every runway
-  const ty=AY-26,tx=RW+12,bot=RUNWAYS[RUNWAYS.length-1].y;
-  cx.strokeStyle='rgba(120,140,130,.35)';cx.lineWidth=3;cx.beginPath();cx.moveTo(AX-tx,bot);cx.lineTo(AX-tx,ty);cx.lineTo(AX+tx,ty);cx.lineTo(AX+tx,bot);cx.stroke();
-  for(const r of RUNWAYS)for(const e of[-1,1]){cx.beginPath();cx.moveTo(AX+e*tx,r.y);cx.lineTo(AX+e*RW,r.y);cx.stroke()}
-  cx.lineWidth=1;cx.fillStyle='#1c2a24';cx.fillRect(AX-34,ty-14,68,10);font(9);cx.fillStyle='#5f7d69';cx.fillText('apron',AX,ty-9);
+  // one wide taxiway with two lanes (out inner, in outer), stubs to every runway end, amber holding-point bars
+  const bot=RUNWAYS[RUNWAYS.length-1].y,tx=(OUT_X+IN_X)/2,ty=(OUT_Y+IN_Y)/2,lane=(x,y)=>{cx.beginPath();cx.moveTo(AX-x,bot);cx.lineTo(AX-x,y);cx.lineTo(AX+x,y);cx.lineTo(AX+x,bot);cx.stroke()};
+  cx.strokeStyle='rgba(120,140,130,.16)';cx.lineWidth=14;cx.lineJoin='round';lane(tx,ty);
+  for(const r of RUNWAYS)for(const e of[-1,1]){cx.beginPath();cx.moveTo(AX+e*(IN_X+3),r.y);cx.lineTo(AX+e*RW,r.y);cx.stroke()}
+  cx.strokeStyle='rgba(120,140,130,.4)';cx.lineWidth=1.2;lane(OUT_X,OUT_Y);lane(IN_X,IN_Y);cx.lineJoin='miter';
+  cx.strokeStyle='rgba(242,160,60,.7)';cx.lineWidth=1.5;for(const r of RUNWAYS)for(const e of[-1,1]){cx.beginPath();cx.moveTo(AX+e*(OUT_X-4),r.y-HOLD+7);cx.lineTo(AX+e*(OUT_X+4),r.y-HOLD+7);cx.stroke()}
+  cx.lineWidth=1;cx.fillStyle='#1c2a24';cx.fillRect(AX-34,IN_Y-17,68,10);font(9);cx.fillStyle='#5f7d69';cx.fillText('apron',AX,IN_Y-12);
   // runways: asphalt, threshold bars, centre stripes, edge lights (amber while a plane uses it)
   for(const r of RUNWAYS){const u=runwayUser(r),busy=u||r.wake>0,lit=busy?'#f2a03c':'#7ee0a8';
     cx.fillStyle='#16201c';cx.fillRect(AX-RW-4,r.y-7,RW*2+8,14);
@@ -861,7 +878,7 @@ function draw(){
   // wind: which way planes take off
   if(CFG.wind){font(12,600);cx.textAlign='left';cx.fillStyle='#8fd8ff';cx.fillText(`wind from the ${windWord()}`,14,20);
     font(11);cx.fillStyle='#5f7d69';cx.fillText(`take off and land heading ${windWord()}`,14,38);cx.textAlign='center'}
-  for(const p of S.planes){if(p.state==='ready')continue;
+  for(const p of S.planes){if(p.state==='ready'||p.atGate)continue;
     const lvl=Math.round(p.alt),col=p.warn?'#ff6b5e':LABEL[p.kind],hot=p.name===focus||(!cmd.value&&p.name===sugName),ground=onGround(p);
     cx.fillStyle=col;p.trail.forEach(([x,y],i)=>{cx.globalAlpha=.06+i*.05;cx.beginPath();cx.arc(x,y,1.6,0,7);cx.fill()});cx.globalAlpha=1;
     if(p.warn){cx.fillStyle='rgba(255,107,94,.1)';cx.strokeStyle='rgba(255,107,94,.6)';cx.beginPath();cx.arc(p.x,p.y,(SEP+(p.T.wake?WAKE:0))/2,0,7);cx.fill();cx.stroke()}
@@ -880,7 +897,7 @@ function draw(){
     cx.save();cx.globalAlpha=fade;cx.translate(p.x,p.y);cx.rotate(p.hdg+Math.PI/2);cx.scale(k,k);glow(col,10);cx.fillStyle=col;cx.fill(SHAPES[p.ty]);cx.restore();glow('',0);
     // data block on a leader line: name, level, type, fuel when short; a level change fills the bar under it
     const moving=Math.abs(p.tgtAlt-p.alt)>.01,lvTxt=moving?`${ALTCH[lvl]}→${ALTCH[p.tgtAlt]}`:ALTCH[lvl];
-    let tag=p.state==='hold'?' ⟳':p.state==='tofix'?` →${p.fix.toUpperCase()}`:p.state==='final'?' landing':p.state==='roll'?' taking off':p.state==='taxi'?' taxi':p.state==='lineup'?' waiting':p.state==='rollout'?' landed':p.state==='taxiin'?' taxi in':p.cleared?' · cleared':'';
+    let tag=p.state==='hold'?' ⟳':p.state==='tofix'?` →${p.fix.toUpperCase()}`:p.state==='final'?' landing':p.state==='roll'?' taking off':p.state==='taxi'?' taxi':p.state==='lineup'?' waiting':p.state==='enter'?' lining up':p.state==='rollout'?' landed':p.state==='taxiin'?' taxi in':p.cleared?' · cleared':'';
     if(p.kind==='arr'&&p.state!=='final'&&!p.cleared&&landGate(p))tag+=rwBusy(GATES[landGate(p)].rw)?' · wait':' · can land';
     const fuel=p.kind==='arr'&&p.fuel<90?` fuel ${Math.ceil(p.fuel)}`:'';
     const txt=`${p.name}${ground?'':' '+lvTxt}${p.T.tag?' '+p.T.tag:''}${tag}${p.kind!=='arr'&&!ground?' → '+U(p.dest):''}${fuel}`;font(ground?11:12.5,hot?600:500);
