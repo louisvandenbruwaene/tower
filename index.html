@@ -13,7 +13,7 @@ body{display:flex;flex-direction:column;background:radial-gradient(ellipse 70% 8
 @keyframes blink{50%{opacity:.35}}
 #lvl{font-weight:500;font-size:13px;padding:3px 12px;border:1px solid var(--chipon);border-radius:99px;background:var(--chip)}
 #todo{margin-left:auto;color:var(--dim);font-size:13px}
-#snd+#qm{margin-left:-8px}
+#ff+#snd,#snd+#qm{margin-left:-8px} #ff{width:auto;padding:0 8px;border-radius:13px;font-size:12px}
 .rb{width:26px;height:26px;padding:0;border-radius:50%;border:1px solid var(--chipon);background:var(--chip);color:var(--acc);font:600 14px var(--mono);cursor:pointer}
 .rb:hover{background:var(--chipon);box-shadow:0 0 12px rgba(126,224,168,.3)}
 main{flex:1;min-height:0;display:flex}
@@ -57,7 +57,7 @@ main{flex:1;min-height:0;display:flex}
 #help td:first-child{color:var(--acc);white-space:nowrap} #help .ac td{font-size:12.5px;padding-right:10px} #help .ac th{text-align:left;color:var(--gold);font-size:12.5px;padding:2px 10px 2px 0} #help .ac tr.sec td{color:var(--dim);padding-top:8px;text-transform:uppercase;letter-spacing:.1em;font-size:11px} #help .go{color:var(--dim);margin-top:12px} #help code{color:var(--gold)}
 @media (max-width:760px){main{flex-direction:column}#term{width:auto;height:50%}}
 </style></head><body>
-<div id="bar"><span id="brand">TOWER POWER</span><b id="lvl"></b><span id="todo"></span><button id="snd" class="rb" title="sound on/off"></button><button id="qm" class="rb" title="help">?</button></div>
+<div id="bar"><span id="brand">TOWER POWER</span><b id="lvl"></b><span id="todo"></span><button id="ff" class="rb" title="game speed: 1× 2× 4×"></button><button id="snd" class="rb" title="sound on/off"></button><button id="qm" class="rb" title="help">?</button></div>
 <main>
 <div id="view"><canvas id="cv"></canvas><div id="demo"></div><div id="over"></div></div>
 <section id="term">
@@ -86,6 +86,7 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>heron hold</td><td>circle on the spot until you give it a turn, or <b>land</b> inside a landing circle · <b>heron hold kilo</b> flies to the fix KILO (also ALPHA, BRAVO, ZULU) and circles it, right turns, slowed down. Holds always stay inside your area</td></tr>
 <tr><td>heron land</td><td>only inside an open landing circle (also ends a hold). It only starts its landing at <b>low</b>: higher up it circles the circle's centre for as long as it takes, until you <b>descend</b> it. At low it flies the shortest line-up that stays close to the landing area (one turn, or turn, straight, turn), arriving at most 15° off the runway heading at its approach speed. With the runway busy it circles until it is free (four times round at most, else it goes around).</td></tr>
 <tr><td>wren takeoff e</td><td>departures in the <b>ready</b> list: it taxis from the apron to that runway end, waits there until the runway is free, takes off <b>east</b> or <b>west</b>, climbs to mid and flies straight on until you turn it (you may turn it while it taxis).</td></tr>
+<tr><td>speed</td><td>time runs 1×, 2×, 4× and back (also the <b>1×</b> button top right)</td></tr>
 <tr><td>abort</td><td>cancel a hold (flies straight on) or a landing: it goes around, climbing to mid straight ahead</td></tr>
 </table>
 <table>
@@ -207,6 +208,11 @@ function aircraftSheet(){const T=Object.entries(TYPES),f=(x,d=0)=>x.toLocaleStri
     `</table><p style="color:var(--dim);font-size:12.5px">1 px on the radar is ${M_PER_PX} m, your area is ${f(RADAR*M_PER_PX/1000)} km across the radius, and the game runs ${TIME_SCALE}× faster than real time. Separation: ${f(SEP*M_PER_PX/1000,2)} km on the same level. Touchdown at most ${THETA_DEG}° off the runway heading.</p>`}
 const sndEl=document.getElementById('snd'),soundBtn=()=>setTimeout(()=>sndEl.textContent=SFX.on?'♪':'×');
 sndEl.addEventListener('click',e=>{e.stopPropagation();SFX.toggle();soundBtn()});soundBtn();
+// fast-forward: 1×, 2× or 4×, on top of the level's own pace. Each frame runs step() that many times, so the physics
+// keeps its usual time step. Kept across levels and restarts, not saved.
+let FF=1;const ffEl=document.getElementById('ff'),ffBtn=()=>ffEl.textContent=FF+'×';
+const cycleFF=()=>{FF=FF===1?2:FF===2?4:1;ffBtn();return`time runs ${FF}×`};
+ffEl.addEventListener('click',e=>{e.stopPropagation();cycleFF()});ffBtn();
 
 /* =====================================================================================================================
    TUNING: every number that sets how the game plays, in one place. Change them here; the rest of the code reads them.
@@ -692,7 +698,7 @@ function argsFor(p,act){
   if(act==='hold')return Object.keys(FIXES);
   return[]}
 function options(words){
-  if(!words.length)return[...(S.over?[]:S.planes.map(p=>p.name)),'help','aircraft','demo','pause','restart','sound',
+  if(!words.length)return[...(S.over?[]:S.planes.map(p=>p.name)),'help','aircraft','demo','pause','speed','restart','sound',
     ...(S.lvl>0&&!S.demo?['back']:[]),...(unlocked>S.lvl&&!S.demo?['next']:[]),
     ...(unlocked>=LEVELS.length-1&&!S.demo?['daily']:[]),...(shopOpen()?['buy']:[])];
   if(words[0]==='buy')return words.length===1?Object.keys(UPGRADES).filter(k=>meta[k]<UPGRADES[k].max):[];
@@ -726,6 +732,7 @@ function exec(words){
   if(w0==='back'){startLevel(S.lvl-1);return''}
   if(w0==='next'){startLevel(S.lvl+1);return''}
   if(w0==='pause'){togglePause();return''}
+  if(w0==='speed')return cycleFF();
   if(w0==='sound'){soundBtn();return`sound ${SFX.toggle()?'on':'off'}`}
   if(w0==='help'){showHelp(true);return''}
   if(w0==='aircraft'){showHelp(true);document.getElementById('acdata').scrollIntoView();return''}
@@ -1224,7 +1231,7 @@ function shiftOver(){
   return`${head}<div class="shop"><div>${meta.tokens} tokens · type <b>buy &lt;upgrade&gt;</b> · Enter: next shift</div><table>${rows}</table></div>`}
 let last=performance.now();
 function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;
-  if(!S.paused&&!S.over&&!helpOpen())step(dt*S.L.scale);if(D.on&&!S.paused)demoTick(dt);draw();
+  for(let i=0;i<FF;i++){if(!S.paused&&!S.over&&!helpOpen())step(dt*S.L.scale);if(D.on&&!S.paused)demoTick(dt)}draw();
   $('lvl').textContent=S.admin?`admin${S.sweep?` · sweep ${S.sweep.log.length+1}/${S.sweep.log.length+S.sweep.list.length+1}`:''}`:S.demo?'demo':S.daily?`daily · ${today()}`:S.L.endless?`shift · best ${best}`:`level ${S.lvl+1} · ${S.L.name}`;
   $('todo').textContent=S.demo?'':`${S.queue?`${S.done}/${S.L.arr+S.L.dep}`:S.done} planes · ${S.score} pts${S.L.endless&&!S.daily?` · ${meta.tokens} tokens`:''}`;
   $('strikes').innerHTML=[0,1,2].map(i=>`<i class="${i<S.strikes?'on':''}"></i>`).join('');
