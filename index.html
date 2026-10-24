@@ -226,7 +226,7 @@ const LEVEL_FT=[3000,5000,7000,9000,11000];   // the levels low, mid, high, top,
 const ARRIVE_LEVEL=2,DEPART_LEVEL=1;          // arrivals come in high (or as high as their type goes), departures climb to mid
 // flying
 const AIR_ACCEL=2.4;          // kt/s: how fast airspeed changes in the air
-const TURN_DECEL=.2;          // on the approach a plane slows by this fraction of AIR_ACCEL in turns, fully on straights
+const TURN_DECEL=1;           // on final a plane slows by this fraction of AIR_ACCEL in turns (on straights fully); 1 = as fast as on straights, giving the tightest turns and shortest paths
 const TAXI_KT=30;             // taxi speed
 const ROLLOUT_BRAKE=4.9;      // m/s²: hardest braking after touchdown
 const WAKE_REST=6;            // game s: a runway rests this long after a heavy or freighter used it
@@ -234,6 +234,8 @@ const WAKE_REST=6;            // game s: a runway rests this long after a heavy 
 const THETA_DEG=15;           // touchdown at most this many degrees off the runway heading
 const FINAL_MIN=35;           // px: the shortest straight final (875 m), on top of the distance needed to slow to approach speed
 let LANDING_ARC=.5;           // the line-up turn: 0 = tightest (shortest path), 1 = widest arc that still lines up, in between = in between
+const MAX_TURN=rad(290);       // the longest single turn in a line-up: turning back is fine, a full loop is not
+const LEN_SLACK=.15;          // the widest arc may make the path at most 15% longer than the shortest line-up
 // fuel
 const MAYDAY_S=45;            // game s of fuel left when a plane calls MAYDAY
 // aircraft types, each modelled on a real one. Flown in the game: airspeed in knots at each level (low, mid, high, top, peak;
@@ -462,12 +464,13 @@ function pathAt(P,s){for(const q of P){if(s<=q.len||q===P[P.length-1]){s=Math.mi
   return{x:cx+Math.cos(a)*q.r,y:cy+Math.sin(a)*q.r,h:wrap(q.h+q.d*s/q.r),k:q.d/q.r}}s-=q.len}}
 const pathLen=P=>P.reduce((t,q)=>t+q.len,0);
 // the shortest turn-straight-turn path from one position and heading to another, every turn of radius r (Dubins)
-function dubins(x0,y0,h0,x1,y1,h1,r){let best=null;const tw=a=>((a%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
+// maxArc: leave out combinations with a longer turn than that (radians; a loop)
+function dubins(x0,y0,h0,x1,y1,h1,r,maxArc=Infinity){let best=null;const tw=a=>((a%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
   for(const d1 of[1,-1])for(const d2 of[1,-1]){
     const c1x=x0+r*Math.cos(h0+d1*Math.PI/2),c1y=y0+r*Math.sin(h0+d1*Math.PI/2),c2x=x1+r*Math.cos(h1+d2*Math.PI/2),c2y=y1+r*Math.sin(h1+d2*Math.PI/2);
     const D=Math.hypot(c2x-c1x,c2y-c1y),phi=Math.atan2(c2y-c1y,c2x-c1x);let hs,L;
     if(d1===d2){hs=phi;L=D}else{if(D<2*r)continue;hs=phi+Math.asin(2*r*d1/D);L=D*Math.cos(phi-hs)}
-    const a1=tw(d1*(hs-h0))*r,a2=tw(d2*(h1-hs))*r,len=a1+L+a2;
+    const a1=tw(d1*(hs-h0))*r,a2=tw(d2*(h1-hs))*r,len=a1+L+a2;if(a1>maxArc*r||a2>maxArc*r)continue;
     if(!best||len<best.len){const tx=c1x-r*Math.cos(hs+d1*Math.PI/2),ty=c1y-r*Math.sin(hs+d1*Math.PI/2);
       best={len,P:[{x:x0,y:y0,h:h0,d:d1,r,len:a1},{x:tx,y:ty,h:hs,d:0,len:L},{x:tx+Math.cos(hs)*L,y:ty+Math.sin(hs)*L,h:hs,d:d2,r,len:a2}].filter(q=>q.len>.01)}}}
   return best}
@@ -493,18 +496,28 @@ function turnIn(p,g,R,d,free){const Tx=AX-g.dir*RW,Ty=g.rw.y,rh=g.dir>0?0:Math.P
     if(L<FINAL_MIN+slow||len<p.alt/climbRate(p)*vApp(p))return null;
     for(let s=0;s<=len;s+=3){const q=pathAt(P,s);if(fromAirport(q)>RADAR-15||s<arc&&g.dir*(q.x-Tx)>-5)return null}}   // the turn stays on the approach side of the runway end
   return{len,L,P}}
-// the line-up flown: per turn direction, the tightest turn it can fly now (radius speed / turn rate, the shortest path) and the
-// widest that still lines up (at most 12 times as wide, and 5% inside that edge); LANDING_ARC picks the radius in between. The direction whose tightest line-up is shorter wins.
-// free: no limits (only to know which way is shorter). None: it keeps circling
-function lineUp(p,g,free=false,arc=LANDING_ARC){const r=turnR(p);let best=null;
-  for(const d of[1,-1]){const tight=turnIn(p,g,r,d,free);if(!tight)continue;
-    let R=r;if(!free&&arc>0){let ok=r,bad=null;   // the widest: grow the radius 5% at a time until it no longer lines up, then narrow it down
-      for(let x=r*1.05;x<12*r;x*=1.05){if(turnIn(p,g,x,d))ok=x;else{bad=x;break}}
-      if(bad)for(let k=0;k<6;k++){const m=(ok+bad)/2;if(turnIn(p,g,m,d))ok=m;else bad=m}
-      R=r+arc*(Math.max(r,.95*ok)-r)}   // 5% inside the widest: right at the edge it barely lines up
-    const path=R===r?tight:turnIn(p,g,R,d,free)||tight;
-    if(!best||tight.len<best.tight)best={tight:tight.len,P:path.P}}
-  return best&&best.P}
+// a line-up with two turns: turn, straight, turn (radius r each, none longer than MAX_TURN) onto the extended centreline at distance a out from
+// the runway end, then straight in; the shortest over every join point far enough out to slow down and settle, and over the
+// four turn combinations. Same limits as turnIn. Returns {len,P} or null
+function turnTwice(p,g,free){const r=turnR(p),Tx=AX-g.dir*RW,Ty=g.rw.y,rh=g.dir>0?0:Math.PI,slow=Math.max(0,p.spd*p.spd-vApp(p)**2)/(2*ACC),need=p.alt/climbRate(p)*vApp(p);let best=null;
+  for(let a=FINAL_MIN+slow;a<=GATE_D+GATE_R+80;a+=5){const jx=Tx-g.dir*a,b=dubins(p.x,p.y,p.hdg,jx,Ty,rh,r,MAX_TURN);if(!b)continue;
+    const len=b.len+a;if(best&&len>=best.len)continue;if(!free&&len<need)continue;
+    const P=[...b.P,{x:jx,y:Ty,h:rh,d:0,len:a+30}];let ok=true;
+    if(!free)for(let s=0;s<=len&&ok;s+=3){const q=pathAt(P,s);if(fromAirport(q)>RADAR-15||s<b.len&&g.dir*(q.x-Tx)>-5)ok=false}
+    if(ok)best={len,P}}
+  return best}
+// the line-up flown: the shortest of the one-turn line-ups (either way, at the tightest radius it can fly now) and the two-turn
+// one. A one-turn line-up may then be flown wider: LANDING_ARC picks the radius between the tightest (0) and the widest that
+// still lines up (1), the widest kept within LEN_SLACK of the shortest path's length (and 5% inside the edge where it barely
+// lines up). free: no limits (only to know which way is shorter). None: it keeps circling
+function lineUp(p,g,free=false,arc=LANDING_ARC){const r=turnR(p),cand=[];
+  for(const d of[1,-1]){const c=turnIn(p,g,r,d,free);if(c)cand.push({...c,d})}
+  const two=turnTwice(p,g,free);if(two)cand.push(two);if(!cand.length)return null;
+  const best=cand.reduce((a,b)=>b.len<a.len?b:a);if(!best.d||free||arc<=0)return best.P;
+  const fits=R=>{const c=turnIn(p,g,R,best.d);return c&&c.len<=best.len*(1+LEN_SLACK)?c:null};
+  let ok=r,bad=null;for(let x=r*1.05;x<12*r;x*=1.05){if(fits(x))ok=x;else{bad=x;break}}   // the widest: grow the radius 5% at a time, then narrow it down
+  if(bad)for(let k=0;k<6;k++){const m=(ok+bad)/2;if(fits(m))ok=m;else bad=m}
+  const R=r+arc*(Math.max(r,.95*ok)-r);return(R>r&&turnIn(p,g,R,best.d)||best).P}
 // which way to circle while no line-up fits yet (too high, runway busy): with the centre on the inside of the turn, so it stays
 // in the zone; nose straight at the centre, either way works, so the way the shortest line-up turns
 const orbitSide=(p,g)=>{const bear=wrap(Math.atan2(g.y-p.y,g.x-p.x)-p.hdg);if(Math.abs(bear)>=rad(3))return Math.sign(bear);
@@ -529,7 +542,7 @@ const windWord=()=>S.rwdir>0?'E':'W';
 const rwName=(r,dir)=>(dir>0?'09':'27')+(RUNWAYS.length>1?(r.i===0)===(dir>0)?'L':'R':'');
 const hdgNum=h=>String(Math.round(((h*180/Math.PI+90)%360+360)%360/5)*5||360).padStart(3,'0');
 // final: the line-up path, flown by following it, touching down at the runway end
-function startFinal(p,k,P){const g=GATES[k];if(S.paths)p.alts=ARC_STEPS.map(a=>lineUp(p,g,false,a));p.state='final';p.dir=g.dir;p.rw=g.rw;p.cleared=false;p.inGate=null;p.navGate=null;p.orbit=0;p.app=P;p.s=0}
+function startFinal(p,k,P){const g=GATES[k];p.gk=k;p.replanAt=S.t+.5;if(S.paths)p.alts=ARC_STEPS.map(a=>lineUp(p,g,false,a));p.state='final';p.dir=g.dir;p.rw=g.rw;p.cleared=false;p.inGate=null;p.navGate=null;p.orbit=0;p.app=P;p.s=0}
 function startRoll(p){p.state='roll';SFX.roll(p.T.wake?1.4:p.ty==='light'?.6:1);p.x=AX-p.rdir*RW;p.y=p.rw.y;p.hdg=p.rdir>0?0:Math.PI;if(!p.turned)p.tgt=p.hdg;p.spd=0;p.w=0;setLevel(p,DEPART_LEVEL)}
 
 // wind turns now and then (the runway direction flips); storm cells drift with it, north or south of the runways
@@ -599,6 +612,10 @@ function step(dt){
       if(p.state==='tofix'||p.state==='hold'){const c=p.state==='tofix'?FIXES[p.fix]:p.hc;wd=circle(p,c.x,c.y,c.side||1);
         if(p.state==='tofix'&&Math.hypot(c.x-p.x,c.y-p.y)<1.5*turnR(p)){p.state='hold';p.hc=c}}
       // final: following the line-up path to the runway end, touching down there and rolling out
+      // on final it keeps pulling the cord tighter: twice a second it plans again from where it is, at the speed it has now,
+      // and takes the new line-up when it is shorter than what is left of the old one
+      if(p.state==='final'&&S.t>=p.replanAt&&pathAt(p.app,p.s).k!==undefined){p.replanAt=S.t+.5;const g=GATES[p.gk],left=pathLen(p.app)-p.s;
+        if(g&&!pastThreshold(p,g)&&left>FINAL_MIN+40){const P=lineUp(p,g);if(P&&pathLen(P)-30<left-30-5){p.app=P;p.s=0;if(S.paths)p.alts=ARC_STEPS.map(a=>lineUp(p,g,false,a))}}}
       if(p.state==='final'){p.alt=Math.max(0,p.alt-climbRate(p)*dt);const q=pathAt(p.app,p.s);
         p.s+=p.spd*dt*Math.max(0,Math.cos(wrap(p.hdg-q.h)));wd=follow(p,q.x,q.y,q.h,q.k);p.tgt=q.h;
         if(p.dir*(p.x-(AX-p.dir*RW))>=0){p.state='rollout';SFX.touchdown();p.alt=p.tgtAlt=0}}
