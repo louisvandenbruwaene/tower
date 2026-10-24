@@ -23,7 +23,7 @@ main{flex:1;min-height:0;display:flex}
 /* radar */
 #view{flex:1;position:relative;min-width:0} canvas{position:absolute;inset:0;width:100%;height:100%}
 #over{position:absolute;inset:0;display:none;place-items:safe center;overflow:auto;padding:16px;box-sizing:border-box;font-size:30px;font-weight:600;background:rgba(2,8,5,.6);backdrop-filter:blur(3px);text-align:center;line-height:1.6;text-shadow:0 0 18px rgba(126,224,168,.4)}
-#over small{font-size:16px;font-weight:400;color:var(--dim)} #over .big{display:inline-block;font-size:72px;font-weight:800;color:#04140b;background:var(--gold);padding:0 22px;margin:6px 0;border-radius:10px;box-shadow:0 6px 0 #6b520c;text-shadow:none;line-height:1.25}
+#over small{font-size:16px;font-weight:400;color:var(--dim)} #over .big{display:inline-block;font-size:64px;font-weight:800;color:#0b2a10;background:#86d48a;padding:4px 30px;margin:6px 0;border-radius:6px;box-shadow:inset 0 0 0 9px #86d48a,inset 0 0 0 12px rgba(11,42,16,.45),0 6px 0 #2b6131;text-shadow:none;line-height:1.25}
 #over .tally{font-size:16px;font-weight:500;text-shadow:none;display:grid;grid-template-columns:auto auto;gap:2px 28px;justify-content:center;margin-top:10px} #over .tally span:nth-child(odd){color:var(--dim);text-align:right} #over .tally span:nth-child(even){text-align:left}
 #over .shop{font-size:15px;font-weight:400;line-height:1.45;text-align:left;margin:18px auto 0;width:min(560px,100%);text-shadow:none} #over .shop b{color:var(--gold);font-weight:500}
 #over .purse{color:var(--dim);font-size:14px;text-align:center} #over .purse span{color:var(--fg);font-size:20px;font-weight:700}
@@ -114,7 +114,8 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>wind</td><td>Planes take off and land into the wind (top left): only the landing circles whose approach faces the wind are open (the others grey out), and departures roll from the end marked in gold. Now and then the wind turns: cleared arrivals already circling in a circle that closes keep circling there until it turns back (abort sends one off). A storm over a circle closes it too.</td></tr>
 <tr><td>storms</td><td>Storm cells drift across with the wind. A plane that flies into one loses control and crash-lands: a strike.</td></tr>
 <tr><td>readback</td><td>A pilot sometimes mishears: the reply shows what it understood (a turn 45° off, another level). Say it again.</td></tr>
-<tr><td>score</td><td>100 per plane, less a point for every second it took beyond par, plus a <b>streak</b> bonus: every plane in a row without a strike adds 10 more, up to +50. The game is one <b>shift</b> that never ends: its first five planes come in slow motion, then it runs at full speed. Three strikes end it and pay a token per 100 points, to <b>buy</b> upgrades for later shifts in small steps at 10, 20, 50, 100, 200 tokens: <b>tanks</b> (+20 s fuel a step), <b>height</b> (levels top, peak), <b>nav</b> (departures turn by themselves, then land anywhere), <b>runway</b> (shorter wake rest, then a second runway). <b>daily</b>: today's shift, the same for everyone, no upgrades. After 15 minutes the traffic stops growing. <b>hard</b> (once a shift scores 1000): no autopilot and no navigation. <b>land</b> works only for a plane you have flown onto the lit strip yourself: low, facing the runway, on its line, the runway free. It then flies straight in. <b>hold alpha</b> works only once it is at ALPHA.</td></tr>
+<tr><td>priority</td><td><b>VIP</b> private jets (gold star, gold ring) and <b>MEDEVAC</b> air ambulances (red cross, red ring) go first both ways. An arrival must land within 2 minutes, a departure must be rolling within 50 s (the clock next to the name); late is a strike. While one waits, no other plane of its kind may be cleared before it: <b>land</b> and <b>takeoff</b> are refused (a MAYDAY still goes). <b>MIL</b>: military jets now and then, fast and tight-turning.</td></tr>
+<tr><td>money</td><td>Every plane pays its fare: a prop $400, a jet $1,000, a heavy $1,600, a fighter $1,500, a private jet $4,000, an air ambulance $3,500. It drops 1% for every second beyond par (to 10% at most), a late priority flight pays a quarter. A <b>streak</b> (planes in a row without a strike) pays 10% more per plane, up to +50%. The game is one <b>shift</b> that never ends: its first five planes come in slow motion, then it runs at full speed. Three strikes end it and pay a token per $1,000 earned, to <b>buy</b> upgrades for later shifts in small steps at 10, 20, 50, 100, 200 tokens: <b>tanks</b> (+20 s fuel a step), <b>height</b> (levels top, peak), <b>nav</b> (departures turn by themselves, then land anywhere), <b>runway</b> (shorter wake rest, then a second runway). <b>daily</b>: today's shift, the same for everyone, no upgrades. After 15 minutes the traffic stops growing. <b>hard</b> (once a shift earns $10,000): no autopilot and no navigation. <b>land</b> works only for a plane you have flown onto the lit strip yourself: low, facing the runway, on its line, the runway free. It then flies straight in. <b>hold alpha</b> works only once it is at ALPHA.</td></tr>
 </table>
 <p>Faded text in the prompt is a suggestion: <b>→</b> takes all of it, <b>Tab</b> takes one word. Capitals don't matter. Typos are fixed for you (<b>nt</b> = north): the reply shows what was understood. <b>demo</b> shows a good controller at work, <b>Esc</b> pauses, <b>help</b> shows this card.</p>
 <h2 id="acdata" style="margin-top:18px">Aircraft</h2><div id="actable"></div>
@@ -260,12 +261,18 @@ const TRAFFIC_GAP=14;          // game s between planes while exactly the expect
 const TRAFFIC_BUSY=1.8;        // each active plane above the expected number makes the gap this many times longer (below: shorter)
 const TRAFFIC_START=2.5,TRAFFIC_GROWTH=.35;   // planes expected at the start, and how many more every minute (about 7.5 after 15 minutes)
 const WARMUP_SCALE=.5,WARMUP_PLANES=5;   // the shift starts at 50% speed and is at full speed once 5 planes are handled
-const STREAK_BONUS=10,STREAK_MAX=6;   // every plane handled in a row without a strike adds 10 points more, up to the 6th (+50)
-const MILESTONE=500;           // every 500 points a big number lands on the radar
+const STREAK_PCT=10,STREAK_MAX=6;   // every plane handled in a row without a strike pays 10% more, up to the 6th (+50%)
+const MILESTONE=5000;          // every $5,000 a big number lands on the radar
+const TOKEN_PER=1000;          // a shift pays a token per $1,000 earned
+// priority flights (VIP, MEDEVAC) go first both ways: an arrival must land within PRIO_ARR game s of appearing, a departure
+// must be rolling within PRIO_DEP. Late: a strike and a quarter of the fare. While one waits, the others may not use the
+// runway before it (a MAYDAY still may)
+const PRIO_ARR=120,PRIO_DEP=50;
+const PRIO_COL={vip:'#f2c94c',medevac:'#ff5a4e'};
 const TRAFFIC_CAP_MIN=15;      // after this many minutes the expected number stops growing: the traffic stays as busy as it is then
-// hard mode (a shift without autopilot, unlocked by a shift of HARD_UNLOCK points): land works only for a plane you have
+// hard mode (a shift without autopilot, unlocked by a shift earning HARD_UNLOCK): land works only for a plane you have
 // already flown onto the runway's line yourself, and a plane holds at a fix only once you have flown it there
-const HARD_UNLOCK=1000;        // best shift score that unlocks hard mode
+const HARD_UNLOCK=10000;       // best shift earnings that unlocks hard mode
 const HARD_ALIGN=18;           // px: at most this far off the extended centreline (450 m) to be cleared; the heading at most THETA_DEG off
 const HARD_FIX_NEAR=60;        // px: this close to a fix (1.5 km) before it may hold there
 // aircraft types, each modelled on a real one. Flown in the game: airspeed in knots at each level (low, mid, high, top, peak;
@@ -274,17 +281,24 @@ const HARD_FIX_NEAR=60;        // px: this close to a fix (1.5 km) before it may
 // (fpm), takeoff acceleration (acc, m/s²), wake (needs more room behind it), drawn size, fuel reserve on arrival (game s).
 // Only for the data sheet: weights (t), dimensions (m), cruise speed (kt), tank (kg) and burn (kg/h)
 const TYPES={
-  light:{tag:'prop',model:'Pilatus PC-12',role:'single-engine turboprop',kt:[160,180,200,215,230],app:110,top:1,turnDeg:7.5,fpm:1500,acc:2,wake:0,size:.8,fuel:270,
+  light:{tag:'prop',pay:400,model:'Pilatus PC-12',role:'single-engine turboprop',kt:[160,180,200,215,230],app:110,top:1,turnDeg:7.5,fpm:1500,acc:2,wake:0,size:.8,fuel:270,
     mtow:4.74,empty:2.83,span:16.3,len:14.4,cruise:285,tank:1220,burn:230},
-  bizjet:{tag:'bizjet',model:'Cessna Citation CJ4',role:'business jet',kt:[200,235,265,285,300],app:125,top:2,turnDeg:5.3,fpm:3800,acc:3,wake:0,size:.85,fuel:180,
+  bizjet:{tag:'bizjet',pay:900,model:'Cessna Citation CJ4',role:'business jet',kt:[200,235,265,285,300],app:125,top:2,turnDeg:5.3,fpm:3800,acc:3,wake:0,size:.85,fuel:180,
     mtow:7.76,empty:4.72,span:15.5,len:16.3,cruise:451,tank:2640,burn:600},
-  jet:{tag:'',model:'Airbus A320neo',role:'airliner',kt:[190,220,250,270,290],app:140,top:4,turnDeg:5.3,fpm:2500,acc:2.2,wake:0,size:1,fuel:240,
+  jet:{tag:'',pay:1000,model:'Airbus A320neo',role:'airliner',kt:[190,220,250,270,290],app:140,top:4,turnDeg:5.3,fpm:2500,acc:2.2,wake:0,size:1,fuel:240,
     mtow:79,empty:44.3,span:35.8,len:37.6,cruise:450,tank:21000,burn:2400},
-  heavy:{tag:'heavy',model:'Boeing 777-300ER',role:'wide-body airliner',kt:[210,240,260,280,300],app:150,top:4,turnDeg:3.7,fpm:2000,acc:1.9,wake:1,size:1.3,fuel:210,
+  heavy:{tag:'heavy',pay:1600,model:'Boeing 777-300ER',role:'wide-body airliner',kt:[210,240,260,280,300],app:150,top:4,turnDeg:3.7,fpm:2000,acc:1.9,wake:1,size:1.3,fuel:210,
     mtow:351.5,empty:167.8,span:64.8,len:73.9,cruise:490,tank:145500,burn:7500},
-  cargo:{tag:'cargo',model:'Boeing 747-8F',role:'freighter',kt:[210,235,255,275,295],app:160,top:2,turnDeg:3.5,fpm:1600,acc:1.6,wake:1,size:1.35,fuel:210,
-    mtow:447.7,empty:197,span:68.4,len:76.3,cruise:490,tank:181000,burn:10500}};
-const TYPE_MIX={light:.22,bizjet:.15,jet:.38,heavy:.13,cargo:.12};   // how often each type shows up (once types are on)
+  cargo:{tag:'cargo',pay:1300,model:'Boeing 747-8F',role:'freighter',kt:[210,235,255,275,295],app:160,top:2,turnDeg:3.5,fpm:1600,acc:1.6,wake:1,size:1.35,fuel:210,
+    mtow:447.7,empty:197,span:68.4,len:76.3,cruise:490,tank:181000,burn:10500},
+  // priority flights (prio): they pay the most, and go first both ways (see PRIO_*)
+  vip:{tag:'VIP',pay:4000,prio:1,model:'Gulfstream G650',role:'private jet',kt:[210,250,280,300,320],app:130,top:4,turnDeg:5.3,fpm:4000,acc:3.2,wake:0,size:.9,fuel:200,
+    mtow:45.2,empty:24.5,span:30.4,len:30.4,cruise:516,tank:20000,burn:1500},
+  medevac:{tag:'MEDEVAC',pay:3500,prio:1,model:'Learjet 45 air ambulance',role:'air ambulance',kt:[200,235,265,285,300],app:125,top:2,turnDeg:5.5,fpm:3500,acc:3,wake:0,size:.85,fuel:200,
+    mtow:9.75,empty:6.1,span:14.6,len:17.7,cruise:457,tank:2740,burn:700},
+  military:{tag:'MIL',pay:1500,model:'Eurofighter Typhoon',role:'fighter',kt:[250,300,350,380,400],app:150,top:4,turnDeg:9,fpm:8000,acc:6,wake:0,size:.8,fuel:160,
+    mtow:23.5,empty:11,span:10.95,len:15.96,cruise:540,tank:4996,burn:3000}};
+const TYPE_MIX={light:.22,bizjet:.13,jet:.36,heavy:.12,cargo:.1,vip:.05,medevac:.04,military:.04};   // how often each type shows up (once types are on)
 /* ---------- derived from the tuning above, in game units (px, game s) ---------- */
 const KT=.5144*TIME_SCALE/M_PER_PX;              // px per game s, per knot
 const ACC=AIR_ACCEL*TIME_SCALE*KT,TAXI=TAXI_KT*KT,THETA=rad(THETA_DEG);
@@ -307,7 +321,7 @@ const NAMES='heron wren kite swift raven egret finch gull ibis jay lark owl puff
 // A freighter's is the widest (about 71); the fixes sit where that ring stays inside your area and clear of each other and of
 // every landing circle (also runway 2's)
 const FIXES={alpha:{x:AX-100,y:AY-220},bravo:{x:AX+100,y:AY-220},kilo:{x:AX+100,y:AY+220},zulu:{x:AX-100,y:AY+220}};
-// points per plane: 100, less a point for every second beyond par (from appearing to landing or hand-off)
+// the fare: each type pays its own (pay); it loses 1% for every second beyond par (from appearing to landing or hand-off), down to 10%
 const PAR={arr:70,dep:55,ovf:40};
 // the rules; the shift switches some on, and shift upgrades raise them
 const RULES={levels:3,runways:1,nav:0,wakeRest:WAKE_REST,fuel:false,types:false,readback:0,wind:false,storms:0,ovf:false,tank:0};
@@ -362,10 +376,11 @@ const SFX=(()=>{let ac=null,bus=null,noise=null,on=store('tower-sound')!=='off';
     goAround(){hiss(0,{len:1.6,a:.5,v:.08,type:'lowpass',f:400,f1:2000,q:.6})},
     // landed: a two-note bell (with its octave partial); handed off: a quick rising pair
     // a streak raises the chime a step for each plane in a row
-    landed(n=1){const k=2**(Math.min(n-1,7)*2/12);for(const[at,f]of[[0,660],[.13,990]]){tone(at,f*k,{len:.7,v:.08});tone(at,f*2*k,{len:.3,v:.025})}if(n>1)tone(.26,1320*k,{len:.5,v:.04})},
-    handoff(n=1){const k=2**(Math.min(n-1,7)*2/12);tone(0,880*k,{len:.12,v:.05});tone(.08,1320*k,{len:.25,v:.05})},
     milestone(){[523,659,784,1047,1319].forEach((f,i)=>{tone(i*.07,f,{len:.5,v:.07,type:'triangle'});tone(i*.07,f*2,{len:.2,v:.02})})},
     chips(n,st=1){for(let i=1;i<n;i++){const f=392*2**((i*4+Math.min(st,8))/12);tone(.16*i,f,{len:.09,v:.07,type:'triangle',a:.002});tone(.16*i,f*3,{len:.03,v:.02})}},
+    // the till: a drawer click and two bright bells, a step higher for every plane in a streak
+    cash(n=1){const k=2**(Math.min(n-1,7)*2/12);hiss(0,{len:.03,v:.05,type:'highpass',f:3500});tone(.03,1568*k,{len:.05,v:.05,type:'square',lp:4000});
+      tone(.07,2637*k,{len:.4,v:.05,type:'triangle'});tone(.12,3520*k,{len:.55,v:.045,type:'triangle'});tone(.12,7040*k,{len:.15,v:.01})},
     tick(){tone(0,1800+Math.random()*300,{len:.025,v:.02,type:'square'})},
     // a collision: a crack, a falling roar and a sub-bass drop
     boom(){hiss(0,{len:.08,v:.35,type:'highpass',f:1500,q:.5});hiss(0,{len:1.8,v:.45,type:'lowpass',f:1600,f1:90,q:.5});tone(0,80,{f1:28,len:1.2,v:.45})},
@@ -384,6 +399,8 @@ const today=()=>new Date().toISOString().slice(0,10);
 // a seeded random source, so the daily shift brings the same traffic to everyone
 const seeded=s=>()=>{s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
 let S,CFG,RUNWAYS,GATES,rnd=Math.random,best=+store('tower-best-score')||0,hardBest=+store('tower-hard-best')||0;
+const money=n=>'$'+Math.round(n).toLocaleString('en-US');
+if(!store('tower-money')){best*=10;hardBest*=10;store('tower-best-score',best);store('tower-hard-best',hardBest);store('tower-money','1')}   // scores were points, now money
 const meta={tokens:0,height:0,runway:0,nav:0,tanks:0,...load('tower-meta',{})},saveMeta=()=>store('tower-meta',JSON.stringify(meta));
 if(!meta.v){Object.assign(meta,{v:2,tanks:Math.min(5,meta.tanks*3),nav:meta.nav*2,runway:meta.runway*3});saveMeta()}   // old saves: the big upgrades become all their small steps
 function startShift(demo=false,daily=false,hard=false){const L=SHIFT;
@@ -421,11 +438,11 @@ function heldUp(p){const[wx,wy]=p.path[0],h=Math.atan2(wy-p.y,wx-p.x),ux=Math.co
   return S.planes.some(q=>{if(q===p||!TAXI_RANK[q.state]||q.atGate)return false;const dx=q.x-p.x,dy=q.y-p.y,d=Math.hypot(dx,dy);
     return d<8*(p.T.size+q.T.size)&&dx*ux+dy*uy>.5*d&&outranks(q,p)})}
 function spawnDep(dest){const name=freshName();if(!name)return;const p=newPlane({name,kind:'dep',dest,state:'ready',x:AX,y:OUT_Y,hdg:0,tgt:0,alt:0,tgtAlt:0,altFrom:0,spd:0});
-  p.patience=p.patience0=CFG.fuel?p.T.fuel:Infinity;S.planes.push(p)}   // a departure waits as long as its type's fuel lasts in the air, then gives up
+  p.patience=p.patience0=p.T.prio?PRIO_DEP:CFG.fuel?p.T.fuel:Infinity;S.planes.push(p)}   // a departure waits as long as its type's fuel lasts in the air, then gives up
 function spawnArr(bearing){const b=rad(bearing),x=AX+Math.cos(b)*(RADAR-6),y=AY+Math.sin(b)*(RADAR-6),h=wrap(b+Math.PI+rad((rnd()-.5)*40));
   const name=freshName();if(!name)return;SFX.contact();const p=newPlane({name,kind:'arr',state:'fly',x,y,hdg:h,tgt:h});
   p.alt=p.tgtAlt=p.altFrom=Math.min(ARRIVE_LEVEL,ceil(p));p.spd=speedFor(p);   // in high, or as high as its type goes
-  p.fuel=p.fuel0=CFG.fuel?p.T.fuel+CFG.tank:Infinity;S.planes.push(p)}   // it enters with full tanks
+  p.fuel=p.fuel0=CFG.fuel?p.T.fuel+CFG.tank:Infinity;if(p.T.prio)p.patience=p.patience0=PRIO_ARR;S.planes.push(p)}   // it enters with full tanks
 // an overflight from the neighbouring sector: crosses your area in a straight line, to leave through the slice it is aimed at
 function spawnOvf(bearing){const b=rad(bearing),ex=Math.cos(b)*(RADAR-6),ey=Math.sin(b)*(RADAR-6),h=Math.atan2((rnd()-.5)*200-ey,(rnd()-.5)*200-ex);
   const ux=Math.cos(h),uy=Math.sin(h),eu=ex*ux+ey*uy,t=-eu+Math.sqrt(eu*eu-(ex*ex+ey*ey-RADAR*RADAR)),r=rnd(),name=freshName();if(!name)return;SFX.contact();
@@ -455,19 +472,21 @@ function strike(msg,x,y){if(S.over)return;if(S.streak>1&&!S.admin&&!S.tut)pop({x
 function endShift(){S.over=true;S.overShown=0;S.overAt=performance.now();S.result='lost';SFX.lose();if(S.demo)return;
   if(S.hard){if(S.score>hardBest){hardBest=S.score;store('tower-hard-best',hardBest)}}
   else if(S.score>best){S.unlockedHard=best<HARD_UNLOCK&&S.score>=HARD_UNLOCK;best=S.score;store('tower-best-score',best)}
-  S.earned=Math.floor(S.score/100);meta.tokens+=S.earned;saveMeta();
+  S.earned=Math.floor(S.score/TOKEN_PER);meta.tokens+=S.earned;saveMeta();
   if(S.daily){const k='tower-daily-'+today();store(k,JSON.stringify([...load(k,[]),S.score].sort((a,b)=>b-a).slice(0,5)))}}
-function handled(p,c,msg,keep){const pts=Math.max(10,100-Math.max(0,Math.round(S.t-p.born-PAR[p.kind])));
-  S.streak=(S.streak||0)+1;S.bestStreak=Math.max(S.bestStreak||0,S.streak);const bonus=STREAK_BONUS*(Math.min(S.streak,STREAK_MAX)-1),before=S.score;
-  p.ok=true;S.done++;S.score+=pts+bonus;p.kind==='arr'?SFX.landed(S.streak):SFX.handoff(S.streak);S.fx.push({x:p.x,y:p.y,t:0,c,r:24});say(`${msg} · +${pts}${bonus?` · streak ×${S.streak} +${bonus}`:''}`);if(!keep)remove(p);
+function handled(p,c,msg,keep){const late=Math.max(0,Math.round(S.t-p.born-PAR[p.kind]));
+  const pay=Math.round(p.T.pay*Math.max(.1,1-late/100)*(p.late?.25:1)/10)*10;
+  S.streak=(S.streak||0)+1;S.bestStreak=Math.max(S.bestStreak||0,S.streak);const bonus=Math.round(pay*STREAK_PCT/100*(Math.min(S.streak,STREAK_MAX)-1)/10)*10,before=S.score;
+  p.ok=true;S.done++;S.score+=pay+bonus;SFX.cash(S.streak);S.fx.push({x:p.x,y:p.y,t:0,c,r:24});say(`${msg} · +${money(pay)}${bonus?` · streak ×${S.streak} +${money(bonus)}`:''}`);if(!keep)remove(p);
+  const d=Math.hypot(p.x-AX,p.y-AY),k=Math.min(1,(RADAR-40)/d),x=AX+(p.x-AX)*k,y=AY+(p.y-AY)*k;   // kept inside the radar, a plane handed off at the edge too
+  cashBurst(x,y,4+Math.min(10,pay/400|0));
   if(S.tut)return;
-  const tok=Math.floor(S.score/100)-Math.floor(before/100);
-  const chips=[{kind:'pts',text:'+'+pts},bonus&&{kind:'streak',text:`×${S.streak} +${bonus}`},tok>0&&{kind:'coin',text:'+'+tok}].filter(Boolean);
-  const d=Math.hypot(p.x-AX,p.y-AY),k=Math.min(1,(RADAR-40)/d);   // kept inside the radar, a plane handed off at the edge too
-  pop({x:AX+(p.x-AX)*k,y:AY+(p.y-AY)*k-22,chips,size:15+Math.min(9,pts/12)});SFX.chips(chips.length,S.streak);
+  const tok=Math.floor(S.score/TOKEN_PER)-Math.floor(before/TOKEN_PER);
+  const chips=[{kind:'cash',text:money(pay)},bonus&&{kind:'streak',text:`×${S.streak} +${money(bonus)}`},tok>0&&{kind:'coin',text:'+'+tok}].filter(Boolean);
+  pop({x,y:y-22,chips,size:15+Math.min(9,pay/400)});SFX.chips(chips.length,S.streak);
   BUMP.score=performance.now();if(tok>0)BUMP.tok=performance.now();
   if(Math.floor(S.score/MILESTONE)>Math.floor(before/MILESTONE)){const m=Math.floor(S.score/MILESTONE)*MILESTONE;
-    setTimeout(()=>{pop({x:AX,y:AY-150,chips:[{kind:'coin',text:m+' points'}],size:40,life:2.4,rise:14,tilt:-.05});SFX.milestone();S.shake=Math.max(S.shake,.18)},350)}}
+    setTimeout(()=>{pop({x:AX,y:AY-150,chips:[{kind:'cash',text:money(m)}],size:40,life:2.4,rise:14,tilt:-.05});SFX.milestone();S.shake=Math.max(S.shake,.18)},350)}}
 // along a taxi route at taxi speed, turning smoothly at the corners; true once at its end
 function taxi(p,dt){const[wx,wy]=p.path[0],d=Math.hypot(wx-p.x,wy-p.y),go=TAXI*dt,h=Math.atan2(wy-p.y,wx-p.x),dh=wrap(h-p.hdg);
   if(d>.5)p.hdg=wrap(p.hdg+Math.sign(dh)*Math.min(Math.abs(dh),2.5*dt));
@@ -618,9 +637,13 @@ function step(dt){
   for(const p of [...S.planes]){
     // a departure's patience runs until its takeoff run starts; out of patience: the flight is cancelled, a strike
     if(p.kind==='dep'&&onGround(p)&&isFinite(p.patience)){p.patience-=dt;
-      if(p.patience<=0){remove(p);strike(`${p.name} waited too long and was cancelled`,p.x,p.y);continue}
+      if(p.patience<=0){remove(p);strike(`${p.T.prio?p.T.tag+' ':''}${p.name} waited too long and was cancelled`,p.x,p.y);continue}
       if(p.patience<MAYDAY_S&&!p.impatient){p.impatient=true;SFX.mayday();say(`!${p.name} is running out of patience: take it off next`)}}
     if(p.state==='ready')continue;
+    // a priority arrival's deadline: it runs until it touches down. Late: one strike, and it pays a quarter
+    if(p.kind==='arr'&&p.T.prio&&isFinite(p.patience)&&p.state!=='rollout'&&p.state!=='taxiin'){p.patience-=dt;
+      if(p.patience<=0){p.patience=Infinity;p.late=true;strike(`${p.T.tag} ${p.name} is late`,p.x,p.y)}
+      else if(p.patience<MAYDAY_S&&!p.impatient){p.impatient=true;SFX.mayday();say(`!${p.T.tag} ${p.name}: ${Math.ceil(p.patience)} s left to land it`)}}
     if(p.kind==='arr'&&p.state!=='final'&&p.state!=='rollout'){p.fuel-=dt;
       if(p.fuel<=0){remove(p);strike(`${p.name} ran out of fuel`,p.x,p.y);continue}
       if(p.fuel<MAYDAY_S&&!p.mayday){p.mayday=true;SFX.mayday();say(`!MAYDAY ${p.name}: low on fuel, land it next`)}}
@@ -630,7 +653,7 @@ function step(dt){
     if(p.atGate){if(S.planes.some(q=>q!==p&&TAXI_RANK[q.state]&&!q.atGate&&Math.hypot(q.x-p.x,q.y-p.y)<8*(p.T.size+q.T.size)))continue;p.atGate=false;p.gt=S.gt=(S.gt||0)+1}
     if(p.state==='taxi'||p.state==='enter'||p.state==='taxiin'){if(p.path.length&&!heldUp(p)&&taxi(p,dt)){if(p.state==='taxi')p.state='lineup';else if(p.state==='taxiin'){remove(p);continue}}
       if(p.state!=='enter'||p.path.length)continue}
-    if(p.state==='lineup'){if(!rwBusy(p.rw)&&!landingOn(p.rw)){p.state='enter';p.path=[[p.hx,p.rw.y],[AX-p.rdir*RW,p.rw.y]]}continue}
+    if(p.state==='lineup'){if(!rwBusy(p.rw)&&!landingOn(p.rw)&&!(!p.T.prio&&S.planes.some(q=>q.T.prio&&q.rw===p.rw&&q.state==='lineup'))){p.state='enter';p.path=[[p.hx,p.rw.y],[AX-p.rdir*RW,p.rw.y]]}continue}
     if(p.state==='enter'){const d=wrap((p.rdir>0?0:Math.PI)-p.hdg);p.hdg=wrap(p.hdg+Math.sign(d)*Math.min(Math.abs(d),2.5*dt));if(Math.abs(d)>.01)continue;startRoll(p)}
     // the takeoff run: it lifts off at its rotation speed (a heavy needs more runway), or at the latest at the end of the runway
     if(p.state==='roll'){p.spd+=runAcc(p)*dt;if(p.spd>=vApp(p)||p.rdir*(p.x-AX)>RW){p.state='fly';if(p.T.wake)p.rw.wake=CFG.wakeRest}}
@@ -737,12 +760,17 @@ function valid(words){const[w0,act,arg]=words;
   if(w0==='pause')return!S.over;
   const p=plane(w0);if(!p)return true;
   if(!act)return actions(p).some(a=>valid([w0,a]));
+  if((act==='land'||act==='takeoff')&&prioFirst(p))return false;
   if(act==='land'&&S.hard)return manualLand(p)[0]!=='!';
   if(act==='hold'&&arg&&S.hard)return nearFix(p,arg);
   if(act==='land'){if(p.cleared)return false;const k=inGate(p);return k?gateOpen(k):CFG.nav>1}
   if(act==='ascend'||act==='descend')return argsFor(p,act).length>0;
   if(act==='takeoff')return!arg||!CFG.wind||(arg==='east'?1:-1)===S.rwdir;
   return true}
+// the priority flight that must go before p, if any: a waiting priority departure before other departures, a priority arrival
+// not yet cleared before other arrivals. A MAYDAY, a late one and the priority flights themselves are never held up
+const prioFirst=p=>p.T.prio||p.mayday?null:S.planes.find(q=>q!==p&&q.T.prio&&!q.late&&!q.ok&&q.kind===p.kind&&(p.kind==='dep'?q.state==='ready':!q.cleared&&q.state!=='final'));
+const prioWhy=q=>`!${q.T.tag} ${q.name} has priority: ${q.kind==='dep'?'take it off first':'land it first'}`;
 const validOpts=words=>options(words).filter(o=>valid([...words,o]));
 function setLevel(p,lv){p.altFrom=p.alt;p.tgtAlt=lv}
 function steer(p,d){
@@ -766,7 +794,7 @@ function exec(words){
   if(w0==='daily'){startShift(false,true);return`daily shift ${today()}: the same traffic for everyone today, no upgrades`}
   if(w0==='hard'){startShift(false,false,true);return`hard shift: no autopilot. Fly each plane onto a runway's dashed line yourself, low and facing the runway, then land; fly to a fix before holding there`}
   if(w0==='buy'){if(!act)return`!buy what? ${validOpts(['buy']).join(' · ')||(options(['buy']).length?'nothing you can afford yet':'everything is bought')}`;
-    const c=price(act);if(meta.tokens<c)return`!${act} costs ${c} tokens, you have ${meta.tokens} (a shift pays 1 per 100 points)`;
+    const c=price(act);if(meta.tokens<c)return`!${act} costs ${c} tokens, you have ${meta.tokens} (a shift pays 1 per ${money(TOKEN_PER)} earned)`;
     meta.tokens-=c;meta[act]++;saveMeta();return`bought ${act}: ${UPGRADES[act].tiers[meta[act]-1]}`}
   const p=plane(w0),n=p.name;
   if(!act)return p.state==='rollout'||p.state==='taxiin'?`${n} has landed: nothing to do`:`!${n} what? ${actions(p).filter(a=>valid([n,a])).join(' · ')}`;
@@ -781,6 +809,7 @@ function exec(words){
   if(act==='hold'){if(arg&&S.hard&&!nearFix(p,arg))return`!${n} must be at ${arg.toUpperCase()} to hold there: fly it there first (${km(Math.hypot(FIXES[arg].x-p.x,FIXES[arg].y-p.y))} away)`;
     if(arg){p.state='tofix';p.fix=arg;p.cleared=false;return`${n}: direct ${arg.toUpperCase()}, hold there, right turns`}
     p.state='hold';p.fix=null;p.hc=spotCentre(p);return`${n}: orbiting right here, until you turn it (or land, inside a landing circle)`}
+  if((act==='land'&&!p.cleared||act==='takeoff')&&prioFirst(p))return prioWhy(prioFirst(p));
   if(act==='land'){
     // only inside an open landing circle (with navigation: anywhere); it stops any circling and turns onto the runway there
     if(p.cleared)return`!${n} is already cleared to land`;
@@ -888,7 +917,7 @@ function decide(){
   const once=(p,k,sec)=>{const key=p.name+k;if((D.cool.get(key)||0)>S.t)return false;D.cool.set(key,S.t+sec);return true};
   const ups=[...Array(CFG.levels-1)].map((_,i)=>CFG.levels-1-i);   // every level but low, highest first
   // the one arrival allowed down to low: a mayday first, then whoever is low already, else the closest
-  const arrs=S.planes.filter(p=>p.kind==='arr'&&free(p)&&!p.cleared).sort((x,y)=>(!!y.mayday-!!x.mayday)||(x.tgtAlt-y.tgtAlt)||(fromAirport(x)-fromAirport(y)));
+  const arrs=S.planes.filter(p=>p.kind==='arr'&&free(p)&&!p.cleared).sort((x,y)=>(!!y.mayday-!!x.mayday)||(!!y.T.prio-!!x.T.prio)||(x.tgtAlt-y.tgtAlt)||(fromAirport(x)-fromAirport(y)));
   const next=arrs[0];
   // compare with the true bearing, and allow more than the 22.5° a compass word can be off, or turns flip-flop
   const pointing=p=>p.state==='hold'||Math.abs(wrap(Math.atan2(AY-p.y,AX-p.x)-p.tgt))<=rad(35);
@@ -932,7 +961,7 @@ function decide(){
     if(p.state==='fly'&&fromAirport(p)>=RING-40&&!pointing(p)&&!stormAhead(p,toward(p))&&once(p,'aim',6))return[[p.name,'turn',toward(p)],`${p.name} is not pointing at the airport. Turn it ${U(toward(p))}.`]}
   // 4. departures: take off down the runway end closest to their direction (or into the wind), then turn them that way;
   // overflights are turned back to their exit after any detour
-  for(const p of S.planes.filter(p=>p.kind!=='arr')){const way=runwayFor(p.dest);
+  for(const p of S.planes.filter(p=>p.kind!=='arr').sort((a,b)=>!!b.T.prio-!!a.T.prio)){const way=runwayFor(p.dest);
     if(p.state==='ready'&&!runwayBusy&&!landing&&!(next&&next.tgtAlt===0)&&air.every(o=>!meets(climbOut(p,way),o))&&once(p,'go',3))
       return[[p.name,'takeoff',way],`The runway is free. ${p.name} wants to leave ${U(p.dest)}: take off ${U(way)}, ${CFG.wind?'into the wind':'the runway direction closest to it'}.`];
     if((free(p)||p.state==='roll')&&!headingFor(p,p.dest)&&!stormAhead(p,p.dest)&&once(p,'dir',4))
@@ -1117,7 +1146,9 @@ const HULLS={
   light:[[[-20,-120],[0,-150],[20,-120],[20,-30],[12,90],[0,138],[-12,90],[-20,-30]],[[-200,-75],[200,-75],[200,-30],[-200,-30]],[[-80,100],[80,100],[80,130],[0,138],[-80,130]],[[-60,-172],[60,-172],[60,-160],[-60,-160]]],
   bizjet:[[[-18,-160],[0,-190],[18,-160],[18,40],[16,110],[0,160],[-16,110],[-18,40]],...sym([[18,-20],[150,55],[150,78],[18,40]],[[16,110],[62,150],[62,166],[0,160]],[[22,55],[46,55],[46,110],[22,110]])],
   heavy:[[[-34,-150],[0,-190],[34,-150],[34,30],[28,110],[0,175],[-28,110],[-34,30]],...sym([[34,-40],[230,50],[230,80],[34,30]],[[28,110],[100,145],[100,165],[16,155]])]};
-HULLS.cargo=HULLS.heavy;
+HULLS.cargo=HULLS.heavy;HULLS.medevac=HULLS.bizjet;
+HULLS.vip=[[[-20,-140],[0,-205],[20,-140],[20,38],[18,122],[0,170],[-18,122],[-20,38]],...sym([[20,-10],[165,62],[180,80],[20,38]],[[18,122],[72,160],[72,178],[0,170]],[[24,70],[52,62],[52,124],[24,120]])];
+HULLS.military=[[[-16,-140],[0,-220],[16,-140],[24,-30],[34,128],[14,184],[-14,184],[-34,128],[-24,-30]],...sym([[24,-30],[176,112],[176,134],[34,128]],[[18,-108],[66,-94],[66,-80],[20,-78]])];
 const hullsOf=p=>{const k=p.vs??sizeFor(p),a=p.hdg+Math.PI/2,c=Math.cos(a)*k,s=Math.sin(a)*k;
   return HULLS[p.ty].map(P=>P.map(([x,y])=>[p.x+x*c-y*s,p.y+x*s+y*c]))};
 // separating axis test for two convex polygons
@@ -1175,6 +1206,11 @@ function drawFx(f){const t=f.t;
 
 const SHAPES={
   get cargo(){return this.heavy},   // a freighter is drawn like a wide-body
+  get medevac(){return this.bizjet},   // an air ambulance is a business jet with a red cross (MARKS)
+  // a long-range private jet: long slim body, winglets, engines at the tail, T-tail
+  vip:new Path2D('M0 -205 C 14 -205 20 -178 20 -140 L 20 -10 L 165 62 L 178 46 L 180 80 L 20 38 L 18 122 L 72 160 L 72 178 L 0 170 L -72 178 L -72 160 L -18 122 L -20 38 L -180 80 L -178 46 L -165 62 L -20 -10 L -20 -140 C -20 -178 -14 -205 0 -205 Z M24 70 L 52 62 L 52 124 L 24 120 Z M-24 70 L -52 62 L -52 124 L -24 120 Z'),
+  // a fighter: needle nose, canards, a big delta wing, two nozzles
+  military:new Path2D('M0 -220 C 8 -204 14 -178 16 -140 L 18 -108 L 66 -94 L 66 -80 L 20 -78 L 24 -30 L 176 112 L 176 134 L 34 128 L 30 160 L 14 166 L 14 184 L -14 184 L -14 166 L -30 160 L -34 128 L -176 134 L -176 112 L -24 -30 L -20 -78 L -66 -80 L -66 -94 L -18 -108 L -16 -140 C -14 -178 -8 -204 0 -220 Z'),
   // the app icon's airliner
   jet:new Path2D('M0 -175 C 16 -175 24 -150 24 -120 L 24 -30 L 190 40 L 190 70 L 24 35 L 20 100 L 78 135 L 78 157 L 14 145 L 0 160 L -14 145 L -78 157 L -78 135 L -20 100 L -24 35 L -190 70 L -190 40 L -24 -30 L -24 -120 C -24 -150 -16 -175 0 -175 Z'),
   // straight high wing and a propeller
@@ -1183,21 +1219,37 @@ const SHAPES={
   bizjet:new Path2D('M0 -190 C 12 -190 18 -165 18 -135 L 18 -20 L 150 55 L 150 78 L 18 40 L 16 110 L 62 150 L 62 166 L 0 160 L -62 166 L -62 150 L -16 110 L -18 40 L -150 78 L -150 55 L -18 -20 L -18 -135 C -18 -165 -12 -190 0 -190 Z M22 55 L 46 55 L 46 110 L 22 110 Z M-46 55 L -22 55 L -22 110 L -46 110 Z'),
   // wide body, long swept wings, four engines
   heavy:new Path2D('M0 -190 C 30 -190 34 -160 34 -120 L 34 -40 L 230 50 L 230 80 L 34 30 L 28 110 L 100 145 L 100 165 L 16 155 L 0 175 L -16 155 L -100 165 L -100 145 L -28 110 L -34 30 L -230 80 L -230 50 L -34 -40 L -34 -120 C -34 -160 -30 -190 0 -190 Z M78 -12 L 100 -12 L 100 32 L 78 32 Z M-100 -12 L -78 -12 L -78 32 L -100 32 Z M152 24 L 174 24 L 174 64 L 152 64 Z M-174 24 L -152 24 L -152 64 L -174 64 Z')};
+// markings on top of the pictogram, in its own coordinates: a red cross for the ambulance, a gold star for the private jet,
+// roundels on the fighter's wings
+const STAR=new Path2D([...Array(10)].map((_,i)=>{const a=-Math.PI/2+i*Math.PI/5,r=i%2?26:62;return`${i?'L':'M'}${(Math.cos(a)*r).toFixed(1)} ${(Math.sin(a)*r-30).toFixed(1)}`}).join(' ')+' Z');
+const MARKS={
+  medevac(){cx.fillStyle='#fff';cx.beginPath();cx.arc(0,-30,70,0,7);cx.fill();cx.fillStyle='#ff3b30';cx.fillRect(-16,-80,32,100);cx.fillRect(-50,-46,100,32)},
+  vip(){cx.fillStyle='#04140b';cx.beginPath();cx.arc(0,-30,76,0,7);cx.fill();cx.fillStyle='#f2c94c';cx.fill(STAR)},
+  military(){for(const x of[-105,105]){cx.fillStyle='#04140b';cx.beginPath();cx.arc(x,95,30,0,7);cx.fill();cx.fillStyle='#ff5a4e';cx.beginPath();cx.arc(x,95,13,0,7);cx.fill()}}};
 const MONO="'JetBrains Mono',ui-monospace,Menlo,monospace",font=(px,w='')=>cx.font=`${w} ${px}px ${MONO}`;
 const ray=(b,r0,r1)=>{cx.beginPath();cx.moveTo(AX+Math.cos(b)*r0,AY+Math.sin(b)*r0);cx.lineTo(AX+Math.cos(b)*r1,AY+Math.sin(b)*r1);cx.stroke()};
 const glow=(c,b)=>{cx.shadowColor=c;cx.shadowBlur=b*(devicePixelRatio||1)};
 // score pops: flat chips that land one after another, each punching in with a small tilt, then the row floats up and fades.
 // Real time, not game time
 const POPS=[],pop=o=>POPS.push({t0:performance.now(),life:1.9,rise:30,gap:.16,...o});
-const CHIP={pts:['#7ee0a8','#04140b','#2c6b47'],streak:['#ff7a45','#1a0700','#7a2d10'],coin:['#f2c94c','#1d1503','#6b520c'],bad:['#ff5a4e','#fff','#6e1a14']};
+const CHIP={cash:['#86d48a','#0b2a10','#2b6131'],streak:['#ff7a45','#1a0700','#7a2d10'],coin:['#f2c94c','#1d1503','#6b520c'],bad:['#ff5a4e','#fff','#6e1a14']};
 function chipW(c,size){font(size,'800');return cx.measureText(c.text).width+size*.9+(c.kind==='coin'?size*.9:0)}
 function drawChip(c,size){const[bg,fg,sh]=CHIP[c.kind],w=chipW(c,size),h=size*1.4,r=size*.28;
   cx.fillStyle=sh;cx.beginPath();cx.roundRect(-w/2,-h/2+size*.16,w,h,r);cx.fill();
-  cx.fillStyle=bg;cx.beginPath();cx.roundRect(-w/2,-h/2,w,h,r);cx.fill();
+  cx.fillStyle=bg;cx.beginPath();cx.roundRect(-w/2,-h/2,w,h,c.kind==='cash'?size*.1:r);cx.fill();
+  if(c.kind==='cash'){const m=size*.2;cx.strokeStyle='rgba(11,42,16,.45)';cx.lineWidth=size*.07;cx.strokeRect(-w/2+m,-h/2+m,w-2*m,h-2*m)}   // a banknote's inner border
   let tx=0;if(c.kind==='coin'){const cr=size*.36,ccx=-w/2+size*.45+cr;cx.fillStyle='#a87f12';cx.beginPath();cx.arc(ccx,0,cr,0,7);cx.fill();
     cx.fillStyle='#ffe28a';cx.beginPath();cx.arc(ccx,0,cr*.62,0,7);cx.fill();tx=size*.45}
   cx.fillStyle=fg;cx.fillText(c.text,tx,size*.05)}
-function drawPops(){const now=performance.now();glow('',0);
+// a little spray of green banknotes jumping out of a plane that paid: each flies out, up and down again, spinning
+const CASH=[];
+function cashBurst(x,y,n){const t0=performance.now();for(let i=0;i<n;i++){const a=Math.random()*7,v=18+Math.random()*30;
+  CASH.push({t0,x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,vz:1.1+Math.random()*.9,spin:(Math.random()-.5)*14,r0:Math.random()*7})}}
+function drawCash(now){for(let i=CASH.length-1;i>=0;i--){const b=CASH[i],t=(now-b.t0)/1000;if(t>1.1){CASH.splice(i,1);continue}
+  const d=(1-Math.exp(-3*t))/3,z=Math.max(0,b.vz*t-2.6*t*t),k=1+z*.9;
+  cx.save();cx.globalAlpha=Math.min(1,(1.1-t)/.35);cx.translate(b.x+b.vx*d,b.y+b.vy*d-z*14);cx.rotate(b.r0+b.spin*t);cx.scale(k,k);
+  cx.fillStyle='#2b6131';cx.fillRect(-3.2,-1.6,6.4,3.6);cx.fillStyle='#86d48a';cx.fillRect(-3.2,-2,6.4,3.6);cx.fillStyle='#2b6131';cx.fillRect(-.8,-1.2,1.6,2);cx.restore()}}
+function drawPops(){const now=performance.now();glow('',0);drawCash(now);
   for(let i=POPS.length-1;i>=0;i--){const p=POPS[i],t=(now-p.t0)/1000,n=p.chips.length,end=p.life+p.gap*(n-1);if(t>end){POPS.splice(i,1);continue}
     const ws=p.chips.map(c=>chipW(c,p.size)),gap=p.size*.35,tot=ws.reduce((a,b)=>a+b,0)+gap*(n-1);
     cx.save();cx.translate(p.x,p.y-p.rise*Math.max(0,1-Math.exp(-(t-.3)*2)));cx.globalAlpha=Math.max(0,Math.min(1,(end-t)/.45));
@@ -1289,17 +1341,20 @@ function draw(){
     if(hot){cx.strokeStyle='#fff';cx.lineWidth=1.5;cx.beginPath();cx.arc(p.x,p.y,12+Math.sin(S.t*6)*1.5,0,7);cx.stroke();cx.lineWidth=1}
     // its type's pictogram, a little bigger the higher it flies, small on the ground
     const k=p.vs??sizeFor(p),fade=p.state==='taxiin'&&p.path.length===1?Math.min(1,Math.hypot(p.path[0][0]-p.x,p.path[0][1]-p.y)/20):1;   // a landed plane fades as it reaches the apron
-    cx.save();cx.globalAlpha=fade;cx.translate(p.x,p.y);cx.rotate(p.hdg+Math.PI/2);cx.scale(k,k);glow(col,10);cx.fillStyle=col;cx.fill(SHAPES[p.ty]);cx.restore();glow('',0);
+    cx.save();cx.globalAlpha=fade;cx.translate(p.x,p.y);cx.rotate(p.hdg+Math.PI/2);cx.scale(k,k);glow(col,10);cx.fillStyle=col;cx.fill(SHAPES[p.ty]);glow('',0);MARKS[p.ty]?.();cx.restore();
+    // a priority flight wears a turning dashed ring in its colour
+    if(p.T.prio&&!p.late&&!p.ok){cx.save();cx.strokeStyle=PRIO_COL[p.ty];cx.lineWidth=1.5;cx.setLineDash([4,4]);cx.lineDashOffset=-S.t*8;cx.beginPath();cx.arc(p.x,p.y,15,0,7);cx.stroke();cx.restore()}
     // data block on a leader line: name, level, type, fuel when short; a level change fills the bar under it
     const moving=Math.abs(p.tgtAlt-p.alt)>.01,lvTxt=moving?`${ALTCH[lvl]}→${ALTCH[p.tgtAlt]}`:ALTCH[lvl];
     let tag=p.state==='hold'?' ⟳':p.state==='tofix'?` →${p.fix.toUpperCase()}`:p.state==='final'?' landing':p.state==='roll'?' taking off':p.state==='taxi'?' taxi':p.state==='lineup'?' waiting':p.state==='enter'?' lining up':p.state==='rollout'?' landed':p.state==='taxiin'?' taxi in':p.cleared?(p.inGate&&tailwind(p.inGate)?' · waits for wind':' · cleared'):'';
     if(S.hard){if(p.kind==='arr'&&p.state!=='final'&&manualLand(p)[0]!=='!')tag+=' · can land'}
     else if(p.kind==='arr'&&p.state!=='final'&&!p.cleared&&landGate(p))tag+=rwBusy(GATES[landGate(p)].rw)?' · wait':' · can land';
     const rest=`${ground?'':' '+lvTxt}${p.T.tag?' '+p.T.tag:''}${tag}${p.kind!=='arr'&&!ground?' → '+U(p.dest):''}`;font(ground?11:12.5,hot?600:500);
-    const gauge=p.kind==='arr'&&!ground&&isFinite(p.fuel0)?'fuel':p.kind==='dep'&&ground&&isFinite(p.patience0)?'clock':null,nw=cx.measureText(p.name).width,gw=gauge?15:0;   // the fuel gauge or patience clock sits right after the name
+    const gauge=p.kind==='arr'&&p.T.prio&&isFinite(p.patience)&&!ground?'clock':p.kind==='arr'&&!ground&&isFinite(p.fuel0)?'fuel':p.kind==='dep'&&ground&&isFinite(p.patience0)?'clock':null,nw=cx.measureText(p.name).width,gw=gauge?15:0;   // the fuel gauge or patience clock sits right after the name
     const lx=p.x+18,ly=p.y-20,tw=nw+gw+cx.measureText(rest).width;
     cx.strokeStyle=col;cx.globalAlpha=.5;cx.beginPath();cx.moveTo(p.x+6,p.y-6);cx.lineTo(lx-4,ly+6);cx.stroke();cx.globalAlpha=1;
     cx.fillStyle=p.mayday&&S.t%1<.5?'rgba(80,14,10,.85)':'rgba(4,11,8,.72)';cx.beginPath();cx.roundRect(lx-5,ly-9,tw+10,19,4);cx.fill();
+    if(p.T.prio&&!p.late){cx.strokeStyle=PRIO_COL[p.ty];cx.lineWidth=1.5;cx.stroke();cx.lineWidth=1}
     cx.textAlign='left';cx.fillStyle=hot?'#fff':p.mayday?'#ff8a7e':col;cx.fillText(p.name,lx,ly+.5);cx.fillText(rest,lx+nw+gw,ly+.5);cx.textAlign='center';
     if(gauge==='fuel')fuelGauge(lx+nw+5,ly,p);else if(gauge==='clock')clockGauge(lx+nw+5,ly,p);
     if(moving&&!ground){const f=1-Math.abs(p.tgtAlt-p.alt)/Math.max(.01,Math.abs(p.tgtAlt-p.altFrom));
@@ -1333,8 +1388,8 @@ const over=document.getElementById('over'),$=id=>document.getElementById(id);
 function tally(){const at=(performance.now()-S.overAt)/1000-1.5,rows=[['planes',S.done],...(S.bestStreak>1?[['best streak',`×${S.bestStreak}`]]:[]),['tokens',`${COIN}+${S.earned}`]];
   return`<div class="tally">${rows.map(([k,v],i)=>at>i*.3?`<span>${k}</span><span>${v}</span>`:'<span></span><span></span>').join('')}</div>`}
 function shiftOver(){
-  const head=`${S.hard?'hard ':''}shift over<br><b class="big">${Math.round(S.overShown??S.score)}</b>${tally()}<small>${S.unlockedHard?'<br>hard mode unlocked: type <b>hard</b>':''}</small>`;
-  if(S.daily)return`${head}<br><small>today's best: ${load('tower-daily-'+today(),[]).join(' · ')}<br>Enter: play today's shift again</small>`;
+  const head=`${S.hard?'hard ':''}shift over<br><b class="big">${money(S.overShown??S.score)}</b>${tally()}<small>${S.unlockedHard?'<br>hard mode unlocked: type <b>hard</b>':''}</small>`;
+  if(S.daily)return`${head}<br><small>today's best: ${load('tower-daily-'+today(),[]).map(money).join(' · ')}<br>Enter: play today's shift again</small>`;
   const cards=Object.entries(UPGRADES).map(([k,u])=>{const own=meta[k],done=maxed(k),ok=!done&&meta.tokens>=price(k);
     return`<div class="up${done?' done':ok?' ok':''}"><div class="uh"><b>${k}</b><span class="pip">${'●'.repeat(own)}${'○'.repeat(u.tiers.length-own)}</span></div>
       <div class="un"><span>${done?'complete':u.tiers[own]}</span>${done?'':`<em>${COIN}${price(k)}</em>`}</div></div>`}).join('');
@@ -1348,8 +1403,8 @@ function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;
   if(S.over&&S.overShown<S.score){const before=Math.floor(S.overShown/7);S.overShown=Math.min(S.score,S.overShown+Math.max(1,S.score*dt/1.4));if(Math.floor(S.overShown/7)>before)SFX.tick()}
   for(let i=0;i<FF;i++){if(!S.paused&&!S.over&&!helpOpen())step(dt*S.L.scale*warmup());if(D.on&&!S.paused)demoTick(dt);if(S.tut&&!S.paused&&!helpOpen())tutTick(dt)}draw();
   tutEl.textContent=S.tut?'leave tutorial':'tutorial';
-  $('lvl').textContent=S.tut?'tutorial':S.admin?`admin${S.sweep?` · sweep ${S.sweep.log.length+1}/${S.sweep.log.length+S.sweep.list.length+1}`:''}`:S.demo?'demo':S.daily?`daily · ${today()}`:S.hard?`hard · best ${hardBest}`:`shift · best ${best}`;
-  $('todo').innerHTML=S.demo?'':`${S.done} planes · <b style="${bump(BUMP.score,'#7ee0a8')}">${Math.round(SHOWN.score)}</b> pts${S.streak>1&&!S.over?` · <b style="background:#ff7a45;color:#04140b">×${S.streak} streak</b>`:''}${!S.daily?` · <span class="tok" title="tokens buy upgrades after a shift: it pays 1 per 100 points when it ends"><b style="${bump(BUMP.tok,'#f2c94c')}">${COIN}${meta.tokens}</b> ${S.over?'':`<small>+${Math.floor(S.score/100)} at shift end · 1 per 100 pts</small>`}</span>`:''}`;
+  $('lvl').textContent=S.tut?'tutorial':S.admin?`admin${S.sweep?` · sweep ${S.sweep.log.length+1}/${S.sweep.log.length+S.sweep.list.length+1}`:''}`:S.demo?'demo':S.daily?`daily · ${today()}`:S.hard?`hard · best ${money(hardBest)}`:`shift · best ${money(best)}`;
+  $('todo').innerHTML=S.demo?'':`${S.done} planes · <b style="${bump(BUMP.score,'#86d48a')}">${money(SHOWN.score)}</b>${S.streak>1&&!S.over?` · <b style="background:#ff7a45;color:#04140b">×${S.streak} streak</b>`:''}${!S.daily?` · <span class="tok" title="tokens buy upgrades after a shift: it pays 1 per $1,000 earned when it ends"><b style="${bump(BUMP.tok,'#f2c94c')}">${COIN}${meta.tokens}</b> ${S.over?'':`<small>+${Math.floor(S.score/TOKEN_PER)} at shift end · 1 per ${money(TOKEN_PER)}</small>`}</span>`:''}`;
   $('strikes').innerHTML=[0,1,2].map(i=>`<i class="${i<S.strikes?'on':''}"></i>`).join('');
   const focus=typedHead(),u=runwayUser();
   $('ready').innerHTML=S.planes.filter(p=>p.state==='ready').map(p=>`<b style="color:${p.name===focus?'#fff':LABEL.dep}">${p.name}${clockSVG(p)}${p.T.tag?' '+p.T.tag:''} → ${U(p.dest)}</b>`).join(' ')+(u&&S.planes.some(p=>p.state==='ready')?'<span class="busy">runway busy</span>':'')||'<span style="color:var(--dim)">none</span>';
