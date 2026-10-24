@@ -84,7 +84,7 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>heron descend</td><td>down to low · <b>heron descend mid</b> stops at mid</td></tr>
 <tr><td>heron ascend</td><td>up to high · <b>heron ascend mid</b> stops at mid</td></tr>
 <tr><td>heron hold</td><td>circle on the spot until you give it a turn, or <b>land</b> inside a landing circle · <b>heron hold kilo</b> flies to the fix KILO (also ALPHA, BRAVO, ZULU) and flies a racetrack there, right turns</td></tr>
-<tr><td>heron land</td><td>only inside an open landing circle (also ends a hold). It circles around the centre of the circle until it can line up (nose more than 90° off the runway: the short way round, which may swing it outside), then turns onto the runway and lands, low, with the runway free. Still high when it leaves the circle: it goes around.</td></tr>
+<tr><td>heron land</td><td>only inside an open landing circle (also ends a hold). From any heading it flies the shortest turn onto the runway line, left or right, descending on the way, and lands (it may swing a little outside the circle). Too high to get down in time, or the runway busy: it circles inside the circle until it can. Still high when it leaves the circle: it goes around.</td></tr>
 <tr><td>wren takeoff e</td><td>departures in the <b>ready</b> list: it taxis from the apron to that runway end, waits there until the runway is free, takes off <b>east</b> or <b>west</b>, climbs to mid and flies straight on until you turn it (you may turn it while it taxis).</td></tr>
 <tr><td>abort</td><td>cancel a hold (flies straight on) or a landing: it goes around, climbing to mid straight ahead</td></tr>
 </table>
@@ -393,14 +393,22 @@ function dubins(x0,y0,h0,x1,y1,h1,r){let best=null;const tw=a=>((a%(2*Math.PI))+
     if(!best||len<best.len){const tx=c1x-r*Math.cos(hs+d1*Math.PI/2),ty=c1y-r*Math.sin(hs+d1*Math.PI/2);
       best={len,P:[{x:x0,y:y0,h:h0,d:d1,r,len:a1},{x:tx,y:ty,h:hs,d:0,len:L},{x:tx+Math.cos(hs)*L,y:ty+Math.sin(hs)*L,h:hs,d:d2,r,len:a2}].filter(q=>q.len>.01)}}}
   return best}
-// the line-up: the shortest such path onto the centreline (then straight in to the runway end) that stays in the landing circle,
-// or no further out than the plane already is. None: it circles the centre until there is one
-function lineUp(p,g){const ty=g.rw.y,rh=g.dir>0?0:Math.PI,r=ringR(p),lim=Math.max(GATE_R,Math.hypot(p.x-g.x,p.y-g.y))+6,tx=AX-g.dir*RW;let best=null;
-  for(let a=-GATE_R*.5;a<=GATE_D-10;a+=5){const ax=g.x+g.dir*a,b=dubins(p.x,p.y,p.hdg,ax,ty,rh,r);if(!b||b.P.some(q=>q.d&&q.len>1.15*Math.PI*r))continue;
-    let ok=true;for(let s=0;s<=b.len&&ok&&b.P.length;s+=3){const q=pathAt(b.P,s);if(Math.hypot(q.x-g.x,q.y-g.y)>lim&&!(g.dir*(q.x-g.x)>0&&Math.abs(q.y-ty)<GATE_R*.6))ok=false}   // past the centre, toward the runway, it may run close along the centreline
-    const cost=b.len+Math.abs(tx-ax)+.3*Math.max(0,a);
+// the line-up: from wherever the plane is in the landing zone, whatever its heading, the shortest steady-bank path onto the
+// centreline and straight in to the runway end. Every join point along the centreline and both turn directions are tried,
+// so it always turns the short way. A path must be long enough to descend to the runway on the way, and may swing out
+// of the zone by about one turn radius, never near the radar edge. free: neither limit (only to know which way is shortest)
+function lineUp(p,g,free=false){const ty=g.rw.y,rh=g.dir>0?0:Math.PI,r=ringR(p),lim=Math.max(GATE_R+r,Math.hypot(p.x-g.x,p.y-g.y)+6),tx=AX-g.dir*RW;
+  const need=p.alt/(CLIMB*p.T.climb)*.85*SPEED*p.T.spd;let best=null;   // the distance it flies while descending, at approach speed
+  for(let a=-GATE_R*1.5;a<=GATE_D-10;a+=5){const ax=g.x+g.dir*a,b=dubins(p.x,p.y,p.hdg,ax,ty,rh,r);if(!b||b.P.some(q=>q.d&&q.len>1.15*Math.PI*r))continue;
+    const len=b.len+Math.abs(tx-ax);if(!free&&len<need)continue;
+    let ok=true;if(!free)for(let s=0;s<=b.len&&ok&&b.P.length;s+=3){const q=pathAt(b.P,s);if(fromAirport(q)>RADAR-15||Math.hypot(q.x-g.x,q.y-g.y)>lim&&!(g.dir*(q.x-g.x)>0&&Math.abs(q.y-ty)<GATE_R*.6))ok=false}   // past the centre, toward the runway, it may run close along the centreline
+    const cost=len+.3*Math.max(0,a);
     if(ok&&(!best||cost<best.cost))best={cost,P:[...b.P,{x:ax,y:ty,h:rh,d:0,len:Math.abs(tx-ax)}]}}
   return best&&best.P}
+// which way to circle while no line-up fits yet (too high, runway busy): with the centre on the inside of the turn, so it stays
+// in the zone; nose straight at the centre, either way works, so the way the shortest line-up turns
+const orbitSide=(p,g)=>{const bear=wrap(Math.atan2(g.y-p.y,g.x-p.x)-p.hdg);if(Math.abs(bear)>=rad(3))return Math.sign(bear);
+  const P=lineUp(p,g,true),q=P&&P.find(q=>q.d);return q?q.d:1};
 // following a path or a ring: the turn it needs there, plus a correction toward it (intercept up to 50°) and onto its heading
 function follow(p,x,y,h,k){const lat=(p.x-x)*-Math.sin(h)+(p.y-y)*Math.cos(h),want=-Math.max(-.9,Math.min(.9,lat*.035));
   return p.spd*k+1.6*wrap(want-wrap(p.hdg-h))}
@@ -458,21 +466,19 @@ function step(dt){
       const turn=TURN*p.T.turn;let wd=null;   // the turn rate it wants, when something steers it more finely than a heading
       // with navigation, a plane cleared outside a circle flies itself to the one it was given
       if(CFG.nav&&p.cleared&&p.state==='fly'&&p.navGate&&!inGate(p)){const g=GATES[p.navGate];p.tgt=Math.atan2(g.y-p.y,g.x-p.x)}
-      // a plane cleared to land captures the approach once it enters a circle. Nose within 90° of the runway and a line-up turn
-      // it can fly: it just turns onto the centreline. Otherwise it circles around the circle's centre until it can.
-      // It commits to final once low, facing the runway, with that line-up turn and the runway free.
+      // a plane cleared to land captures the approach once it enters a circle: from any heading it flies the shortest line-up
+      // (lineUp, descending on the way) as soon as there is one and the runway is free. Until then (too high for any line-up,
+      // or the runway busy) it circles the centre (orbitSide), checking four times a second for a line-up.
       // Still high when it leaves the circle, wandering far off, or circling more than once around: a go-around.
       if(p.cleared&&p.state==='fly'){const k=inGate(p);if(k&&gateOpen(k)&&!p.inGate){p.inGate=k;p.navGate=null}
         if(p.inGate){const g=GATES[p.inGate],d=Math.hypot(g.x-p.x,g.y-p.y),high=p.alt>.05&&d>=GATE_R+appR(p);   // circling may poke a little outside; high and clearly outside is leaving
-          if(!p.orbit){const off=wrap(p.hdg-(g.dir>0?0:Math.PI)),bear=wrap(Math.atan2(g.y-p.y,g.x-p.x)-p.hdg),short=-Math.sign(off)||1;
-            // the centre on the inside of the turn; nose (nearly) at the centre: either way goes around it, so the short way to the runway heading
-            p.orbit=Math.abs(bear)<rad(35)?short:Math.sign(bear);p.orbitT=0}
+          if(!p.orbit){p.orbit=orbitSide(p,g);p.orbitT=0}
           // circling the centre on its ring: outside it, straight for the point where its line touches the ring; on or inside it,
           // the ring's tangent tilted outward by how far inside it is. Both meet at the ring, so it joins it smoothly and stays on it
           const ro=ringR(p),r=Math.hypot(p.x-g.x,p.y-g.y),a=Math.atan2(p.y-g.y,p.x-g.x);p.orbitT+=dt;
           if(r>1.4*ro)p.tgt=wrap(Math.atan2(g.y-p.y,g.x-p.x)-p.orbit*Math.asin(ro/r));
           else wd=follow(p,g.x+Math.cos(a)*ro,g.y+Math.sin(a)*ro,wrap(a+p.orbit*Math.PI/2),p.orbit/ro);
-          const c=lowNow(p)&&facing(p,p.inGate)&&!pastThreshold(p,g)&&S.t>=(p.planAt||0)&&(p.planAt=S.t+.25,lineUp(p,g));   // planning is costly: 4 tries a second
+          const c=!pastThreshold(p,g)&&S.t>=(p.planAt||0)&&(p.planAt=S.t+.25,lineUp(p,g));   // planning is costly: 4 tries a second
           if(c){if(rwBusy(g.rw))p.blocked=true;else startFinal(p,p.inGate,c)}
           // a missed approach: climb straight ahead to mid
           else if(high||d>GATE_R+2.6*appR(p)||pastThreshold(p,g)||p.orbitT>2.2*2*Math.PI/(turn*APP_TURN)||!gateOpen(p.inGate)){const was=p.inGate;SFX.goAround();p.cleared=false;p.inGate=null;p.orbit=0;p.tgt=p.hdg;setLevel(p,Math.max(1,p.tgtAlt));
