@@ -434,6 +434,7 @@ function startShift(practice=false,daily=false,hard=false){const L=SHIFT;
   S={L,t:0,planes:[],fx:[],done:0,score:0,strikes:0,next:1,over:false,paused:false,pairs:new Set(),practice,daily,hard,
     rwdir:rnd()<.5?1:-1,windAt:160+rnd()*90,storms:[],stormAt:25,shake:0,ovfOn:false,earned:0};
   document.getElementById('tkw').innerHTML=[...new Set(Object.values(GATES).map(g=>g.hw))].map(w=>`<b>${SHORT[w]}</b>`).join(' ');   // the ways your runways take off
+  document.getElementById('banner').style.display='none';   // a new shift ends any tutorial (startTutorial shows it again)
   say('')}
 startShift();
 document.getElementById('actable').innerHTML=aircraftSheet();
@@ -817,6 +818,7 @@ const mishear=()=>CFG.readback&&!S.practice&&rnd()<CFG.readback;
 const KEYS=Object.keys(HEADINGS),nextTo=d=>KEYS[(KEYS.indexOf(d)+(rnd()<.5?1:7))%8];
 function exec(words){
   const[w0,act,arg]=words;
+  if(w0==='restart'&&S.tut)return startTutorial()||'the tutorial from the start';
   if(w0==='restart'){startShift(false,S.daily,S.hard);return`a new ${S.daily?'daily ':S.hard?'hard ':''}shift`}
   if(w0==='pause'){togglePause();return''}
   if(w0==='speed')return cycleFF();
@@ -1352,8 +1354,8 @@ function ui(){const sw=S.sweep;
   $('strikes').innerHTML=[0,1,2].map(i=>`<i class="${i<S.strikes?'on':''}"></i>`).join('');
   const focus=typedHead(),ready=S.planes.filter(p=>p.state==='ready'),busy=runwayUser()&&ready.length?'<span class="busy">runway busy</span>':'';
   $('ready').innerHTML=ready.map(p=>`<b style="color:${p.name===focus?'#fff':LABEL.dep}">${p.name}${clockSVG(p)}${p.T.tag?' '+p.T.tag:''} → ${U(p.dest)}</b>`).join(' ')+busy||'<span style="color:var(--dim)">none</span>';
-  over.style.display=(S.over&&!S.practice)||S.paused?'grid':'none';
-  over.innerHTML=`<div>${S.paused?'paused<br><small>esc</small>':shiftOver()}</div>`}   // one box, so the grid centres it as a whole
+  const show=(S.over&&!S.practice)||S.paused;over.style.display=show?'grid':'none';
+  if(show)over.innerHTML=`<div>${S.paused?'paused<br><small>esc</small>':shiftOver()}</div>`}   // one box, so the grid centres it as a whole
 requestAnimationFrame(frame);
 // the tutorial is a button next to the speed button: never forced. A new player sees it nudging until they open it once
 const tutEl=document.getElementById('tut');if(!store('tower-tut')&&!best)tutEl.classList.add('new');
