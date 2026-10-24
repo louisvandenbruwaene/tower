@@ -74,7 +74,7 @@ main{flex:1;min-height:0;display:flex}
 <div id="sug"></div>
 </section>
 </main>
-<div id="help" style="display:none"><div class="card">
+<div id="help" style="display:none"><div class="card" id="admcard" style="display:none"></div><div class="card">
 <h2>Tower Power</h2>
 <p>You are the air traffic controller. Every command has the same shape:</p>
 <p><code>plane&nbsp;&nbsp;action&nbsp;&nbsp;[direction]</code> &nbsp; the direction is only needed for some actions.</p>
@@ -112,7 +112,7 @@ main{flex:1;min-height:0;display:flex}
 const cmd=document.getElementById('cmd'),sugEl=document.getElementById('sug'),outEl=document.getElementById('out'),ghostEl=document.getElementById('ghost');
 const hintEl=document.getElementById('hint'),helpEl=document.getElementById('help');
 const T={hist:[],hi:0,sel:0,cands:[],ghost:'',sug:null,why:''};
-const helpOpen=()=>helpEl.style.display!=='none',showHelp=on=>helpEl.style.display=on?'grid':'none';
+const helpOpen=()=>helpEl.style.display!=='none',showHelp=on=>{helpEl.style.display=on?'grid':'none';if(on){helpEl.querySelector('#admcard').style.display='none';helpEl.querySelector('.card:not(#admcard)').style.display=''}};
 const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
 // the eight directions are typed and shown short: n ne e se s sw w nw
 const ABBR={n:'north',ne:'northeast',e:'east',se:'southeast',s:'south',sw:'southwest',w:'west',nw:'northwest'};
@@ -146,6 +146,8 @@ function ghostRest(){const low=cmd.value.toLowerCase();
   const{part}=parts();return part&&T.cands.length?T.cands[T.sel].slice(part.length):''}
 function refreshSug(){const{done,part}=parts();const r=resolve(done);
   T.cands=(r.err||!cmd.value.trim())?[]:validOpts(r.words).filter(o=>o.startsWith(part));
+  if(S.admin){const w=cmd.value.toLowerCase().split(/\s+/),i=w.length-1,A=ADMIN_ARGS[w[0]];   // in admin: its own words first
+    if(i===0&&part)T.cands=[...new Set([...ADMIN_WORDS.filter(o=>o.startsWith(part)),...T.cands])];else if(A&&A[i-1])T.cands=A[i-1].filter(o=>o.startsWith(part))}
   if(T.sel>=T.cands.length)T.sel=0;
   coach();T.ghost=ghostRest();
   ghostEl.innerHTML=`<span class="t">${esc(cmd.value)}</span>${esc(T.ghost)}`;
@@ -155,6 +157,8 @@ function refreshSug(){const{done,part}=parts();const r=resolve(done);
 function typedHead(){const w=cmd.value.toLowerCase().trim().split(/\s+/)[0];return w?meaning(w,options([])):null}
 // runs at once; when a word was read differently from how it was typed, the reply starts with what was understood
 function run(v){
+  if(v==='admin fly'&&!S.admin){SFX.ok();say(enterAdmin());return logCmd(v)}   // the only way in; anything else is just an unknown word
+  if(S.admin){const m=adminExec(v);if(m!==null){m[0]==='!'?SFX.err():SFX.ok();say(m);return logCmd(v)}}
   const toks=v.split(/\s+/),r=resolve(toks);if(r.err){SFX.err();say(r.err);return logCmd(v)}
   const m=exec(r.words)||'';m[0]==='!'?SFX.err():plane(r.words[0])?SFX.radio():SFX.ok();
   const read=r.words.map(U).join(' '),same=r.words.every((w,i)=>w===toks[i]||ABBR[toks[i]]===w);
@@ -229,7 +233,7 @@ const WAKE_REST=6;            // game s: a runway rests this long after a heavy 
 // landing
 const THETA_DEG=15;           // touchdown at most this many degrees off the runway heading
 const FINAL_MIN=35;           // px: the shortest straight final (875 m), on top of the distance needed to slow to approach speed
-const LANDING_ARC=.5;         // the line-up turn: 0 = tightest (shortest path), 1 = widest arc that still lines up, in between = in between
+let LANDING_ARC=.5;           // the line-up turn: 0 = tightest (shortest path), 1 = widest arc that still lines up, in between = in between
 // fuel
 const MAYDAY_S=45;            // game s of fuel left when a plane calls MAYDAY
 // aircraft types, each modelled on a real one. Flown in the game: airspeed in knots at each level (low, mid, high, top, peak;
@@ -366,7 +370,7 @@ document.getElementById('actable').innerHTML=aircraftSheet();
 // no two planes ever share a first letter, so one letter always picks the plane; null when every letter is in use
 function freshName(){const used=S.planes.map(p=>p.name[0]);
   const pool=NAMES.filter(n=>!used.includes(n[0]));return pool.length?pool[rnd()*pool.length|0]:null}
-function newPlane(o){const ty=CFG.types?pickType():'jet',T=TYPES[ty];
+function newPlane(o){const ty=S.forceType||(CFG.types?pickType():'jet'),T=TYPES[ty];
   const p={fix:null,trail:[],tt:0,born:S.t,ty,T,w:0,...o};if(p.spd===undefined)p.spd=speedFor(p);return p}
 // the speed a plane flies at its level (between two levels, in between), on the approach, and in a hold (its low-level speed)
 const speedFor=p=>{const k=p.T.kt,i=Math.min(k.length-2,Math.floor(p.alt)),f=p.alt-i;return KT*(k[i]+(k[i+1]-k[i])*f)};
@@ -410,7 +414,7 @@ function spawnKind(kind){
 // traffic starts at 70% of the full rate and builds up to it over the first eight minutes
 const traffic=()=>Math.min(1,.7+.3*S.t/480);
 function spawnRandom(){const r=rnd();spawnKind(S.ovfOn&&r<.22?'ovf':r<(S.ovfOn?.52:.38)&&S.planes.filter(p=>p.state==='ready').length<3?'dep':'arr')}
-function strike(msg,x,y){if(S.over)return;SFX.strike();S.strikes++;S.lastStrike=msg;say('!'+msg);S.fx.push({x,y,t:0,c:'#ff6b5e',r:40});if(S.strikes>=3)endShift()}
+function strike(msg,x,y){if(S.over)return;if(S.admin){SFX.strike();say('!'+msg);S.fx.push({x,y,t:0,c:'#ff6b5e',r:40});return}SFX.strike();S.strikes++;S.lastStrike=msg;say('!'+msg);S.fx.push({x,y,t:0,c:'#ff6b5e',r:40});if(S.strikes>=3)endShift()}
 // three strikes: a shift pays tokens for its score, and the daily shift keeps today's five best
 function endShift(){S.over=true;S.result='lost';SFX.lose();if(!S.L.endless||S.demo)return;
   if(S.score>best){best=S.score;store('tower-best-score',best)}
@@ -492,12 +496,12 @@ function turnIn(p,g,R,d,free){const Tx=AX-g.dir*RW,Ty=g.rw.y,rh=g.dir>0?0:Math.P
 // the line-up flown: per turn direction, the tightest turn it can fly now (radius speed / turn rate, the shortest path) and the
 // widest that still lines up (at most 12 times as wide, and 5% inside that edge); LANDING_ARC picks the radius in between. The direction whose tightest line-up is shorter wins.
 // free: no limits (only to know which way is shorter). None: it keeps circling
-function lineUp(p,g,free=false){const r=turnR(p);let best=null;
+function lineUp(p,g,free=false,arc=LANDING_ARC){const r=turnR(p);let best=null;
   for(const d of[1,-1]){const tight=turnIn(p,g,r,d,free);if(!tight)continue;
-    let R=r;if(!free&&LANDING_ARC>0){let ok=r,bad=null;   // the widest: grow the radius 5% at a time until it no longer lines up, then narrow it down
+    let R=r;if(!free&&arc>0){let ok=r,bad=null;   // the widest: grow the radius 5% at a time until it no longer lines up, then narrow it down
       for(let x=r*1.05;x<12*r;x*=1.05){if(turnIn(p,g,x,d))ok=x;else{bad=x;break}}
       if(bad)for(let k=0;k<6;k++){const m=(ok+bad)/2;if(turnIn(p,g,m,d))ok=m;else bad=m}
-      R=r+LANDING_ARC*(Math.max(r,.95*ok)-r)}   // 5% inside the widest: right at the edge it barely lines up
+      R=r+arc*(Math.max(r,.95*ok)-r)}   // 5% inside the widest: right at the edge it barely lines up
     const path=R===r?tight:turnIn(p,g,R,d,free)||tight;
     if(!best||tight.len<best.tight)best={tight:tight.len,P:path.P}}
   return best&&best.P}
@@ -525,7 +529,7 @@ const windWord=()=>S.rwdir>0?'E':'W';
 const rwName=(r,dir)=>(dir>0?'09':'27')+(RUNWAYS.length>1?(r.i===0)===(dir>0)?'L':'R':'');
 const hdgNum=h=>String(Math.round(((h*180/Math.PI+90)%360+360)%360/5)*5||360).padStart(3,'0');
 // final: the line-up path, flown by following it, touching down at the runway end
-function startFinal(p,k,P){const g=GATES[k];p.state='final';p.dir=g.dir;p.rw=g.rw;p.cleared=false;p.inGate=null;p.navGate=null;p.orbit=0;p.app=P;p.s=0}
+function startFinal(p,k,P){const g=GATES[k];if(S.paths)p.alts=ARC_STEPS.map(a=>lineUp(p,g,false,a));p.state='final';p.dir=g.dir;p.rw=g.rw;p.cleared=false;p.inGate=null;p.navGate=null;p.orbit=0;p.app=P;p.s=0}
 function startRoll(p){p.state='roll';SFX.roll(p.T.wake?1.4:p.ty==='light'?.6:1);p.x=AX-p.rdir*RW;p.y=p.rw.y;p.hdg=p.rdir>0?0:Math.PI;if(!p.turned)p.tgt=p.hdg;p.spd=0;p.w=0;setLevel(p,DEPART_LEVEL)}
 
 // wind turns now and then (the runway direction flips); storm cells drift with it, north or south of the runways
@@ -543,6 +547,7 @@ function step(dt){
   S.t+=dt;
   if(S.script){while(S.script.length&&S.script[0][0]<=S.t){const[,k,a,b]=S.script.shift();k==='arr'?spawnArr(a):spawnDep(a)}
     if(!S.script.length){S.script=null;S.next=6}}
+  else if(S.admin){if(S.adminTraffic&&(S.next-=dt)<=0&&freshName()){spawnRandom();S.next=Math.max(14,26-S.t/40)*(.75+rnd()*.5)}}
   else if(S.L.endless){if((S.next-=dt)<=0&&freshName()){spawnRandom();S.next=Math.max(14,26-S.t/40)*(.75+rnd()*.5)/traffic()}
     if(CFG.ovf&&!S.ovfOn&&S.done>=10){S.ovfOn=true;say('the neighbouring sector opened: its traffic (purple) now crosses your area')}}
   else if(S.queue.length){if(S.planes.filter(p=>p.state!=='taxiin').length<S.L.max&&(S.next-=dt)<=0&&freshName()){const k=S.queue.shift();if(spawnKind(k))S.next=S.L.gap/traffic();else{S.queue.unshift(k);S.next=2}}}
@@ -625,6 +630,7 @@ function step(dt){
   S.pairs=now;
   // a storm cell: a plane that flies into one loses control and crash-lands (a strike)
   for(const s of S.storms)for(const p of air)if(!p.dead&&Math.hypot(p.x-s.x,p.y-s.y)<s.r){p.dead=1;remove(p);crashLand(p);strike(`${p.name} crash-landed in a storm`,p.x,p.y)}
+  if(S.admin)sweepTick();
   for(const f of S.fx)f.t+=dt;S.fx=S.fx.filter(f=>f.t<(f.life||1.2));S.shake=Math.max(0,(S.shake||0)-dt);
 }
 
@@ -864,6 +870,112 @@ function demoTick(dt){
   if(k==='Tab'){key('Tab');D.wait=.25}else if(k==='Enter'){key('Enter');D.wait=1.4}
   else{cmd.value+=k;cmd.dispatchEvent(new Event('input'));D.wait=.11}}
 
+/* ---------- admin: a hidden sandbox. Only the exact words "admin fly" open it; nothing suggests or mentions it before ---------- */
+// The line-up radius for each debug path, LANDING_ARC 0 (tightest) to 1 (widest), and their colours
+const ARC_STEPS=[0,.25,.5,.75,1],ARC_COLS=['#5ee0ff','#7fb8ff','#b39cff','#e08cf0','#ff7ab8'];
+const ADMIN_WORDS=['help','exit','clear','pause','speed','arrival','departure','overflight','approach','sweep','results','arc','paths',
+  'wind','storms','storm','fuel','traffic','rules','set'];
+// what admin suggests after each command word (first and second argument)
+const ADMIN_ARGS={arrival:[Object.keys({prop:1,bizjet:1,jet:1,heavy:1,cargo:1,random:1}),['n','ne','e','se','s','sw','w','nw']],departure:null,overflight:null,
+  approach:[['prop','bizjet','jet','heavy','cargo'],['0','45','90','135','180','-45','-90','-135']],sweep:[['all','prop','bizjet','jet','heavy','cargo','stop'],['30','15','45']],
+  arc:[['0','0.25','0.5','0.75','1']],paths:[['on','off']],fuel:[['on','off']],traffic:[['on','off']],wind:[['e','w','auto','off']],storms:[['on','off']],
+  storm:[['n','ne','e','se','s','sw','w','nw']],speed:[['1','2','3','5','10','0.5']],set:[['levels','runways','nav','fuel','types','readback','wind','storms','ovf','tank']]};
+ADMIN_ARGS.departure=ADMIN_ARGS.overflight=ADMIN_ARGS.arrival;
+const TYPE_WORDS={prop:'light',light:'light',bizjet:'bizjet',jet:'jet',heavy:'heavy',cargo:'cargo'};
+const dirOf=w=>w&&(HEADINGS[w]!==undefined?w:ABBR[w]&&HEADINGS[ABBR[w]]!==undefined?ABBR[w]:null);
+const typeOf=w=>w==='random'||w==='any'?pickType():TYPE_WORDS[w];
+function adminManual(){
+  return`<h2>Admin</h2><p>A sandbox: no traffic of its own, no strikes counted (they are only reported), nothing ends. Plane orders work as always
+  (<code>heron turn s</code>…), and these commands control the game. Types: <b>prop bizjet jet heavy cargo</b> (or <b>random</b>).
+  Directions: <b>n ne e se s sw w nw</b>. Levels: <b>low mid high top peak</b>.</p><table>
+  <tr><td>help</td><td>this card · <b>results</b> shows the last sweep's table</td></tr>
+  <tr><td>exit</td><td>back to normal play (the level you were on)</td></tr>
+  <tr><td>clear</td><td>removes every plane and storm</td></tr>
+  <tr><td>pause</td><td>stops or restarts time · <b>speed 3</b> runs time 3× (0.1 to 20)</td></tr>
+  <tr><td>arrival jet w</td><td>an arrival entering from the west edge, heading in, at its usual level · <b>arrival heavy ne low</b> at a level</td></tr>
+  <tr><td>departure cargo nw</td><td>a departure at the apron that wants to leave NW (give it <code>takeoff</code> yourself)</td></tr>
+  <tr><td>overflight bizjet s high</td><td>an overflight entering from the south</td></tr>
+  <tr><td>approach jet 45</td><td>a jet placed just outside an open landing circle, low, cleared to land, flying straight at the circle's centre and
+    entering it 45° off the landing direction (0 = straight in from behind the circle, 180 = from the runway side, minus = from the north).
+    Optional: the circle (<b>west east west2 east2</b>) and a level: <b>approach heavy -90 east mid</b></td></tr>
+  <tr><td>sweep</td><td>flies every type one by one into a landing circle from every 30°, waiting for each to land, go around or get lost, and
+    logs each one; <b>results</b> shows the table. <b>sweep heavy</b> one type, <b>sweep all 15</b> every 15°, <b>sweep jet 30 mid</b> from mid.
+    Use <b>speed</b> to watch faster. <b>sweep stop</b> ends it</td></tr>
+  <tr><td>arc 0.5</td><td>sets LANDING_ARC live: 0 = the tightest line-up turn (shortest path), 1 = the widest arc that still lines up</td></tr>
+  <tr><td>paths on</td><td>draws the line-up (the cord) of every arrival near a landing circle: solid = the path it flies (or would fly if cleared
+    now), dashed = what it would be for LANDING_ARC 0, 0.25, 0.5, 0.75, 1 (cyan → pink). <b>paths off</b> hides them</td></tr>
+  <tr><td>wind e</td><td>fixes the wind (planes land and take off heading E) · <b>wind w</b> · <b>wind auto</b> turns now and then · <b>wind off</b> no wind rule</td></tr>
+  <tr><td>storm n</td><td>a storm cell coming in from the north edge, drifting across · <b>storms off</b> clears them and stops new ones · <b>storms on</b> lets them come by themselves</td></tr>
+  <tr><td>fuel off</td><td>planes carry no fuel limit · <b>fuel on</b></td></tr>
+  <tr><td>traffic on</td><td>normal traffic arrives by itself · <b>traffic off</b></td></tr>
+  <tr><td>rules</td><td>lists the rule switches · <b>set readback 0.2</b> changes one (levels runways nav fuel types readback wind storms ovf tank)</td></tr>
+  </table><p class="go">Enter or Esc to close · help shows this again</p>`}
+const admEl=()=>document.getElementById('admcard');
+function showAdmin(html){admEl().innerHTML=html;helpEl.querySelector('.card:not(#admcard)').style.display='none';admEl().style.display='';helpEl.style.display='grid'}
+function enterAdmin(){D.on=false;demoEl.style.display='none';const n=S.lvl;startLevel(LEVELS.length-1,true);
+  CFG={...RULES,...LEVELS[LEVELS.length-1].rules,storms:0,ovf:false};S.admin=true;S.back=n;S.next=Infinity;S.paths=true;S.windAt=Infinity;   // the wind stays put until 'wind auto'
+  
+  showAdmin(adminManual());return'admin: sandbox open, nothing arrives by itself · help for the manual'}
+// a plane of a given type, spawned the normal way
+function spawnTyped(ty,fn){S.forceType=ty;const before=S.planes.length;fn();S.forceType=null;return S.planes.length>before?S.planes[S.planes.length-1]:null}
+// an arrival just outside a landing circle, heading straight for its centre, entering at angle a (degrees off the landing direction)
+function approachPlane(ty,a,k,lv=0){const g=GATES[k],h=(g.dir>0?0:Math.PI)+rad(a),d=GATE_R+15;
+  const name=freshName();if(!name)return null;S.forceType=ty;const p=newPlane({name,kind:'arr',state:'fly',x:g.x-Math.cos(h)*d,y:g.y-Math.sin(h)*d,hdg:h,tgt:h});S.forceType=null;
+  p.alt=p.tgtAlt=p.altFrom=Math.min(lv,ceil(p));p.tgtAlt=0;p.spd=speedFor(p);p.fuel=p.fuel0=CFG.fuel?p.T.fuel:Infinity;p.cleared=true;p.wasCleared=true;S.planes.push(p);return p}
+const openGate=()=>Object.keys(GATES).find(gateOpen)||'west';
+function adminExec(v){const w=v.split(/\s+/),[c,a,b,d]=w;
+  switch(c){
+    case'help':showAdmin(adminManual());return'';
+    case'results':showAdmin(sweepTable());return'';
+    case'exit':{const n=S.back;startLevel(n);return'back to normal play'}
+    case'clear':S.planes=[];S.storms=[];S.sweep=null;return'cleared';
+    case'pause':S.paused=!S.paused;return S.paused?'paused':'running';
+    case'speed':{const x=+a;if(!(x>=.1&&x<=20))return'!speed 0.1 to 20';S.L={...S.L,scale:x};return`time runs ${x}×`}
+    case'arrival':case'overflight':{const ty=typeOf(a),dir=dirOf(b);if(!ty||!dir)return`!${c} <type> <direction> [level]`;
+      const p=spawnTyped(ty,()=>c==='arrival'?spawnArr(HEADINGS[dir]):spawnOvf(HEADINGS[dir]));if(!p)return'!no free name';
+      if(LV.includes(d)){p.alt=p.tgtAlt=p.altFrom=Math.min(LV.indexOf(d),ceil(p));p.spd=speedFor(p)}return`${p.name}: ${ty} ${c} from the ${U(dir)} at ${LV[Math.round(p.alt)]}`}
+    case'departure':{const ty=typeOf(a),dir=dirOf(b);if(!ty||!dir)return'!departure <type> <direction>';const p=spawnTyped(ty,()=>spawnDep(dir));return p?`${p.name}: ${ty} departure for the ${U(dir)}, waiting at the apron`:'!no free name'}
+    case'approach':{const ty=typeOf(a),ang=+b;if(!ty||!isFinite(ang))return'!approach <type> <angle> [circle] [level]';const k=GATES[d]?d:openGate(),lv=Math.max(0,LV.indexOf(w[4]??(GATES[d]?'':d)));
+      const p=approachPlane(ty,ang,k,lv);return p?`${p.name}: ${ty} entering the ${k} circle ${ang}° off the landing direction, cleared to land`:'!no free name'}
+    case'sweep':{if(a==='stop'){S.sweep=null;return'sweep stopped'}const t=w.find(x=>TYPE_WORDS[x]),types=t?[TYPE_WORDS[t]]:Object.keys(TYPES),step=+w.find(x=>/^\d+$/.test(x))||30,lv=Math.max(0,LV.indexOf(w.find(x=>LV.includes(x))));   // any order: sweep [type|all] [step] [level]
+      const list=[];for(const ty of types)for(let ang=-180+step;ang<=180;ang+=step)list.push([ty,ang]);
+      S.planes=[];S.sweep={list,lv,cur:null,log:[],at:0};return`sweep: ${list.length} approaches, one at a time · results shows the table`}
+    case'arc':{const x=+a;if(!(x>=0&&x<=1))return'!arc 0 to 1';LANDING_ARC=x;return`LANDING_ARC ${x}`}
+    case'paths':S.paths=a!=='off';return`paths ${S.paths?'on':'off'}`;
+    case'wind':if(a==='off'){CFG.wind=false;return'no wind rule: both landing circles open'}CFG.wind=true;
+      if(a==='auto'){S.windAt=S.t+170;return'wind turns now and then'}if(a==='e'||a==='w'){S.rwdir=a==='e'?1:-1;S.windAt=Infinity;return`wind from the ${a.toUpperCase()}: land and take off heading ${a.toUpperCase()}`}return'!wind e | w | auto | off';
+    case'storms':if(a==='off'){CFG.storms=0;S.storms=[];return'storms off'}CFG.storms=Math.max(1,+a||1);S.stormAt=S.t;return`up to ${CFG.storms} storm cells come by themselves`;
+    case'storm':{const dir=dirOf(a);if(!dir)return'!storm <direction>';const b=rad(HEADINGS[dir]),r=40,v=4.5;
+      S.storms.push({id:S.t,x:AX+Math.cos(b)*(RADAR+r-5),y:AY+Math.sin(b)*(RADAR+r-5),r,vx:-Math.cos(b)*v,vy:-Math.sin(b)*v});return`a storm cell comes in from the ${U(dir)}`}
+    case'fuel':CFG.fuel=a!=='off';if(!CFG.fuel)for(const p of S.planes)p.fuel=p.fuel0=Infinity;return`fuel ${CFG.fuel?'on':'off'}`;
+    case'traffic':S.adminTraffic=a!=='off';S.next=2;return`traffic ${S.adminTraffic?'on':'off'}`;
+    case'rules':return Object.entries(CFG).map(([k,x])=>`${k} ${x}`).join(' · ');
+    case'set':{if(!(a in RULES))return`!set <rule> <value>: ${Object.keys(RULES).join(' ')}`;CFG[a]=b==='on'||b==='true'?true:b==='off'||b==='false'?false:+b;return`${a} = ${CFG[a]}`}}
+  return null}   // not an admin command: read it as a normal order
+// the sweep: one approach at a time; each ends when it touches down, goes around, is lost, or after 4 minutes
+function sweepTick(){const W=S.sweep;if(!W)return;const p=W.cur;
+  if(p){let res=null;if(p.state==='rollout'||p.state==='taxiin')res='landed';else if(!S.planes.includes(p))res='lost';else if(!p.cleared&&p.state==='fly')res='go-around';else if(S.t-W.at>240)res='timeout';
+    if(p.orbit&&p.state==='fly')p.circled=true;if(p.state==='final'&&!p.R){const q=p.app.find(q=>q.d);p.R=q?q.r/turnR(p):1}
+    if(!res)return;const[ty,ang]=W.item,t=S.t-W.at,line=`${ty} ${ang}°: ${res}${res==='landed'?(p.circled?' after circling':' directly')+`, ${t.toFixed(0)} s, turn ${(p.R||1).toFixed(2)}× its tightest`:''}`;
+    W.log.push({ty,ang,res,circled:!!p.circled,t,R:p.R||0});say(res==='landed'?line:'!'+line);S.planes=S.planes.filter(q=>q!==p);W.cur=null}
+  if(!W.list.length){S.sweep=null;S.lastSweep=W.log;const n=W.log.length,l=W.log.filter(x=>x.res==='landed'),dir=l.filter(x=>!x.circled).length;
+    say(`sweep done: ${l.length}/${n} landed, ${dir} of them directly · results for the table`);return}
+  W.item=W.list.shift();W.at=S.t;W.cur=approachPlane(W.item[0],W.item[1],openGate(),W.lv)}
+function sweepTable(){const L=S.sweep?.log||S.lastSweep;if(!L||!L.length)return adminManual();
+  const types=[...new Set(L.map(x=>x.ty))],angs=[...new Set(L.map(x=>x.ang))].sort((a,b)=>a-b);
+  const cell=x=>!x?'':x.res!=='landed'?`<span style="color:#ff8a7e">${x.res}</span>`:`<span style="color:${x.circled?'#f2c94c':'#7ee0a8'}">${x.t.toFixed(0)} s ${x.circled?'○':''}</span>`;
+  return`<h2>Sweep results</h2><p>Entry angle off the landing direction (0 = straight in from behind the circle). Green: landed directly, seconds to touchdown (game time). Amber ○: landed after circling. Red: did not land.</p>
+  <table class="ac"><tr><th></th>${angs.map(a=>`<th>${a}°</th>`).join('')}</tr>${types.map(ty=>`<tr><td>${TYPES[ty].tag||'jet'}</td>${angs.map(a=>`<td>${cell(L.find(x=>x.ty===ty&&x.ang===a))}</td>`).join('')}</tr>`).join('')}</table><p class="go">Enter or Esc to close</p>`}
+// the debug cords: for every arrival near a landing circle, the path it flies (or would fly if cleared now) and the paths for other LANDING_ARC values
+function drawPaths(){const line=(P,s0,col,dash,w)=>{if(!P)return;const L=pathLen(P);cx.strokeStyle=col;cx.lineWidth=w;cx.setLineDash(dash);cx.beginPath();
+    for(let s=s0;s<=L;s+=3){const q=pathAt(P,s);s===s0?cx.moveTo(q.x,q.y):cx.lineTo(q.x,q.y)}cx.stroke();cx.setLineDash([]);cx.lineWidth=1};
+  for(const p of S.planes){if(p.kind!=='arr'||onGround(p))continue;
+    if(p.state==='final'){(p.alts||[]).forEach((P,i)=>line(P,0,ARC_COLS[i]+'99',[4,4],1.2));line(p.app,p.s,'#ffffff',[],2);continue}
+    const k=p.inGate||inGate(p)||Object.keys(GATES).find(k=>Math.hypot(GATES[k].x-p.x,GATES[k].y-p.y)<GATE_R+40);if(!k||!gateOpen(k))continue;
+    if(!p.altsAt||S.t-p.altsAt>.25||S.paused){p.altsAt=S.t;p.liveAlts=ARC_STEPS.map(a=>lineUp(p,GATES[k],false,a));p.liveNow=lineUp(p,GATES[k])}
+    p.liveAlts.forEach((P,i)=>line(P,0,ARC_COLS[i]+'99',[4,4],1.2));line(p.liveNow,0,'#ffffff',[],2)}
+  font(10.5,600);cx.textAlign='left';ARC_STEPS.forEach((a,i)=>{cx.fillStyle=ARC_COLS[i];cx.fillText(`arc ${a}`,14,H-80+i*14)});cx.fillStyle='#fff';cx.fillText(`flown: arc ${LANDING_ARC}`,14,H-94);cx.textAlign='center'}
+
 /* ---------- drawing ---------- */
 const cv=document.getElementById('cv'),cx=cv.getContext('2d');let sc=1,ox=0,oy=0;
 function resize(){const r=cv.getBoundingClientRect(),d=devicePixelRatio||1;cv.width=r.width*d;cv.height=r.height*d;
@@ -1009,6 +1121,7 @@ function draw(){
   // wind: which way planes take off
   if(CFG.wind){font(12,600);cx.textAlign='left';cx.fillStyle='#8fd8ff';cx.fillText(`wind from the ${windWord()}`,14,20);
     font(11);cx.fillStyle='#5f7d69';cx.fillText(`take off and land heading ${windWord()}`,14,38);cx.textAlign='center'}
+  if(S.paths)drawPaths();
   for(const p of S.planes){if(p.state==='ready'||p.atGate)continue;
     const lvl=Math.round(p.alt),col=p.warn?'#ff6b5e':LABEL[p.kind],hot=p.name===focus||(!cmd.value&&p.name===sugName),ground=onGround(p);
     cx.fillStyle=col;p.trail.forEach(([x,y],i)=>{cx.globalAlpha=.06+i*.05;cx.beginPath();cx.arc(x,y,1.6,0,7);cx.fill()});cx.globalAlpha=1;
@@ -1062,7 +1175,7 @@ function shiftOver(){
 let last=performance.now();
 function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;
   if(!S.paused&&!S.over&&!helpOpen())step(dt*S.L.scale);if(D.on&&!S.paused)demoTick(dt);draw();
-  $('lvl').textContent=S.demo?'demo':S.daily?`daily · ${today()}`:S.L.endless?`shift · best ${best}`:`level ${S.lvl+1} · ${S.L.name}`;
+  $('lvl').textContent=S.admin?`admin${S.sweep?` · sweep ${S.sweep.log.length+1}/${S.sweep.log.length+S.sweep.list.length+1}`:''}`:S.demo?'demo':S.daily?`daily · ${today()}`:S.L.endless?`shift · best ${best}`:`level ${S.lvl+1} · ${S.L.name}`;
   $('todo').textContent=S.demo?'':`${S.queue?`${S.done}/${S.L.arr+S.L.dep}`:S.done} planes · ${S.score} pts${S.L.endless&&!S.daily?` · ${meta.tokens} tokens`:''}`;
   $('strikes').innerHTML=[0,1,2].map(i=>`<i class="${i<S.strikes?'on':''}"></i>`).join('');
   const focus=typedHead(),u=runwayUser();
