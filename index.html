@@ -185,62 +185,91 @@ document.getElementById('qm').addEventListener('click',e=>{e.stopPropagation();s
 helpEl.addEventListener('click',()=>{showHelp(false);refreshSug()});
 setInterval(refreshSug,400);
 // the aircraft data sheet in the help card: every number comes from TYPES and the constants the game flies with
-// (game time runs 4.5x fast, so per-second rates are shown per real second)
+// (game time runs TIME_SCALE times fast; rates are shown per real second)
 function aircraftSheet(){const T=Object.entries(TYPES),f=(x,d=0)=>x.toLocaleString('en',{maximumFractionDigits:d,minimumFractionDigits:d});
-  const ms=kt=>kt*.5144,rad2deg=180/Math.PI,row=(k,fn)=>`<tr><td>${k}</td>${T.map(([ty,t])=>`<td>${fn(t,ty)}</td>`).join('')}</tr>`,sec=k=>`<tr class="sec"><td colspan="${T.length+1}">${k}</td></tr>`;
-  const omegaReal=t=>TURN*t.turn*rad2deg/4.5,radius=(t,kt)=>ms(kt)/(TURN*t.turn/4.5)/1000;   // km
+  const ms=kt=>kt*.5144,row=(k,fn)=>`<tr><td>${k}</td>${T.map(([ty,t])=>`<td>${fn(t,ty)}</td>`).join('')}</tr>`,sec=k=>`<tr class="sec"><td colspan="${T.length+1}">${k}</td></tr>`;
+  const radius=(t,kt)=>ms(kt)/rad(t.turnDeg)/1000;   // km
   return`<table class="ac"><tr><th></th>${T.map(([ty,t])=>`<th>${t.tag||'jet'}</th>`).join('')}</tr>`+
     row('model',t=>t.model)+row('role',t=>t.role)+
     sec('weight and size')+row('max takeoff weight',t=>f(t.mtow,1)+' t')+row('empty weight',t=>f(t.empty,1)+' t')+row('wingspan',t=>f(t.span,1)+' m')+row('length',t=>f(t.len,1)+' m')+
-    row('wake',t=>t.wake?`heavy: +${f(WAKE*25/1000,1)} km separation, runway rests 6 s`:'medium/light')+
+    row('wake',t=>t.wake?`heavy: +${f(WAKE*M_PER_PX/1000,1)} km separation, runway rests ${f(WAKE_REST*TIME_SCALE)} s`:'medium/light')+
     sec('speed')+LV.map((lv,i)=>row(`${lv} (${FEET[i]} ft)`,t=>i<=t.top?f(t.kt[i])+' kt':'·')).join('')+
     row('highest level',t=>`${LV[t.top]} (${FEET[t.top]} ft)`)+row('holding',t=>f(t.kt[0])+' kt')+row('approach and rotation',t=>f(t.app)+' kt')+
-    row('max cruise (not flown here)',t=>f(t.cruise)+' kt')+row('taxi',()=>f(TAXI/KT)+' kt')+row('speed change in the air',()=>f(ACC/KT/4.5,1)+' kt/s')+
-    sec('turning')+row('turn rate',t=>f(omegaReal(t),1)+' °/s')+row('turn radius at low',t=>f(radius(t,t.kt[0]),2)+' km')+row('turn radius on approach',t=>f(radius(t,t.app),2)+' km')+
-    sec('climb and runway')+row('climb and descent',t=>f(t.fpm)+' ft/min')+row('one level (2000 ft)',t=>f(2000/t.fpm*60)+' s')+
-    row('takeoff acceleration',t=>f(t.acc,1)+' m/s²')+row('takeoff run to rotation',t=>f(ms(t.app)**2/(2*t.acc))+' m')+row('runway',()=>f(2*RW*25/1000,1)+' km')+
-    sec('fuel')+row('tanks',t=>f(t.tank)+' kg')+row('burn',t=>f(t.burn)+' kg/h')+row('reserve on arrival',t=>`${f(t.fuel*4.5/60)} min`)+
-    `</table><p style="color:var(--dim);font-size:12.5px">1 px on the radar is 25 m, your area is ${f(RADAR*25/1000)} km across the radius, and the game runs 4.5× faster than real time. Separation: ${f(SEP*25/1000,2)} km on the same level.</p>`}
+    row('max cruise (not flown here)',t=>f(t.cruise)+' kt')+row('taxi',()=>f(TAXI/KT)+' kt')+row('speed change in the air',()=>f(AIR_ACCEL,1)+' kt/s')+
+    sec('turning')+row('turn rate',t=>f(t.turnDeg,1)+' °/s')+row('turn radius at low',t=>f(radius(t,t.kt[0]),2)+' km')+row('turn radius on approach',t=>f(radius(t,t.app),2)+' km')+
+    sec('climb and runway')+row('climb and descent',t=>f(t.fpm)+' ft/min')+row(`one level (${LEVEL_GAP} ft)`,t=>f(LEVEL_GAP/t.fpm*60)+' s')+
+    row('takeoff acceleration',t=>f(t.acc,1)+' m/s²')+row('takeoff run to rotation',t=>f(ms(t.app)**2/(2*t.acc))+' m')+row('runway',()=>f(2*RW*M_PER_PX/1000,1)+' km')+row('hardest braking after touchdown',()=>f(ROLLOUT_BRAKE,1)+' m/s²')+
+    sec('fuel')+row('tanks',t=>f(t.tank)+' kg')+row('burn',t=>f(t.burn)+' kg/h')+row('reserve on arrival',t=>`${f(t.fuel*TIME_SCALE/60)} min`)+
+    `</table><p style="color:var(--dim);font-size:12.5px">1 px on the radar is ${M_PER_PX} m, your area is ${f(RADAR*M_PER_PX/1000)} km across the radius, and the game runs ${TIME_SCALE}× faster than real time. Separation: ${f(SEP*M_PER_PX/1000,2)} km on the same level. Touchdown at most ${THETA_DEG}° off the runway heading.</p>`}
 const sndEl=document.getElementById('snd'),soundBtn=()=>setTimeout(()=>sndEl.textContent=SFX.on?'♪':'×');
 sndEl.addEventListener('click',e=>{e.stopPropagation();SFX.toggle();soundBtn()});soundBtn();
 
+/* =====================================================================================================================
+   TUNING: every number that sets how the game plays, in one place. Change them here; the rest of the code reads them.
+   Real-world units where there are any (kt, ft, ft/min, m/s², °/s, t, m, kg); distances on screen in px (1 px = M_PER_PX m);
+   seconds marked "game" run TIME_SCALE times faster than real ones.
+   ===================================================================================================================== */
+const rad=d=>d*Math.PI/180,wrap=a=>Math.atan2(Math.sin(a),Math.cos(a));
+// scale
+const M_PER_PX=25;            // 1 px on screen is 25 m
+const TIME_SCALE=4.5;         // game time runs 4.5x faster than real time
+// your airspace (px)
+const RADAR=320;              // radius of your area (8 km)
+const RW=60;                  // half the runway's length (a 3 km runway)
+const GATE_R=50,GATE_D=150;   // landing circles: radius, and how far out from the runway end their centre is
+const SEP=38,WAKE=14;         // minimum separation on the same level (0.95 km), and the extra room around a heavy or freighter
+const LEVEL_FT=[3000,5000,7000,9000,11000];   // the levels low, mid, high, top, peak
+const ARRIVE_LEVEL=2,DEPART_LEVEL=1;          // arrivals come in high (or as high as their type goes), departures climb to mid
+// flying
+const AIR_ACCEL=2.4;          // kt/s: how fast airspeed changes in the air
+const TURN_DECEL=.2;          // on the approach a plane slows by this fraction of AIR_ACCEL in turns, fully on straights
+const TAXI_KT=30;             // taxi speed
+const ROLLOUT_BRAKE=4.9;      // m/s²: hardest braking after touchdown
+const WAKE_REST=6;            // game s: a runway rests this long after a heavy or freighter used it
+// landing
+const THETA_DEG=15;           // touchdown at most this many degrees off the runway heading
+const FINAL_MIN=35;           // px: the shortest straight final (875 m), on top of the distance needed to slow to approach speed
+const LANDING_ARC=.5;         // the line-up turn: 0 = tightest (shortest path), 1 = widest arc that still lines up, in between = in between
+// fuel
+const MAYDAY_S=45;            // game s of fuel left when a plane calls MAYDAY
+// aircraft types, each modelled on a real one. Flown in the game: airspeed in knots at each level (low, mid, high, top, peak;
+// slower low down) and on the approach (app, also its rotation speed), the highest level it goes to (top: a small plane stays
+// low, a freighter does not pay to climb high), turn rate (°/s; the turn radius is speed / turn rate), climb and descent rate
+// (fpm), takeoff acceleration (acc, m/s²), wake (needs more room behind it), drawn size, fuel reserve on arrival (game s).
+// Only for the data sheet: weights (t), dimensions (m), cruise speed (kt), tank (kg) and burn (kg/h)
+const TYPES={
+  light:{tag:'prop',model:'Pilatus PC-12',role:'single-engine turboprop',kt:[160,180,200,215,230],app:110,top:1,turnDeg:7.5,fpm:1500,acc:2,wake:0,size:.8,fuel:270,
+    mtow:4.74,empty:2.83,span:16.3,len:14.4,cruise:285,tank:1220,burn:230},
+  bizjet:{tag:'bizjet',model:'Cessna Citation CJ4',role:'business jet',kt:[200,235,265,285,300],app:125,top:2,turnDeg:5.3,fpm:3800,acc:3,wake:0,size:.85,fuel:180,
+    mtow:7.76,empty:4.72,span:15.5,len:16.3,cruise:451,tank:2640,burn:600},
+  jet:{tag:'',model:'Airbus A320neo',role:'airliner',kt:[190,220,250,270,290],app:140,top:4,turnDeg:5.3,fpm:2500,acc:2.2,wake:0,size:1,fuel:240,
+    mtow:79,empty:44.3,span:35.8,len:37.6,cruise:450,tank:21000,burn:2400},
+  heavy:{tag:'heavy',model:'Boeing 777-300ER',role:'wide-body airliner',kt:[210,240,260,280,300],app:150,top:4,turnDeg:3.7,fpm:2000,acc:1.9,wake:1,size:1.3,fuel:210,
+    mtow:351.5,empty:167.8,span:64.8,len:73.9,cruise:490,tank:145500,burn:7500},
+  cargo:{tag:'cargo',model:'Boeing 747-8F',role:'freighter',kt:[210,235,255,275,295],app:160,top:2,turnDeg:3.5,fpm:1600,acc:1.6,wake:1,size:1.35,fuel:210,
+    mtow:447.7,empty:197,span:68.4,len:76.3,cruise:490,tank:181000,burn:10500}};
+const TYPE_MIX={light:.22,bizjet:.15,jet:.38,heavy:.13,cargo:.12};   // how often each type shows up (once types are on)
+/* ---------- derived from the tuning above, in game units (px, game s) ---------- */
+const KT=.5144*TIME_SCALE/M_PER_PX;              // px per game s, per knot
+const ACC=AIR_ACCEL*TIME_SCALE*KT,TAXI=TAXI_KT*KT,THETA=rad(THETA_DEG);
+const toGame=a=>a*TIME_SCALE*TIME_SCALE/M_PER_PX; // m/s² to px per game s²
+const FEET=LEVEL_FT.map(String),LEVEL_GAP=LEVEL_FT[1]-LEVEL_FT[0];
+const pickType=()=>{let r=rnd()*Object.values(TYPE_MIX).reduce((a,b)=>a+b);for(const[k,w]of Object.entries(TYPE_MIX))if((r-=w)<0)return k;return'jet'};
+// the highest level a plane goes to: its type's, or lower when your airspace has fewer levels
+const ceil=p=>Math.min(CFG.levels-1,p.T.top);
+// climbing and descending, in levels per game s; the takeoff run's acceleration in px per game s²
+const climbRate=p=>p.T.fpm/60*TIME_SCALE/LEVEL_GAP,runAcc=p=>toGame(p.T.acc);
+
 /* ---------- world ---------- */
-const W=720,H=700,AX=360,AY=350,RW=60,RADAR=320,RING=250;  // airport centre, runway half length (east-west), your area, where waiting planes circle
+const W=720,H=700,AX=360,AY=350,RING=250;  // the canvas, the airport centre, where waiting planes circle
 const HEADINGS={north:-90,northeast:-45,east:0,southeast:45,south:90,southwest:135,west:180,northwest:-135};
 const RELATIVE={softleft:-45,left:-90,hardleft:-135,softright:45,right:90,hardright:135};
 const DIRS=[...Object.keys(HEADINGS),...Object.keys(RELATIVE)];
 const LV=['low','mid','high','top','peak'],ALTCH='LMHTP';
 const NAMES='heron wren kite swift raven egret finch gull ibis jay lark owl puffin quail robin stork tern crane dove magpie osprey petrel snipe teal falcon grebe hawk vulture plover condor albatross bittern nightjar'.split(' ');
-// scale: 1 px is about 25 m and time runs 4.5x fast (KT: px/s per knot), so a jet's 190 kt at 3000 ft is 17.6 px/s and
-// the runway is 3 km. A level change takes the type's climb rate (climbRate), speeds change at ~2.4 kt/s in the air (ACC), a takeoff run
-// accelerates per type (runAcc), taxiing is 30 kt (TAXI). Levels are 2000 ft apart from 3000 ft (FEET)
-const ACC=1,KT=.5144*4.5/25,TAXI=30*KT,FEET=['3000','5000','7000','9000','11000'];
-const SEP=38,WAKE=14,TURN=24*Math.PI/180,GATE_R=50,GATE_D=150;   // landing circles: radius, and how far out from the runway end (room for a gentle line-up)
-// aircraft types, each modelled on a real one. Flown in the game: airspeed in knots at each level (low, mid, high, top, peak;
-// slower low down) and on the approach (app, also its rotation speed), the highest level it goes to (top: a small plane stays
-// low, a freighter does not pay to climb high), turn rate (a factor on TURN), climb and descent rate (fpm), takeoff
-// acceleration (acc, m/s²), wake (a heavy needs more room), drawn size, fuel reserve on arrival (s). Only for the data sheet:
-// weights (t), dimensions (m), cruise speed (kt), tank (kg) and burn (kg/h)
-const TYPES={
-  light:{tag:'prop',model:'Pilatus PC-12',role:'single-engine turboprop',kt:[160,180,200,215,230],app:110,top:1,turn:1.4,fpm:1500,acc:2,wake:0,size:.8,fuel:270,
-    mtow:4.74,empty:2.83,span:16.3,len:14.4,cruise:285,tank:1220,burn:230},
-  bizjet:{tag:'bizjet',model:'Cessna Citation CJ4',role:'business jet',kt:[200,235,265,285,300],app:125,top:2,turn:1,fpm:3800,acc:3,wake:0,size:.85,fuel:180,
-    mtow:7.76,empty:4.72,span:15.5,len:16.3,cruise:451,tank:2640,burn:600},
-  jet:{tag:'',model:'Airbus A320neo',role:'airliner',kt:[190,220,250,270,290],app:140,top:4,turn:1,fpm:2500,acc:2.2,wake:0,size:1,fuel:240,
-    mtow:79,empty:44.3,span:35.8,len:37.6,cruise:450,tank:21000,burn:2400},
-  heavy:{tag:'heavy',model:'Boeing 777-300ER',role:'wide-body airliner',kt:[210,240,260,280,300],app:150,top:4,turn:.7,fpm:2000,acc:1.9,wake:1,size:1.3,fuel:210,
-    mtow:351.5,empty:167.8,span:64.8,len:73.9,cruise:490,tank:145500,burn:7500},
-  cargo:{tag:'cargo',model:'Boeing 747-8F',role:'freighter',kt:[210,235,255,275,295],app:160,top:2,turn:.65,fpm:1600,acc:1.6,wake:1,size:1.35,fuel:210,
-    mtow:447.7,empty:197,span:68.4,len:76.3,cruise:490,tank:181000,burn:10500}};
-const pickType=()=>{const r=rnd();return r<.22?'light':r<.37?'bizjet':r<.75?'jet':r<.88?'heavy':'cargo'};
-// the highest level a plane goes to: its type's, or lower when your airspace has fewer levels
-const ceil=p=>Math.min(CFG.levels-1,p.T.top);
-// climbing and descending, in levels per game second (levels are 2000 ft apart); the takeoff run's acceleration in px/s²
-const climbRate=p=>p.T.fpm/60*4.5/2000,runAcc=p=>p.T.acc*4.5*4.5/25;
-// holding fixes: named points north and south of the field to send a plane to and circle over
 // holding fixes: a plane holds by circling the fix (right turns) at its low-level speed, so on its turn radius at that speed.
-// A heavy's is the widest (about 63); the fixes sit where that ring, with room to spare, stays inside your area and clear of each other and of every
-// landing circle (also runway 2's)
+// A freighter's is the widest (about 71); the fixes sit where that ring stays inside your area and clear of each other and of
+// every landing circle (also runway 2's)
 const FIXES={alpha:{x:AX-100,y:AY-220},bravo:{x:AX+100,y:AY-220},kilo:{x:AX+100,y:AY+220},zulu:{x:AX-100,y:AY+220}};
 // points per plane: 100, less a point for every second beyond par (from appearing to landing or hand-off)
 const PAR={arr:70,dep:55,ovf:40};
@@ -262,7 +291,6 @@ const UPGRADES={
   runway:{max:1,cost:[40],what:'a second runway south of the first, with its own landing circles'},
   nav:{max:1,cost:[30],what:'departures turn to their exit by themselves, and land works anywhere: the plane flies to the nearest open circle'},
   tanks:{max:2,cost:[10,20],what:'arrivals carry 60 s more fuel'}};
-const rad=d=>d*Math.PI/180,wrap=a=>Math.atan2(Math.sin(a),Math.cos(a));
 const store=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){}};
 const load=(k,d)=>{try{return JSON.parse(store(k))??d}catch(e){return d}};
 /* ---------- sound: every effect synthesised with Web Audio, no files. Math.random only, so the daily seed is untouched ---------- */
@@ -344,7 +372,7 @@ function newPlane(o){const ty=CFG.types?pickType():'jet',T=TYPES[ty];
 const speedFor=p=>{const k=p.T.kt,i=Math.min(k.length-2,Math.floor(p.alt)),f=p.alt-i;return KT*(k[i]+(k[i+1]-k[i])*f)};
 const vApp=p=>KT*p.T.app,vHold=p=>KT*p.T.kt[0];
 // every turn is flown at the type's one turn rate, so its radius grows with speed: r = v / turn rate
-const omega=p=>TURN*p.T.turn,turnR=(p,v=p.spd)=>v/omega(p);
+const omega=p=>rad(p.T.turnDeg)*TIME_SCALE,turnR=(p,v=p.spd)=>v/omega(p);
 const GROUND=['ready','taxi','lineup','enter','rollout','taxiin'],onGround=p=>GROUND.includes(p.state);
 // two taxi lanes on one wide taxiway: departures taxi out on the inner one (x AX±OUT_X, apron row OUT_Y) to a holding point
 // HOLD short of the runway, arrivals taxi in on the outer one, so the two never sit on top of each other
@@ -359,7 +387,7 @@ function heldUp(p){const[wx,wy]=p.path[0],h=Math.atan2(wy-p.y,wx-p.x),ux=Math.co
 function spawnDep(dest){const name=freshName();if(name)S.planes.push(newPlane({name,kind:'dep',dest,state:'ready',x:AX,y:OUT_Y,hdg:0,tgt:0,alt:0,tgtAlt:0,altFrom:0,spd:0}))}
 function spawnArr(bearing){const b=rad(bearing),x=AX+Math.cos(b)*(RADAR-6),y=AY+Math.sin(b)*(RADAR-6),h=wrap(b+Math.PI+rad((rnd()-.5)*40));
   const name=freshName();if(!name)return;SFX.contact();const p=newPlane({name,kind:'arr',state:'fly',x,y,hdg:h,tgt:h});
-  p.alt=p.tgtAlt=p.altFrom=Math.min(2,ceil(p));p.spd=speedFor(p);   // in high, or as high as its type goes
+  p.alt=p.tgtAlt=p.altFrom=Math.min(ARRIVE_LEVEL,ceil(p));p.spd=speedFor(p);   // in high, or as high as its type goes
   p.fuel=p.fuel0=CFG.fuel?p.T.fuel+CFG.tank:Infinity;S.planes.push(p)}   // it enters with full tanks
 // an overflight from the neighbouring sector: crosses your area in a straight line, to leave through the slice it is aimed at
 function spawnOvf(bearing){const b=rad(bearing),ex=Math.cos(b)*(RADAR-6),ey=Math.sin(b)*(RADAR-6),h=Math.atan2((rnd()-.5)*200-ey,(rnd()-.5)*200-ex);
@@ -444,22 +472,34 @@ function dubins(x0,y0,h0,x1,y1,h1,r){let best=null;const tw=a=>((a%(2*Math.PI))+
 // forbidden circle: radius the plane's turn radius r, touching the leg at the runway end, its centre on the line through the
 // runway end square to the leg, on the outer side. Turning along it, a plane reaches the runway end at exactly THETA; from
 // inside one it is too close beside the runway end to turn in, so it goes round the landing circle's centre until it is out
-const THETA=rad(15),FINAL_MIN=35;   // FINAL_MIN: the shortest straight final, time to settle on its line
 const forbidden=(p,g)=>{const r=turnR(p),Tx=AX-g.dir*RW;
   return[-1,1].map(s=>({x:Tx+g.dir*r*Math.sin(THETA),y:g.rw.y+s*r*Math.cos(THETA),r}))};   // s: the north and the south leg
 const inForbidden=(p,g)=>forbidden(p,g).some(f=>Math.hypot(p.x-f.x,p.y-f.y)<f.r);
-// the line-up: one steady-bank turn (left or right, radius r), then straight to the runway end, arriving within THETA of the
-// runway heading; the shorter of the two. It must be long enough to descend on the way and stay inside your area.
-// free: neither limit (only to know which way is shorter). None: it keeps circling
-function lineUp(p,g,free=false){const r=turnR(p),Tx=AX-g.dir*RW,Ty=g.rw.y,rh=g.dir>0?0:Math.PI,tw=a=>((a%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
-  const need=p.alt/climbRate(p)*vApp(p);let best=null;   // the distance it flies while descending, at approach speed
-  for(const d of[1,-1]){const cx=p.x-d*r*Math.sin(p.hdg),cy=p.y+d*r*Math.cos(p.hdg),D=Math.hypot(Tx-cx,Ty-cy);if(D<r)continue;   // its turn's centre (d +1: right)
-    const ta=Math.atan2(Ty-cy,Tx-cx)-d*Math.acos(r/D),tx=cx+r*Math.cos(ta),ty=cy+r*Math.sin(ta),hs=Math.atan2(Ty-ty,Tx-tx);   // where it leaves the turn, aimed at the runway end
-    if(Math.abs(wrap(hs-rh))>THETA-rad(3))continue;   // 3° to spare: rolling out of the turn it lags its path a little
-    const arc=tw(d*(ta-Math.atan2(p.y-cy,p.x-cx)))*r,L=Math.hypot(Tx-tx,Ty-ty),len=arc+L;if(!free&&(len<need||L<FINAL_MIN))continue;
-    const P=[{x:p.x,y:p.y,h:p.hdg,d,r,len:arc},{x:tx,y:ty,h:hs,d:0,len:L+30}].filter(q=>q.len>.01);   // +30: on over the runway end
-    let ok=true;if(!free)for(let s=0;s<=len&&ok;s+=3)if(fromAirport(pathAt(P,s))>RADAR-15)ok=false;
-    if(ok&&(!best||len<best.len))best={len,P}}
+// a line-up: one steady turn of radius R (d +1 right, -1 left), then straight to the runway end, arriving within THETA of the
+// runway heading (3° to spare: rolling out of the turn it lags its path a little). Unless free, the straight final must be long
+// enough to slow to approach speed and settle (FINAL_MIN), the whole path long enough to descend, and inside your area.
+// Returns the path, its length and its straight final, or null
+function turnIn(p,g,R,d,free){const Tx=AX-g.dir*RW,Ty=g.rw.y,rh=g.dir>0?0:Math.PI,tw=a=>((a%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
+  const cx=p.x-d*R*Math.sin(p.hdg),cy=p.y+d*R*Math.cos(p.hdg),D=Math.hypot(Tx-cx,Ty-cy);if(D<R)return null;   // the turn's centre
+  const ta=Math.atan2(Ty-cy,Tx-cx)-d*Math.acos(R/D),tx=cx+R*Math.cos(ta),ty=cy+R*Math.sin(ta),hs=Math.atan2(Ty-ty,Tx-tx);   // where it leaves the turn, aimed at the runway end
+  if(Math.abs(wrap(hs-rh))>THETA-rad(3))return null;
+  const arc=tw(d*(ta-Math.atan2(p.y-cy,p.x-cx)))*R,L=Math.hypot(Tx-tx,Ty-ty),len=arc+L;
+  const P=[{x:p.x,y:p.y,h:p.hdg,d,r:R,len:arc},{x:tx,y:ty,h:hs,d:0,len:L+30}].filter(q=>q.len>.01);   // +30: on over the runway end
+  if(!free){const slow=Math.max(0,p.spd*p.spd-vApp(p)**2)/(2*ACC);
+    if(L<FINAL_MIN+slow||len<p.alt/climbRate(p)*vApp(p))return null;
+    for(let s=0;s<=len;s+=3){const q=pathAt(P,s);if(fromAirport(q)>RADAR-15||s<arc&&g.dir*(q.x-Tx)>-5)return null}}   // the turn stays on the approach side of the runway end
+  return{len,L,P}}
+// the line-up flown: per turn direction, the tightest turn it can fly now (radius speed / turn rate, the shortest path) and the
+// widest that still lines up (at most 12 times as wide, and 5% inside that edge); LANDING_ARC picks the radius in between. The direction whose tightest line-up is shorter wins.
+// free: no limits (only to know which way is shorter). None: it keeps circling
+function lineUp(p,g,free=false){const r=turnR(p);let best=null;
+  for(const d of[1,-1]){const tight=turnIn(p,g,r,d,free);if(!tight)continue;
+    let R=r;if(!free&&LANDING_ARC>0){let ok=r,bad=null;   // the widest: grow the radius 5% at a time until it no longer lines up, then narrow it down
+      for(let x=r*1.05;x<12*r;x*=1.05){if(turnIn(p,g,x,d))ok=x;else{bad=x;break}}
+      if(bad)for(let k=0;k<6;k++){const m=(ok+bad)/2;if(turnIn(p,g,m,d))ok=m;else bad=m}
+      R=r+LANDING_ARC*(Math.max(r,.95*ok)-r)}   // 5% inside the widest: right at the edge it barely lines up
+    const path=R===r?tight:turnIn(p,g,R,d,free)||tight;
+    if(!best||tight.len<best.tight)best={tight:tight.len,P:path.P}}
   return best&&best.P}
 // which way to circle while no line-up fits yet (too high, runway busy): with the centre on the inside of the turn, so it stays
 // in the zone; nose straight at the centre, either way works, so the way the shortest line-up turns
@@ -486,7 +526,7 @@ const rwName=(r,dir)=>(dir>0?'09':'27')+(RUNWAYS.length>1?(r.i===0)===(dir>0)?'L
 const hdgNum=h=>String(Math.round(((h*180/Math.PI+90)%360+360)%360/5)*5||360).padStart(3,'0');
 // final: the line-up path, flown by following it, touching down at the runway end
 function startFinal(p,k,P){const g=GATES[k];p.state='final';p.dir=g.dir;p.rw=g.rw;p.cleared=false;p.inGate=null;p.navGate=null;p.orbit=0;p.app=P;p.s=0}
-function startRoll(p){p.state='roll';SFX.roll(p.T.wake?1.4:p.ty==='light'?.6:1);p.x=AX-p.rdir*RW;p.y=p.rw.y;p.hdg=p.rdir>0?0:Math.PI;if(!p.turned)p.tgt=p.hdg;p.spd=0;p.w=0;setLevel(p,1)}
+function startRoll(p){p.state='roll';SFX.roll(p.T.wake?1.4:p.ty==='light'?.6:1);p.x=AX-p.rdir*RW;p.y=p.rw.y;p.hdg=p.rdir>0?0:Math.PI;if(!p.turned)p.tgt=p.hdg;p.spd=0;p.w=0;setLevel(p,DEPART_LEVEL)}
 
 // wind turns now and then (the runway direction flips); storm cells drift with it, north or south of the runways
 function weather(dt){
@@ -513,7 +553,7 @@ function step(dt){
     if(p.state==='ready')continue;
     if(p.kind==='arr'&&p.state!=='final'&&p.state!=='rollout'){p.fuel-=dt;
       if(p.fuel<=0){remove(p);strike(`${p.name} ran out of fuel`,p.x,p.y);continue}
-      if(p.fuel<45&&!p.mayday){p.mayday=true;SFX.mayday();say(`!MAYDAY ${p.name}: low on fuel, land it next`)}}
+      if(p.fuel<MAYDAY_S&&!p.mayday){p.mayday=true;SFX.mayday();say(`!MAYDAY ${p.name}: low on fuel, land it next`)}}
     // on the ground: taxi along the taxiway to the runway end, wait there until the runway is free, then roll
     // on the ground: taxi out to the holding point and wait there until the runway is free, then enter it, line up and roll
     // cleared to taxi, it stays at its gate (not shown, like a waiting departure) until the apron in front of it is clear
@@ -523,11 +563,11 @@ function step(dt){
     if(p.state==='lineup'){if(!rwBusy(p.rw)&&!landingOn(p.rw)){p.state='enter';p.path=[[p.hx,p.rw.y],[AX-p.rdir*RW,p.rw.y]]}continue}
     if(p.state==='enter'){const d=wrap((p.rdir>0?0:Math.PI)-p.hdg);p.hdg=wrap(p.hdg+Math.sign(d)*Math.min(Math.abs(d),2.5*dt));if(Math.abs(d)>.01)continue;startRoll(p)}
     // the takeoff run: it lifts off at its rotation speed (a heavy needs more runway), or at the latest at the end of the runway
-    if(p.state==='roll'){p.spd+=runAcc(p)*dt;if(p.spd>=vApp(p)||p.rdir*(p.x-AX)>RW){p.state='fly';if(p.T.wake)p.rw.wake=6}}
+    if(p.state==='roll'){p.spd+=runAcc(p)*dt;if(p.spd>=vApp(p)||p.rdir*(p.x-AX)>RW){p.state='fly';if(p.T.wake)p.rw.wake=WAKE_REST}}
     // the landing run: braking so it is down to taxi speed at the end of the runway, then off it and taxiing in to the apron
-    else if(p.state==='rollout'){const left=Math.max(1,p.dir*(AX+p.dir*RW-p.x));p.spd=Math.max(TAXI,p.spd-Math.min(4,Math.max(.5,(p.spd*p.spd-TAXI*TAXI)/(2*left)))*dt);
-      const d=wrap(Math.atan2(p.rw.y-p.y,p.dir*20)-p.hdg);p.hdg=wrap(p.hdg+Math.sign(d)*Math.min(Math.abs(d),TURN*dt));
-      if(p.dir*(p.x-AX)>=RW){if(p.T.wake)p.rw.wake=6;handled(p,'#7ee0a8',`${p.name} landed, runway ${rwName(p.rw,p.dir)} vacated`,true);
+    else if(p.state==='rollout'){const left=Math.max(1,p.dir*(AX+p.dir*RW-p.x));p.spd=Math.max(TAXI,p.spd-Math.min(toGame(ROLLOUT_BRAKE),Math.max(.5,(p.spd*p.spd-TAXI*TAXI)/(2*left)))*dt);
+      const d=wrap(Math.atan2(p.rw.y-p.y,p.dir*20)-p.hdg);p.hdg=wrap(p.hdg+Math.sign(d)*Math.min(Math.abs(d),omega(p)*dt));
+      if(p.dir*(p.x-AX)>=RW){if(p.T.wake)p.rw.wake=WAKE_REST;handled(p,'#7ee0a8',`${p.name} landed, runway ${rwName(p.rw,p.dir)} vacated`,true);
         const ex=AX+p.dir*IN_X;p.state='taxiin';p.gt=S.gt=(S.gt||0)+1;p.spd=TAXI;p.path=[[ex,p.rw.y],[ex,IN_Y],[AX+p.dir*30,IN_Y]];continue}}
     else{
       const turn=omega(p);let wd=null;   // the turn rate it wants, when something steers it more finely than a heading
@@ -564,7 +604,8 @@ function step(dt){
         p.w=p.w||0;p.w+=Math.max(-1.4*turn*dt,Math.min(1.4*turn*dt,wd-p.w));p.hdg=wrap(p.hdg+p.w*dt)}
       if(p.state!=='rollout')p.alt+=Math.sign(p.tgtAlt-p.alt)*Math.min(Math.abs(p.tgtAlt-p.alt),climbRate(p)*dt);
       const want=p.state==='final'||p.cleared?vApp(p):p.state==='hold'||p.state==='tofix'?vHold(p):speedFor(p);   // cleared to land: slowing to its approach speed; holding: its low-level speed at any level
-      p.spd+=Math.max(-ACC*dt,Math.min(ACC*dt,want-p.spd));
+      const acc=p.state==='final'&&pathAt(p.app,p.s).k?TURN_DECEL*ACC:ACC;   // on final: slowing only a little in the turn
+      p.spd+=Math.max(-acc*dt,Math.min(acc*dt,want-p.spd));
     }
     p.x+=Math.cos(p.hdg)*p.spd*dt;p.y+=Math.sin(p.hdg)*p.spd*dt;
     p.vs=(p.vs??sizeFor(p))+(sizeFor(p)-(p.vs??sizeFor(p)))*Math.min(1,dt*1.5);
