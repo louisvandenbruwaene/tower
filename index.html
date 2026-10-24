@@ -62,10 +62,10 @@ main{flex:1;min-height:0;display:flex}
 #sug i{font-style:normal;font-size:13px;padding:2px 9px;border-radius:5px;background:var(--chip);color:var(--dim)} #sug i.on{background:var(--chipon);color:var(--fg)}
 /* help card over everything */
 #help{position:fixed;inset:0;display:grid;place-items:center;background:rgba(2,8,5,.75);backdrop-filter:blur(4px);overflow:auto;z-index:5}
-#help .card{max-width:800px;max-height:calc(100% - 24px);overflow:auto;box-sizing:border-box;font-size:14px;margin:12px;padding:16px 26px;background:linear-gradient(#0a1912,#06100b);border:1px solid var(--chipon);border-radius:12px;line-height:1.5;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+#help .card{max-width:min(1000px,calc(100% - 24px));max-height:calc(100% - 24px);overflow:auto;box-sizing:border-box;font-size:14px;margin:12px;padding:16px 26px;background:linear-gradient(#0a1912,#06100b);border:1px solid var(--chipon);border-radius:12px;line-height:1.5;box-shadow:0 20px 60px rgba(0,0,0,.5)}
 #help h2{margin:0 0 6px;color:var(--acc);letter-spacing:.2em;text-transform:uppercase;font-size:18px;text-shadow:0 0 14px rgba(126,224,168,.45)} #help p{margin:8px 0} #help table{border-collapse:collapse;margin:8px 0} #help td{padding:2px 14px 2px 0;vertical-align:top}
 #help td:first-child{color:var(--acc);white-space:nowrap} #help .ac td{font-size:12.5px;padding-right:10px} #help .ac th{text-align:left;color:var(--gold);font-size:12.5px;padding:2px 10px 2px 0} #help .ac tr.sec td{color:var(--dim);padding-top:8px;text-transform:uppercase;letter-spacing:.1em;font-size:11px} #help .go{color:var(--dim);margin-top:12px} #help code{color:var(--gold)}
-@media (max-width:760px){main{flex-direction:column}#term{width:auto;height:50%}}
+@media (max-width:760px){main{flex-direction:column}#term{width:auto;height:50%;overflow:hidden}#bar{gap:10px;padding:8px 12px}#brand{display:none}#todo small{display:none}}   /* narrow: the bar keeps the numbers and buttons */
 </style></head><body>
 <div id="bar"><span id="brand">TOWER POWER</span><b id="lvl"></b><span id="todo"></span><button id="tut" class="rb" title="a short guided first landing, departure and hold">tutorial</button><button id="ff" class="rb" title="game speed: 1× 2× 4×"></button><button id="snd" class="rb" title="sound on/off"></button><button id="qm" class="rb" title="help">?</button></div>
 <main>
@@ -120,7 +120,7 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>daily · hard</td><td><b>daily</b>: today's shift, the same for everyone, no upgrades. <b>hard</b> (after a $10,000 shift): no autopilot; <b>land</b> only once you have flown the plane onto the lit strip yourself, low and facing the runway, and <b>hold alpha</b> only at ALPHA.</td></tr>
 </table>
 <p>Faded text in the prompt is a suggestion: <b>→</b> takes all of it, <b>Tab</b> takes one word. Capitals don't matter. Typos are fixed for you (<b>nt</b> = north): the reply shows what was understood. <b>Esc</b> pauses, <b>help</b> shows this card.</p>
-<h2 id="acdata" style="margin-top:18px">Aircraft</h2><div id="actable"></div>
+<h2 id="acdata" style="margin-top:18px">Aircraft</h2><div id="actable" style="overflow-x:auto"></div>
 <p class="go">Enter or Esc to close · click anywhere</p></div></div>
 <script>
 /* ---------- terminal: plane action [direction]; every word is read as its most likely meaning ---------- */
