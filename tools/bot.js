@@ -18,7 +18,7 @@ function future(p,t,alt=p.tgtAlt){
   return[x+Math.cos(tgt)*go,y+Math.sin(tgt)*go,lv,0]}
 function meets(a,b,altA=a.tgtAlt,altB=b.tgtAlt){
   for(let t=0;t<=20;t+=.5){const[ax,ay,al,ar]=future(a,t,altA),[bx,by,bl,br]=future(b,t,altB);
-    if(Math.abs(al-bl)<.7&&Math.hypot(ax-bx,ay-by)<sepOf(a,b)+16+ar+br)return true}return false}
+    if(Math.abs(al-bl)<VSEP+.2&&Math.hypot(ax-bx,ay-by)<sepOf(a,b)+16+ar+br)return true}return false}
 const clearAt=(p,alt)=>alt<=ceil(p)&&S.planes.every(o=>o===p||onGround(o)||!meets(p,o,alt));
 // the first level (from the wanted list) where this plane could circle without meeting anyone
 const holdLevel=(p,levels)=>levels.find(lv=>S.planes.every(o=>o===p||onGround(o)||!meets({...p,state:'hold'},o,lv)));
@@ -33,14 +33,14 @@ function decide(){
   const runwayBusy=RUNWAYS.some(rwBusy)||S.planes.some(p=>p.state==='taxi'||p.state==='lineup'||p.state==='enter');
   const landing=S.planes.some(p=>p.state==='final'||p.state==='rollout'||p.cleared);
   const once=(p,k,sec)=>{const key=p.name+k;if((D.cool.get(key)||0)>S.t)return false;D.cool.set(key,S.t+sec);return true};
-  const ups=[...Array(CFG.levels-1)].map((_,i)=>CFG.levels-1-i);   // every level but low, highest first
+  const ups=CFG.levels.filter(i=>i>0).reverse();   // every level but low, highest first
   // the one arrival allowed down to low: a mayday first, then whoever is low already, else the closest
   const arrs=S.planes.filter(p=>p.kind==='arr'&&free(p)&&!p.cleared).sort((x,y)=>(!!y.mayday-!!x.mayday)||(!!y.T.prio-!!x.T.prio)||(x.tgtAlt-y.tgtAlt)||(fromAirport(x)-fromAirport(y)));
   const next=arrs[0];
   // compare with the true bearing, and allow more than the 22.5° a compass word can be off, or turns flip-flop
   const pointing=p=>p.state==='hold'||Math.abs(wrap(Math.atan2(AY-p.y,AX-p.x)-p.tgt))<=rad(35);
   // a departure is let go only if its whole climb-out misses everyone
-  const climbOut=(p,way)=>{const k=Object.keys(GATES).find(k=>GATES[k].hw===way),g=GATES[k];return{...p,state:'roll',tk:k,rw:g.rw,x:g.tx,y:g.ty,hdg:g.h,tgt:rad(HEADINGS[p.dest]),spd:vApp(p),alt:0,tgtAlt:1}};
+  const climbOut=(p,way)=>{const k=Object.keys(GATES).find(k=>GATES[k].hw===way),g=GATES[k];return{...p,state:'roll',tk:k,rw:g.rw,x:g.tx,y:g.ty,hdg:g.h,tgt:rad(HEADINGS[p.dest]),spd:vApp(p),alt:0,tgtAlt:DEPART_LEVEL}};
   // 1. separation before anything else: give one of the two a different level
   for(const a of air)for(const b of air){if(a===b||!meets(a,b))continue;
     for(const p of [a,b].filter(q=>free(q)&&!q.cleared).sort((x,y)=>(y.kind!=='arr')-(x.kind!=='arr'))){const o=p===a?b:a;
@@ -59,8 +59,8 @@ function decide(){
       return[[p.name,'turn',toward(p)],`${p.name} is heading out of your area. Turn it ${U(toward(p))}, back toward the airport.`]}
   // 2. the next arrival comes down and lands
   if(next){const p=next;
-    if(landing&&p.tgtAlt>=2&&fromAirport(p)<RING+20&&clearAt(p,1)&&once(p,'down',8))
-      return[levelCmd(p,1),`${p.name} is next to land, but the runway is still in use. Bring it down to mid for now.`];
+    if(landing&&p.tgtAlt>MISSED_LEVEL&&fromAirport(p)<RING+20&&clearAt(p,MISSED_LEVEL)&&once(p,'down',8))
+      return[levelCmd(p,MISSED_LEVEL),`${p.name} is next to land, but the runway is still in use. Bring it down to mid for now.`];
     if(landing&&p.state==='fly'&&fromAirport(p)<RING-40&&holdLevel(p,[p.tgtAlt])!==undefined&&once(p,'hold',6))
       return[[p.name,'hold'],`${p.name} is next, but someone is still landing. It circles until the runway is free.`];
     if(!landing&&p.tgtAlt>0&&clearAt(p,0)&&once(p,'down',8))
