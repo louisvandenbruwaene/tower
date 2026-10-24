@@ -12,7 +12,7 @@ body{display:flex;flex-direction:column;background:radial-gradient(ellipse 70% 8
 #brand::before{content:'';display:inline-block;width:8px;height:8px;margin-right:11px;border-radius:50%;background:var(--acc);box-shadow:0 0 10px var(--acc);vertical-align:1px;animation:blink 2s infinite}
 @keyframes blink{50%{opacity:.35}}
 #lvl{font-weight:500;font-size:13px;padding:3px 12px;border:1px solid var(--chipon);border-radius:99px;background:var(--chip)}
-#todo{margin-left:auto;color:var(--dim);font-size:13px}
+#todo{margin-left:auto;color:var(--dim);font-size:13px} #todo .tok{color:var(--gold)} #todo .tok small{color:var(--dim);font-size:11.5px}
 #ff+#snd,#snd+#qm{margin-left:-8px} #ff{width:auto;padding:0 8px;border-radius:13px;font-size:12px}
 .rb{width:26px;height:26px;padding:0;border-radius:50%;border:1px solid var(--chipon);background:var(--chip);color:var(--acc);font:600 14px var(--mono);cursor:pointer}
 .rb:hover{background:var(--chipon);box-shadow:0 0 12px rgba(126,224,168,.3)}
@@ -21,8 +21,16 @@ main{flex:1;min-height:0;display:flex}
 #view{flex:1;position:relative;min-width:0} canvas{position:absolute;inset:0;width:100%;height:100%}
 #over{position:absolute;inset:0;display:none;place-items:center;font-size:30px;font-weight:600;background:rgba(2,8,5,.6);backdrop-filter:blur(3px);text-align:center;line-height:1.6;text-shadow:0 0 18px rgba(126,224,168,.4)}
 #over small{font-size:16px;font-weight:400;color:var(--dim)}
-#over .shop{font-size:13px;font-weight:400;line-height:1.5;text-align:left;margin:14px auto 0;max-width:660px;text-shadow:none} #over .shop b{color:var(--gold);font-weight:500}
-#over table{border-collapse:collapse;margin-top:6px} #over td{padding:2px 12px 2px 0;vertical-align:top} #over td:first-child{color:var(--acc)} #over td:last-child{color:var(--dim)}
+#over .shop{font-size:15px;font-weight:400;line-height:1.45;text-align:left;margin:18px auto 0;width:min(780px,calc(100vw - 440px));text-shadow:none} #over .shop b{color:var(--gold);font-weight:500}
+#over .purse{color:var(--dim);font-size:14px;text-align:center} #over .purse span{color:var(--gold);font-size:22px;font-weight:600;margin-right:4px;text-shadow:0 0 14px rgba(242,201,76,.35)}
+#over .ups{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+#over .up{padding:12px 16px;border:1px solid var(--line);border-radius:10px;background:linear-gradient(#0a1912,#06100b)}
+#over .up.ok{border-color:var(--gold);box-shadow:0 0 18px rgba(242,201,76,.15)} #over .up.done{opacity:.6}
+#over .uh{display:flex;align-items:baseline;justify-content:space-between} #over .uh b{color:var(--acc);font-size:20px;font-weight:600}
+#over .uh i{font-style:normal;font-size:13px;color:var(--dim)} #over .up.ok .uh i{color:var(--gold)}
+#over .up p{margin:2px 0 8px;font-size:13px;color:var(--dim)}
+#over .up ol{list-style:none;margin:0;padding:0} #over .up li{display:flex;justify-content:space-between;padding:3px 0;border-top:1px solid var(--line);font-size:14px;color:var(--dim)}
+#over .up li em{font-style:normal} #over .up li.got{color:var(--acc)} #over .up li.next{color:var(--fg)} #over .up li.next em{color:var(--gold)}
 #demo{position:absolute;top:12px;left:50%;transform:translateX(-50%);display:none;width:min(560px,calc(100% - 32px));box-sizing:border-box;padding:9px 16px;background:rgba(14,32,24,.92);border:1px solid var(--chipon);border-radius:10px;font-size:14px;line-height:1.45;box-shadow:0 8px 30px rgba(0,0,0,.4)}
 #demo small{color:var(--dim)}
 /* terminal */
@@ -103,7 +111,7 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>wind</td><td>Planes take off and land into the wind (top left): only the landing circles whose approach faces the wind are open (the others grey out), and departures roll from the end marked in gold. Now and then the wind turns: cleared arrivals already circling in a circle that closes keep circling there until it turns back (abort sends one off). A storm over a circle closes it too.</td></tr>
 <tr><td>storms</td><td>Storm cells drift across with the wind. A plane that flies into one loses control and crash-lands: a strike.</td></tr>
 <tr><td>readback</td><td>A pilot sometimes mishears: the reply shows what it understood (a turn 45° off, another level). Say it again.</td></tr>
-<tr><td>score</td><td>100 per plane, less a point for every second it took beyond par. The game is one <b>shift</b> that never ends: its first three planes come in slow motion, then it runs at full speed. Three strikes end it and pay a token per 100 points, to <b>buy</b> upgrades for later shifts (more levels up, a second runway, navigation, bigger tanks). <b>daily</b>: today's shift, the same for everyone, no upgrades. After 15 minutes the traffic stops growing. <b>hard</b> (once a shift scores 1000): no autopilot and no navigation. <b>land</b> works only for a plane you have flown onto the lit strip yourself: low, facing the runway, on its line, the runway free. It then flies straight in. <b>hold alpha</b> works only once it is at ALPHA.</td></tr>
+<tr><td>score</td><td>100 per plane, less a point for every second it took beyond par. The game is one <b>shift</b> that never ends: its first five planes come in slow motion, then it runs at full speed. Three strikes end it and pay a token (◆) per 100 points, to <b>buy</b> upgrades for later shifts in small steps at 10, 20, 50, 100, 200 tokens: <b>tanks</b> (+20 s fuel a step), <b>height</b> (levels top, peak), <b>nav</b> (departures turn by themselves, then land anywhere), <b>runway</b> (shorter wake rest, then a second runway). <b>daily</b>: today's shift, the same for everyone, no upgrades. After 15 minutes the traffic stops growing. <b>hard</b> (once a shift scores 1000): no autopilot and no navigation. <b>land</b> works only for a plane you have flown onto the lit strip yourself: low, facing the runway, on its line, the runway free. It then flies straight in. <b>hold alpha</b> works only once it is at ALPHA.</td></tr>
 </table>
 <p>Faded text in the prompt is a suggestion: <b>→</b> takes all of it, <b>Tab</b> takes one word. Capitals don't matter. Typos are fixed for you (<b>nt</b> = north): the reply shows what was understood. <b>demo</b> shows a good controller at work, <b>Esc</b> pauses, <b>help</b> shows this card.</p>
 <h2 id="acdata" style="margin-top:18px">Aircraft</h2><div id="actable"></div>
@@ -248,7 +256,7 @@ const TRAFFIC_EMPTY=3;         // game s until the next plane when nothing is fl
 const TRAFFIC_GAP=14;          // game s between planes while exactly the expected number is active
 const TRAFFIC_BUSY=1.8;        // each active plane above the expected number makes the gap this many times longer (below: shorter)
 const TRAFFIC_START=2.5,TRAFFIC_GROWTH=.35;   // planes expected at the start, and how many more every minute (about 7.5 after 15 minutes)
-const WARMUP_SCALE=.6,WARMUP_PLANES=3;   // the shift starts at 60% speed and is at full speed once 3 planes are handled
+const WARMUP_SCALE=.5,WARMUP_PLANES=5;   // the shift starts at 50% speed and is at full speed once 5 planes are handled
 const TRAFFIC_CAP_MIN=15;      // after this many minutes the expected number stops growing: the traffic stays as busy as it is then
 // hard mode (a shift without autopilot, unlocked by a shift of HARD_UNLOCK points): land works only for a plane you have
 // already flown onto the runway's line yourself, and a plane holds at a fix only once you have flown it there
@@ -297,15 +305,19 @@ const FIXES={alpha:{x:AX-100,y:AY-220},bravo:{x:AX+100,y:AY-220},kilo:{x:AX+100,
 // points per plane: 100, less a point for every second beyond par (from appearing to landing or hand-off)
 const PAR={arr:70,dep:55,ovf:40};
 // the rules; the shift switches some on, and shift upgrades raise them
-const RULES={levels:3,runways:1,nav:false,fuel:false,types:false,readback:0,wind:false,storms:0,ovf:false,tank:0};
+const RULES={levels:3,runways:1,nav:0,wakeRest:WAKE_REST,fuel:false,types:false,readback:0,wind:false,storms:0,ovf:false,tank:0};
 // one game: the shift, every rule on from the start. Its first planes come in slow motion (WARMUP_*) instead of a tutorial
 const SHIFT={scale:1,rules:{types:true,fuel:true,readback:.06,wind:true,storms:1,ovf:true}};
 // bought with tokens after a shift; they last for every later shift (not the daily one)
+// in small steps: each upgrade's next step costs the next price, 10, 20, 50, 100, 200 tokens
+const PRICES=[10,20,50,100,200];
+const TANK_STEP=20;            // game s of extra fuel per tanks step
 const UPGRADES={
-  height:{max:2,cost:[15,30],what:'one more level up (top, then peak): more room to stack planes'},
-  runway:{max:1,cost:[40],what:'a second runway south of the first, with its own landing circles'},
-  nav:{max:1,cost:[30],what:'departures turn to their exit by themselves, and land works anywhere: the plane flies to the nearest open circle'},
-  tanks:{max:2,cost:[10,20],what:'arrivals carry 60 s more fuel'}};
+  tanks:{tiers:['+20 s fuel','+40 s fuel','+60 s fuel','+80 s fuel','+100 s fuel'],what:'arrivals carry more fuel'},
+  height:{tiers:['level top','level peak'],what:'one more level up: more room to stack planes'},
+  nav:{tiers:['departures turn to their exit','land works anywhere'],what:'the autopilot does more: land anywhere flies the plane to the nearest open circle'},
+  runway:{tiers:['heavy wake rest halved','no wake rest','second runway'],what:'the runway is free sooner, then a second one south of the first'}};
+const price=k=>PRICES[meta[k]],maxed=k=>meta[k]>=UPGRADES[k].tiers.length;
 const store=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){}};
 const load=(k,d)=>{try{return JSON.parse(store(k))??d}catch(e){return d}};
 /* ---------- sound: every effect synthesised with Web Audio, no files. Math.random only, so the daily seed is untouched ---------- */
@@ -364,10 +376,11 @@ const today=()=>new Date().toISOString().slice(0,10);
 const seeded=s=>()=>{s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
 let S,CFG,RUNWAYS,GATES,rnd=Math.random,best=+store('tower-best-score')||0,hardBest=+store('tower-hard-best')||0;
 const meta={tokens:0,height:0,runway:0,nav:0,tanks:0,...load('tower-meta',{})},saveMeta=()=>store('tower-meta',JSON.stringify(meta));
+if(!meta.v){Object.assign(meta,{v:2,tanks:Math.min(5,meta.tanks*3),nav:meta.nav*2,runway:meta.runway*3});saveMeta()}   // old saves: the big upgrades become all their small steps
 function startShift(demo=false,daily=false,hard=false){const L=SHIFT;
   rnd=daily?seeded([...today()].reduce((h,c)=>h*31+c.charCodeAt(0)|0,7)):Math.random;
   CFG={...RULES,...(demo?{}:L.rules)};
-  if(!demo&&!daily)Object.assign(CFG,{levels:3+meta.height,runways:1+meta.runway,nav:!!meta.nav&&!hard,tank:60*meta.tanks});   // hard mode: no navigation, you fly every plane
+  if(!demo&&!daily)Object.assign(CFG,{levels:3+meta.height,nav:hard?0:meta.nav,tank:TANK_STEP*meta.tanks,runways:meta.runway>=3?2:1,wakeRest:WAKE_REST*[1,.5,0,0][meta.runway]});   // hard mode: no navigation, you fly every plane
   // runways side by side, 110 apart, each with a landing circle off both ends (dir = the way a plane there must face)
   RUNWAYS=[...Array(CFG.runways)].map((_,i)=>({i,y:AY+i*110,wake:0}));GATES={};
   for(const r of RUNWAYS){const s=r.i?' 2':'';GATES['west'+s]={x:AX-RW-GATE_D,y:r.y,dir:1,rw:r};GATES['east'+s]={x:AX+RW+GATE_D,y:r.y,dir:-1,rw:r}}
@@ -601,16 +614,16 @@ function step(dt){
     if(p.state==='lineup'){if(!rwBusy(p.rw)&&!landingOn(p.rw)){p.state='enter';p.path=[[p.hx,p.rw.y],[AX-p.rdir*RW,p.rw.y]]}continue}
     if(p.state==='enter'){const d=wrap((p.rdir>0?0:Math.PI)-p.hdg);p.hdg=wrap(p.hdg+Math.sign(d)*Math.min(Math.abs(d),2.5*dt));if(Math.abs(d)>.01)continue;startRoll(p)}
     // the takeoff run: it lifts off at its rotation speed (a heavy needs more runway), or at the latest at the end of the runway
-    if(p.state==='roll'){p.spd+=runAcc(p)*dt;if(p.spd>=vApp(p)||p.rdir*(p.x-AX)>RW){p.state='fly';if(p.T.wake)p.rw.wake=WAKE_REST}}
+    if(p.state==='roll'){p.spd+=runAcc(p)*dt;if(p.spd>=vApp(p)||p.rdir*(p.x-AX)>RW){p.state='fly';if(p.T.wake)p.rw.wake=CFG.wakeRest}}
     // the landing run: braking so it is down to taxi speed at the end of the runway, then off it and taxiing in to the apron
     else if(p.state==='rollout'){const left=Math.max(1,p.dir*(AX+p.dir*RW-p.x));p.spd=Math.max(TAXI,p.spd-Math.min(toGame(ROLLOUT_BRAKE),Math.max(.5,(p.spd*p.spd-TAXI*TAXI)/(2*left)))*dt);
       const d=wrap(Math.atan2(p.rw.y-p.y,p.dir*20)-p.hdg);p.hdg=wrap(p.hdg+Math.sign(d)*Math.min(Math.abs(d),omega(p)*dt));
-      if(p.dir*(p.x-AX)>=RW){if(p.T.wake)p.rw.wake=WAKE_REST;handled(p,'#7ee0a8',`${p.name} landed, runway ${rwName(p.rw,p.dir)} vacated`,true);
+      if(p.dir*(p.x-AX)>=RW){if(p.T.wake)p.rw.wake=CFG.wakeRest;handled(p,'#7ee0a8',`${p.name} landed, runway ${rwName(p.rw,p.dir)} vacated`,true);
         const ex=AX+p.dir*IN_X;p.state='taxiin';p.gt=S.gt=(S.gt||0)+1;p.spd=TAXI;p.path=[[ex,p.rw.y],[ex,IN_Y],[AX+p.dir*30,IN_Y]];continue}}
     else{
       const turn=omega(p);let wd=null;   // the turn rate it wants, when something steers it more finely than a heading
       // with navigation, a plane cleared outside a circle flies itself to the one it was given
-      if(CFG.nav&&p.cleared&&p.state==='fly'&&p.navGate&&!inGate(p)){const g=GATES[p.navGate];p.tgt=Math.atan2(g.y-p.y,g.x-p.x)}
+      if(CFG.nav>1&&p.cleared&&p.state==='fly'&&p.navGate&&!inGate(p)){const g=GATES[p.navGate];p.tgt=Math.atan2(g.y-p.y,g.x-p.x)}
       // a plane cleared to land captures the approach once it enters a circle: it flies a line-up (one turn, then straight into
       // the landing cone, descending on the way) as soon as there is one and the runway is free. Until then (inside its
       // forbidden circle, too high, or the runway busy) it circles the landing circle's centre (orbitSide), checking four times
@@ -693,7 +706,7 @@ function argsFor(p,act){
 function options(words){
   if(!words.length)return[...(S.over?[]:S.planes.map(p=>p.name)),'help','aircraft','demo','pause','speed','restart','sound',
     ...(!S.demo?['daily']:[]),...(best>=HARD_UNLOCK&&!S.demo?['hard']:[]),...(shopOpen()?['buy']:[])];
-  if(words[0]==='buy')return words.length===1?Object.keys(UPGRADES).filter(k=>meta[k]<UPGRADES[k].max):[];
+  if(words[0]==='buy')return words.length===1?Object.keys(UPGRADES).filter(k=>!maxed(k)):[];
   const p=plane(words[0]);if(!p||S.over)return[];
   if(words.length===1)return actions(p);
   if(words.length===2)return argsFor(p,words[1]);
@@ -701,13 +714,13 @@ function options(words){
 // what the prompt suggests: only orders that would be carried out. options() stays wider, so a typed order that cannot be
 // carried out is still read as typed and answered with the reason
 function valid(words){const[w0,act,arg]=words;
-  if(w0==='buy')return act?meta.tokens>=UPGRADES[act].cost[meta[act]]:options(['buy']).some(a=>valid(['buy',a]));
+  if(w0==='buy')return act?meta.tokens>=price(act):options(['buy']).some(a=>valid(['buy',a]));
   if(w0==='pause')return!S.over;
   const p=plane(w0);if(!p)return true;
   if(!act)return actions(p).some(a=>valid([w0,a]));
   if(act==='land'&&S.hard)return manualLand(p)[0]!=='!';
   if(act==='hold'&&arg&&S.hard)return nearFix(p,arg);
-  if(act==='land'){if(p.cleared)return false;const k=inGate(p);return k?gateOpen(k):CFG.nav}
+  if(act==='land'){if(p.cleared)return false;const k=inGate(p);return k?gateOpen(k):CFG.nav>1}
   if(act==='ascend'||act==='descend')return argsFor(p,act).length>0;
   if(act==='takeoff')return!arg||!CFG.wind||(arg==='east'?1:-1)===S.rwdir;
   return true}
@@ -732,8 +745,8 @@ function exec(words){
   if(w0==='daily'){startShift(false,true);return`daily shift ${today()}: the same traffic for everyone today, no upgrades`}
   if(w0==='hard'){startShift(false,false,true);return`hard shift: no autopilot. Fly each plane onto a runway's dashed line yourself, low and facing the runway, then land; fly to a fix before holding there`}
   if(w0==='buy'){if(!act)return`!buy what? ${validOpts(['buy']).join(' · ')||(options(['buy']).length?'nothing you can afford yet':'everything is bought')}`;
-    const u=UPGRADES[act],c=u.cost[meta[act]];if(meta.tokens<c)return`!${act} costs ${c} tokens, you have ${meta.tokens}`;
-    meta.tokens-=c;meta[act]++;saveMeta();return`bought ${act}: ${u.what}`}
+    const c=price(act);if(meta.tokens<c)return`!${act} costs ${c} tokens, you have ${meta.tokens} (a shift pays 1 per 100 points)`;
+    meta.tokens-=c;meta[act]++;saveMeta();return`bought ${act}: ${UPGRADES[act].tiers[meta[act]-1]}`}
   const p=plane(w0),n=p.name;
   if(!act)return p.state==='rollout'||p.state==='taxiin'?`${n} has landed: nothing to do`:`!${n} what? ${actions(p).filter(a=>valid([n,a])).join(' · ')}`;
   if(act==='turn'){if(!arg)return`!${n} turn where? e.g. ${n} turn n, ${n} turn l`;
@@ -755,7 +768,7 @@ function exec(words){
       return`${n}: cleared to land runway ${rwName(g.rw,g.dir)}`}
     const k=inGate(p);
     if(k&&!gateOpen(k))return`!the ${k} circle is closed, ${closedWhy(k)}: use the ${nearestGate(p)} circle`;
-    if(!k&&!CFG.nav)return`!cannot land outside landing zone`;
+    if(!k&&CFG.nav<2)return`!cannot land outside landing zone`;
     if(p.state==='hold'||p.state==='tofix'){p.state='fly';p.tgt=p.hdg}
     p.cleared=true;const u=runwayUser();
     if(!k){p.navGate=nearestGate(p);if(p.tgtAlt>0)setLevel(p,0);return`${n}: cleared to land runway ${rwName(GATES[p.navGate].rw,GATES[p.navGate].dir)}, flying itself to the ${p.navGate} circle and descending`}
@@ -1012,7 +1025,7 @@ function adminExec(v){const w=v.split(/\s+/),[c,a,b,d]=w;
     case'fuel':CFG.fuel=a!=='off';if(!CFG.fuel)for(const p of S.planes)p.fuel=p.fuel0=Infinity;return`fuel ${CFG.fuel?'on':'off'}`;
     case'traffic':S.adminTraffic=a!=='off';S.next=2;return`traffic ${S.adminTraffic?'on':'off'}`;
     case'rules':return Object.entries(CFG).map(([k,x])=>`${k} ${x}`).join(' · ');
-    case'set':{if(!(a in RULES))return`!set <rule> <value>: ${Object.keys(RULES).join(' ')}`;CFG[a]=b==='on'||b==='true'?true:b==='off'||b==='false'?false:+b;return`${a} = ${CFG[a]}`}}
+    case'set':{if(!(a in RULES))return`!set <rule> <value>: ${Object.keys(RULES).join(' ')}`;CFG[a]=b==='on'||b==='true'?(a==='nav'?2:true):b==='off'||b==='false'?false:+b;return`${a} = ${CFG[a]}`}}
   return null}   // not an admin command: read it as a normal order
 // the sweep: one approach at a time; each ends when it touches down, goes around, is lost, or after 4 minutes
 function sweepTick(){const W=S.sweep;if(!W)return;const p=W.cur;
@@ -1246,14 +1259,15 @@ const over=document.getElementById('over'),$=id=>document.getElementById(id);
 function shiftOver(){
   const head=`${S.hard?'hard ':''}shift over<br><b>${S.score}</b> <small>points · ${S.done} planes · +${S.earned} tokens${S.unlockedHard?'<br>hard mode unlocked: type <b>hard</b>':''}</small>`;
   if(S.daily)return`${head}<br><small>today's best: ${load('tower-daily-'+today(),[]).join(' · ')}<br>Enter: play today's shift again</small>`;
-  const rows=Object.entries(UPGRADES).map(([k,u])=>{const own=meta[k],c=u.cost[own];
-    return`<tr><td>${k}</td><td>${'●'.repeat(own)}${'○'.repeat(u.max-own)}</td><td>${own>=u.max?'owned':c+' tokens'}</td><td>${u.what}</td></tr>`}).join('');
-  return`${head}<div class="shop"><div>${meta.tokens} tokens · type <b>buy &lt;upgrade&gt;</b> · Enter: next ${S.hard?'hard ':''}shift</div><table>${rows}</table></div>`}
+  const cards=Object.entries(UPGRADES).map(([k,u])=>{const own=meta[k],done=maxed(k),ok=!done&&meta.tokens>=price(k);
+    const steps=u.tiers.map((t,i)=>`<li class="${i<own?'got':i===own?'next':''}"><span>${t}</span><em>${i<own?'✓':PRICES[i]+' ◆'}</em></li>`).join('');
+    return`<div class="up${done?' done':ok?' ok':''}"><div class="uh"><b>${k}</b><i>${done?'complete':`buy ${k} · ${price(k)} ◆`}</i></div><p>${u.what}</p><ol>${steps}</ol></div>`}).join('');
+  return`${head}<div class="shop"><div class="purse"><span>◆ ${meta.tokens}</span> tokens · a shift pays 1 per 100 points · type <b>buy &lt;upgrade&gt;</b> · Enter: next ${S.hard?'hard ':''}shift</div><div class="ups">${cards}</div></div>`}
 let last=performance.now();
 function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;
   for(let i=0;i<FF;i++){if(!S.paused&&!S.over&&!helpOpen())step(dt*S.L.scale*warmup());if(D.on&&!S.paused)demoTick(dt)}draw();
   $('lvl').textContent=S.admin?`admin${S.sweep?` · sweep ${S.sweep.log.length+1}/${S.sweep.log.length+S.sweep.list.length+1}`:''}`:S.demo?'demo':S.daily?`daily · ${today()}`:S.hard?`hard · best ${hardBest}`:`shift · best ${best}`;
-  $('todo').textContent=S.demo?'':`${S.done} planes · ${S.score} pts${!S.daily?` · ${meta.tokens} tokens`:''}`;
+  $('todo').innerHTML=S.demo?'':`${S.done} planes · ${S.score} pts${!S.daily?` · <span class="tok" title="tokens buy upgrades after a shift: it pays 1 per 100 points when it ends">◆ ${meta.tokens} ${S.over?'':`<small>+${Math.floor(S.score/100)} at shift end · 1 per 100 pts</small>`}</span>`:''}`;
   $('strikes').innerHTML=[0,1,2].map(i=>`<i class="${i<S.strikes?'on':''}"></i>`).join('');
   const focus=typedHead(),u=runwayUser();
   $('ready').innerHTML=S.planes.filter(p=>p.state==='ready').map(p=>`<b style="color:${p.name===focus?'#fff':LABEL.dep}">${p.name}${clockSVG(p)}${p.T.tag?' '+p.T.tag:''} → ${U(p.dest)}</b>`).join(' ')+(u&&S.planes.some(p=>p.state==='ready')?'<span class="busy">runway busy</span>':'')||'<span style="color:var(--dim)">none</span>';
