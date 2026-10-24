@@ -36,4 +36,4 @@ A unique start of a word is enough, faded text in the prompt is a suggestion (�
 ./app/make_icon.sh     # only needed after editing app/icon.html
 ```
 
-Dev: `index.html#dev` exposes `window.G` (S, step, exec, run, decide, startLevel…) for headless tests.
+Dev: `index.html#dev` exposes `window.G` (S, step, exec, run, decide, startShift…) for headless tests.
