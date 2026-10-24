@@ -235,6 +235,7 @@ const THETA_DEG=15;           // touchdown at most this many degrees off the run
 const FINAL_MIN=35;           // px: the shortest straight final (875 m), on top of the distance needed to slow to approach speed
 let LANDING_ARC=.5;           // the line-up turn: 0 = tightest (shortest path), 1 = widest arc that still lines up, in between = in between
 const MAX_TURN=rad(290);       // the longest single turn in a line-up: turning back is fine, a full loop is not
+const ZONE_PULL=1;            // how strongly a line-up keeps close to the landing area: every px flown outside it costs ZONE_PULL x (how far out / circle radius) px of extra length
 const LEN_SLACK=.15;          // the widest arc may make the path at most 15% longer than the shortest line-up
 // fuel
 const MAYDAY_S=45;            // game s of fuel left when a plane calls MAYDAY
@@ -465,15 +466,16 @@ function pathAt(P,s){for(const q of P){if(s<=q.len||q===P[P.length-1]){s=Math.mi
 const pathLen=P=>P.reduce((t,q)=>t+q.len,0);
 // the shortest turn-straight-turn path from one position and heading to another, every turn of radius r (Dubins)
 // maxArc: leave out combinations with a longer turn than that (radians; a loop)
-function dubins(x0,y0,h0,x1,y1,h1,r,maxArc=Infinity){let best=null;const tw=a=>((a%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
+// all: every allowed combination, not only the shortest
+function dubins(x0,y0,h0,x1,y1,h1,r,maxArc=Infinity,all=false){let best=null;const list=[];const tw=a=>((a%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
   for(const d1 of[1,-1])for(const d2 of[1,-1]){
     const c1x=x0+r*Math.cos(h0+d1*Math.PI/2),c1y=y0+r*Math.sin(h0+d1*Math.PI/2),c2x=x1+r*Math.cos(h1+d2*Math.PI/2),c2y=y1+r*Math.sin(h1+d2*Math.PI/2);
     const D=Math.hypot(c2x-c1x,c2y-c1y),phi=Math.atan2(c2y-c1y,c2x-c1x);let hs,L;
     if(d1===d2){hs=phi;L=D}else{if(D<2*r)continue;hs=phi+Math.asin(2*r*d1/D);L=D*Math.cos(phi-hs)}
     const a1=tw(d1*(hs-h0))*r,a2=tw(d2*(h1-hs))*r,len=a1+L+a2;if(a1>maxArc*r||a2>maxArc*r)continue;
-    if(!best||len<best.len){const tx=c1x-r*Math.cos(hs+d1*Math.PI/2),ty=c1y-r*Math.sin(hs+d1*Math.PI/2);
-      best={len,P:[{x:x0,y:y0,h:h0,d:d1,r,len:a1},{x:tx,y:ty,h:hs,d:0,len:L},{x:tx+Math.cos(hs)*L,y:ty+Math.sin(hs)*L,h:hs,d:d2,r,len:a2}].filter(q=>q.len>.01)}}}
-  return best}
+    if(all||!best||len<best.len){const tx=c1x-r*Math.cos(hs+d1*Math.PI/2),ty=c1y-r*Math.sin(hs+d1*Math.PI/2);
+      best={len,P:[{x:x0,y:y0,h:h0,d:d1,r,len:a1},{x:tx,y:ty,h:hs,d:0,len:L},{x:tx+Math.cos(hs)*L,y:ty+Math.sin(hs)*L,h:hs,d:d2,r,len:a2}].filter(q=>q.len>.01)};list.push(best)}}
+  return all?list:best}
 // the landing cone: a plane may touch down at most THETA off the runway heading (it still overlaps the runway, and straightens
 // out on it). The cone's two legs run outward from the runway end, where they meet the extended centreline. Each leg has a
 // forbidden circle: radius the plane's turn radius r, touching the leg at the runway end, its centre on the line through the
@@ -495,25 +497,29 @@ function turnIn(p,g,R,d,free){const Tx=AX-g.dir*RW,Ty=g.rw.y,rh=g.dir>0?0:Math.P
   if(!free){const slow=Math.max(0,p.spd*p.spd-vApp(p)**2)/(2*ACC);
     if(L<FINAL_MIN+slow||len<p.alt/climbRate(p)*vApp(p))return null;
     for(let s=0;s<=len;s+=3){const q=pathAt(P,s);if(fromAirport(q)>RADAR-15||s<arc&&g.dir*(q.x-Tx)>-5)return null}}   // the turn stays on the approach side of the runway end
-  return{len,L,P}}
+  return{len,L,P,cost:free?len:pathCost(P,g)}}
+// how far a point is outside the landing area: the landing circle and the corridor from its centre to the runway end
+function outside(q,g){const Tx=AX-g.dir*RW,u=Math.max(0,Math.min(1,(q.x-g.x)/(Tx-g.x)));return Math.max(0,Math.hypot(q.x-(g.x+u*(Tx-g.x)),q.y-g.y)-GATE_R)}
+// what a line-up costs: its length from s0 on, plus ZONE_PULL for every px flown outside the landing area, weighed by how far out
+function pathCost(P,g,s0=0){const L=pathLen(P)-30;let out=0;for(let s=s0;s<=L;s+=4)out+=outside(pathAt(P,s),g)*4;return L-s0+ZONE_PULL*out/GATE_R}
 // a line-up with two turns: turn, straight, turn (radius r each, none longer than MAX_TURN) onto the extended centreline at distance a out from
 // the runway end, then straight in; the shortest over every join point far enough out to slow down and settle, and over the
 // four turn combinations. Same limits as turnIn. Returns {len,P} or null
 function turnTwice(p,g,free){const r=turnR(p),Tx=AX-g.dir*RW,Ty=g.rw.y,rh=g.dir>0?0:Math.PI,slow=Math.max(0,p.spd*p.spd-vApp(p)**2)/(2*ACC),need=p.alt/climbRate(p)*vApp(p);let best=null;
-  for(let a=FINAL_MIN+slow;a<=GATE_D+GATE_R+80;a+=5){const jx=Tx-g.dir*a,b=dubins(p.x,p.y,p.hdg,jx,Ty,rh,r,MAX_TURN);if(!b)continue;
-    const len=b.len+a;if(best&&len>=best.len)continue;if(!free&&len<need)continue;
-    const P=[...b.P,{x:jx,y:Ty,h:rh,d:0,len:a+30}];let ok=true;
-    if(!free)for(let s=0;s<=len&&ok;s+=3){const q=pathAt(P,s);if(fromAirport(q)>RADAR-15||s<b.len&&g.dir*(q.x-Tx)>-5)ok=false}
-    if(ok)best={len,P}}
+  for(let a=FINAL_MIN+slow;a<=GATE_D+GATE_R+80;a+=5){const jx=Tx-g.dir*a;
+    for(const b of dubins(p.x,p.y,p.hdg,jx,Ty,rh,r,MAX_TURN,true)){const len=b.len+a;if(best&&len>=best.cost)continue;if(!free&&len<need)continue;   // the cost is never below the length
+      const P=[...b.P,{x:jx,y:Ty,h:rh,d:0,len:a+30}];let ok=true;
+      if(!free)for(let s=0;s<=len&&ok;s+=3){const q=pathAt(P,s);if(fromAirport(q)>RADAR-15||s<b.len&&g.dir*(q.x-Tx)>-5)ok=false}
+      if(!ok)continue;const cost=free?len:pathCost(P,g);if(!best||cost<best.cost)best={len,P,cost}}}
   return best}
-// the line-up flown: the shortest of the one-turn line-ups (either way, at the tightest radius it can fly now) and the two-turn
+// the line-up flown: the cheapest (pathCost: short and close to the landing area) of the one-turn line-ups (either way, at the tightest radius it can fly now) and the two-turn
 // one. A one-turn line-up may then be flown wider: LANDING_ARC picks the radius between the tightest (0) and the widest that
 // still lines up (1), the widest kept within LEN_SLACK of the shortest path's length (and 5% inside the edge where it barely
 // lines up). free: no limits (only to know which way is shorter). None: it keeps circling
 function lineUp(p,g,free=false,arc=LANDING_ARC){const r=turnR(p),cand=[];
   for(const d of[1,-1]){const c=turnIn(p,g,r,d,free);if(c)cand.push({...c,d})}
   const two=turnTwice(p,g,free);if(two)cand.push(two);if(!cand.length)return null;
-  const best=cand.reduce((a,b)=>b.len<a.len?b:a);if(!best.d||free||arc<=0)return best.P;
+  const best=cand.reduce((a,b)=>b.cost<a.cost?b:a);   // the cheapest: short, and close to the landing areaif(!best.d||free||arc<=0)return best.P;
   const fits=R=>{const c=turnIn(p,g,R,best.d);return c&&c.len<=best.len*(1+LEN_SLACK)?c:null};
   let ok=r,bad=null;for(let x=r*1.05;x<12*r;x*=1.05){if(fits(x))ok=x;else{bad=x;break}}   // the widest: grow the radius 5% at a time, then narrow it down
   if(bad)for(let k=0;k<6;k++){const m=(ok+bad)/2;if(fits(m))ok=m;else bad=m}
@@ -613,9 +619,9 @@ function step(dt){
         if(p.state==='tofix'&&Math.hypot(c.x-p.x,c.y-p.y)<1.5*turnR(p)){p.state='hold';p.hc=c}}
       // final: following the line-up path to the runway end, touching down there and rolling out
       // on final it keeps pulling the cord tighter: twice a second it plans again from where it is, at the speed it has now,
-      // and takes the new line-up when it is shorter than what is left of the old one
+      // and takes the new line-up when it costs less than what is left of the old one
       if(p.state==='final'&&S.t>=p.replanAt&&pathAt(p.app,p.s).k!==undefined){p.replanAt=S.t+.5;const g=GATES[p.gk],left=pathLen(p.app)-p.s;
-        if(g&&!pastThreshold(p,g)&&left>FINAL_MIN+40){const P=lineUp(p,g);if(P&&pathLen(P)-30<left-30-5){p.app=P;p.s=0;if(S.paths)p.alts=ARC_STEPS.map(a=>lineUp(p,g,false,a))}}}
+        if(g&&!pastThreshold(p,g)&&left>FINAL_MIN+40){const P=lineUp(p,g);if(P&&pathCost(P,g)<pathCost(p.app,g,p.s)-5){p.app=P;p.s=0;if(S.paths)p.alts=ARC_STEPS.map(a=>lineUp(p,g,false,a))}}}
       if(p.state==='final'){p.alt=Math.max(0,p.alt-climbRate(p)*dt);const q=pathAt(p.app,p.s);
         p.s+=p.spd*dt*Math.max(0,Math.cos(wrap(p.hdg-q.h)));wd=follow(p,q.x,q.y,q.h,q.k);p.tgt=q.h;
         if(p.dir*(p.x-(AX-p.dir*RW))>=0){p.state='rollout';SFX.touchdown();p.alt=p.tgtAlt=0}}
