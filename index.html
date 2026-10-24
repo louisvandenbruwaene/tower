@@ -30,6 +30,7 @@ main{flex:1;min-height:0;display:flex}
 #over .ups{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:14px}
 #over .up{padding:10px 14px;border:2px solid var(--line);border-radius:8px;background:#0a1711;box-shadow:0 4px 0 #020805;min-width:0}
 #over .up.ok{border-color:var(--gold);box-shadow:0 4px 0 #6b520c} #over .up.done{opacity:.5}
+#over .up{cursor:pointer} #over .up.sel{border-color:var(--fg);transform:translateY(-3px)} #over .go{margin-top:14px;text-align:center;color:var(--acc);font-size:17px;font-weight:600}
 #over .uh{display:flex;align-items:baseline;justify-content:space-between} #over .uh b{color:var(--acc);font-size:19px;font-weight:600} #over .pip{color:var(--dim);font-size:11px;letter-spacing:2px}
 #over .un{display:flex;justify-content:space-between;gap:8px;margin-top:4px;font-size:14px;color:var(--dim)} #over .up.ok .un{color:var(--fg)}
 #over .un em{font-style:normal;color:var(--fg);white-space:nowrap} #over .up.ok .un em{color:var(--gold)}
@@ -191,6 +192,7 @@ function logCmd(v){T.log=[...(T.log||[]),{c:v,r:outEl.textContent,bad:outEl.clas
 cmd.addEventListener('input',()=>{T.sel=0;SFX.key();refreshSug()});
 cmd.addEventListener('keydown',e=>{
   if(helpOpen()&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){e.preventDefault();setPage(T.page+(e.key==='ArrowRight'?1:-1));return}
+  if(overUp()&&shopOpen()&&!cmd.value&&e.key.startsWith('Arrow')){e.preventDefault();shopMove(e.key);return}
   const atEnd=cmd.selectionStart===cmd.value.length;
   if(e.key==='Tab'||(e.key==='ArrowRight'&&atEnd&&T.ghost)){e.preventDefault();if(!T.ghost)return;
     SFX.tab();const take=e.key==='Tab'?T.ghost.match(/^\s*\S*\s?/)[0]:T.ghost;cmd.value+=take.endsWith(' ')?take:take+' ';T.sel=0;refreshSug();return}
@@ -504,7 +506,9 @@ function strike(msg,x,y){if(S.over)return;SFX.strike();say('!'+msg);S.fx.push({x
   if(S.streak>1&&!free)pop({x,y:y-28,chips:[{kind:'bad',text:'streak lost'}],size:14,life:1.5});S.streak=0;
   if(free)return;S.strikes++;S.lastStrike=msg;if(S.strikes>=3)endShift()}
 // three strikes: a shift pays tokens for its score, and the daily shift keeps today's five best
-function endShift(){S.over=true;S.overShown=0;S.overAt=performance.now();SFX.lose();if(S.practice)return;
+// the shift-over screen waits OVER_DELAY s so you can see what happened; the sky stands still (no shake), only explosions play out
+const OVER_DELAY=1,overUp=()=>S.over&&performance.now()>=S.overAt;
+function endShift(){S.over=true;S.overShown=0;S.overAt=performance.now()+OVER_DELAY*1000;S.shake=0;T.shop='next';SFX.lose();if(S.practice)return;
   if(S.hard){if(S.score>hardBest){hardBest=S.score;store('tower-hard-best',hardBest)}}
   else if(S.score>best){S.unlockedHard=best<HARD_UNLOCK&&S.score>=HARD_UNLOCK;best=S.score;store('tower-best-score',best)}
   S.earned=Math.floor(S.score/TOKEN_PER);meta.tokens+=S.earned;saveMeta();
@@ -881,7 +885,7 @@ function exec(words){
   if(act==='abort'&&(p.state==='hold'||p.state==='tofix')){p.state='fly';p.tgt=p.hdg;return`${n}: stops circling, flying straight ahead`}
   if(act==='abort'){p.state='fly';p.tgt=p.hdg;p.cleared=false;p.inGate=null;p.orbit=0;p.navGate=null;setLevel(p,1);return`${n}: going around, climbing to mid (${FEET[1]} ft), straight ahead`}}
 function togglePause(){if(!S.over)S.paused=!S.paused}
-function onEmptyEnter(){if(S.tut&&TUT[S.tut.i].end){endTutorial();return}if(S.over&&!S.practice)startShift(false,S.daily,S.hard)}
+function onEmptyEnter(){if(S.tut&&TUT[S.tut.i].end){endTutorial();return}if(overUp()&&!S.practice){if(shopOpen())shopTake(T.shop);else startShift(false,S.daily,S.hard)}}
 // hard mode: may this plane land now? It must already be on final by your own flying: low, nose within THETA of the runway
 // heading, at most HARD_ALIGN off the extended centreline, between the landing circle's far edge and FINAL_MIN short of the
 // runway end, that end open and its runway free. The end (a GATES key), or why not (starting with '!')
@@ -904,7 +908,7 @@ const km=px=>px*M_PER_PX<1000?Math.round(px*M_PER_PX/10)*10+' m':(px*M_PER_PX/10
 const headingFor=(p,d)=>p.state!=='hold'&&p.state!=='tofix'&&Math.abs(wrap(p.tgt-rad(HEADINGS[d])))<rad(5);
 const bar=p=>{const f=Math.abs(p.tgtAlt-p.altFrom)<.01?1:1-Math.abs(p.tgtAlt-p.alt)/Math.abs(p.tgtAlt-p.altFrom),k=Math.round(f*6);return'▓'.repeat(k)+'░'.repeat(6-k)};
 function hintFor(n){
-  if(S.over)return S.practice?'':shopOpen()?'buy upgrades (buy …), then Enter for the next shift':'press Enter to try again';
+  if(S.over)return S.practice||!overUp()?'':shopOpen()?'arrows choose an upgrade or the next shift, Enter takes it (or type buy …)':'press Enter to try again';
   const p=plane(n);
   if(!p){if(cmd.value.trim())return'';if(!S.planes.length)return'waiting for the next plane…';
     // nothing typed: show what the most urgent plane is waiting for (fuel, a level change, the runway…)
@@ -1335,19 +1339,28 @@ function shiftOver(){
   const head=`${S.hard?'hard ':''}shift over<br><b class="big">${money(S.overShown??S.score)}</b>${tally()}<small>${S.unlockedHard?'<br>hard mode unlocked: type <b>hard</b>':''}</small>`;
   if(S.daily)return`${head}<br><small>today's best: ${load('tower-daily-'+today(),[]).map(money).join(' · ')}<br>Enter: play today's shift again</small>`;
   const cards=Object.entries(UPGRADES).map(([k,u])=>{const own=meta[k],done=maxed(k),ok=!done&&meta.tokens>=price(k);
-    return`<div class="up${done?' done':ok?' ok':''}"><div class="uh"><b>${k}</b><span class="pip">${'●'.repeat(own)}${'○'.repeat(u.tiers.length-own)}</span></div>
+    return`<div class="up${done?' done':ok?' ok':''}${T.shop===k?' sel':''}" data-k="${k}"><div class="uh"><b>${k}</b><span class="pip">${'●'.repeat(own)}${'○'.repeat(u.tiers.length-own)}</span></div>
       <div class="un"><span>${done?'complete':u.tiers[own]}</span>${done?'':`<em>${COIN}${price(k)}</em>`}</div></div>`}).join('');
-  return`${head}<div class="shop"><div class="purse"><span>${COIN}${meta.tokens}</span> · <b>buy &lt;upgrade&gt;</b> · Enter: next ${S.hard?'hard ':''}shift</div><div class="ups">${cards}</div></div>`}
+  return`${head}<div class="shop"><div class="purse"><span>${COIN}${meta.tokens}</span> · <b>buy &lt;upgrade&gt;</b> · arrows choose · Enter</div><div class="ups">${cards}</div>
+    <div class="up go${T.shop==='next'?' sel':''}" data-k="next">next ${S.hard?'hard ':''}shift</div></div>`}
+// the shop by arrow keys (the prompt empty) or mouse: the cards, then the next-shift button; Enter takes the chosen one
+const SHOP_ITEMS=[...Object.keys(UPGRADES),'next'];
+function shopMove(key){const n=SHOP_ITEMS.length-1,i=SHOP_ITEMS.indexOf(T.shop),ups=over.querySelector('.ups'),
+    cols=ups?getComputedStyle(ups).gridTemplateColumns.split(' ').length:n;
+  const j=key==='ArrowLeft'?Math.max(0,i-1):key==='ArrowRight'?Math.min(n,i+1):key==='ArrowUp'?(i===n?n-1:Math.max(0,i-cols)):Math.min(n,i+cols);
+  if(j!==i){T.shop=SHOP_ITEMS[j];SFX.tab()}}
+function shopTake(k){if(k==='next'){T.shop='next';startShift(false,S.daily,S.hard)}else{T.shop=k;run('buy '+k)}}
+over.addEventListener('click',e=>{const k=e.target.closest('[data-k]')?.dataset.k;if(k&&overUp()&&shopOpen()){e.stopPropagation();shopTake(k);refreshSug()}});
 let last=performance.now();
 // the score in the bar counts up to the real one and swells when it grows; the tokens flash when a 100 is passed
 const BUMP={score:-1e9,tok:-1e9},SHOWN={score:0};
 const bump=(t,c)=>{const u=Math.exp(-(performance.now()-t)/220);return`display:inline-block;transform:scale(${(1+.5*u).toFixed(3)}) rotate(${(-6*u*Math.sin((performance.now()-t)/40)).toFixed(2)}deg);${u>.05?`background:${c};color:#04140b`:''}`};
 function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;
-  for(let i=0;i<FF;i++){if(!S.paused&&!S.over&&!helpOpen())step(dt*S.L.scale*warmup());if(S.tut&&!S.paused&&!helpOpen())tutTick(dt)}
+  for(let i=0;i<FF;i++){if(!S.paused&&!S.over&&!helpOpen())step(dt*S.L.scale*warmup());else if(S.over)for(const f of S.fx)f.t+=dt;if(S.tut&&!S.paused&&!helpOpen())tutTick(dt)}
   tween(dt);draw();ui();requestAnimationFrame(frame)}
 // the numbers count up: the bar's score toward the real one, the shift-over score from 0 (ticking as it goes)
 function tween(dt){const d=S.score-SHOWN.score;SHOWN.score=d<0?S.score:SHOWN.score+Math.max(Math.min(d,1),d*Math.min(1,dt*6));
-  if(S.over&&S.overShown<S.score){const before=Math.floor(S.overShown/7);S.overShown=Math.min(S.score,S.overShown+Math.max(1,S.score*dt/1.4));if(Math.floor(S.overShown/7)>before)SFX.tick()}}
+  if(overUp()&&S.overShown<S.score){const before=Math.floor(S.overShown/7);S.overShown=Math.min(S.score,S.overShown+Math.max(1,S.score*dt/1.4));if(Math.floor(S.overShown/7)>before)SFX.tick()}}
 // everything around the radar: the bar, the strikes, the READY list, the overlay
 function ui(){const sw=S.sweep;
   tutEl.textContent=S.tut?'leave tutorial':'tutorial';
@@ -1359,7 +1372,7 @@ function ui(){const sw=S.sweep;
   $('strikes').innerHTML=[0,1,2].map(i=>`<i class="${i<S.strikes?'on':''}"></i>`).join('');
   const focus=typedHead(),ready=S.planes.filter(p=>p.state==='ready'),busy=runwayUser()&&ready.length?'<span class="busy">runway busy</span>':'';
   $('ready').innerHTML=ready.map(p=>`<b style="color:${p.name===focus?'#fff':LABEL.dep}">${p.name}${clockSVG(p)}${p.T.tag?' '+p.T.tag:''} → ${U(p.dest)}</b>`).join(' ')+busy||'<span style="color:var(--dim)">none</span>';
-  const show=(S.over&&!S.practice)||S.paused;over.style.display=show?'grid':'none';
+  const show=(overUp()&&!S.practice)||S.paused;over.style.display=show?'grid':'none';
   if(show){over.innerHTML=`<div>${S.paused?'paused<br><small>esc</small>':shiftOver()}</div>`;fit(over.firstChild,40)}}   // one box, so the grid centres it as a whole
 requestAnimationFrame(frame);
 // the tutorial is a button next to the speed button: never forced. A new player sees it nudging until they open it once
