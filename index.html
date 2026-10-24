@@ -83,7 +83,7 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>heron turn l</td><td>turn 90° left · <b>sl sr</b> = 45° · <b>l r</b> = 90° · <b>hl hr</b> = 135°</td></tr>
 <tr><td>heron descend</td><td>down to low · <b>heron descend mid</b> stops at mid</td></tr>
 <tr><td>heron ascend</td><td>up to high · <b>heron ascend mid</b> stops at mid</td></tr>
-<tr><td>heron hold</td><td>circle on the spot until you give it a turn, or <b>land</b> inside a landing circle · <b>heron hold kilo</b> flies to the fix KILO (also ALPHA, BRAVO, ZULU) and flies a racetrack there, right turns</td></tr>
+<tr><td>heron hold</td><td>circle on the spot until you give it a turn, or <b>land</b> inside a landing circle · <b>heron hold kilo</b> flies to the fix KILO (also ALPHA, BRAVO, ZULU) and circles it, right turns, slowed down. Holds always stay inside your area</td></tr>
 <tr><td>heron land</td><td>only inside an open landing circle (also ends a hold). From any heading it flies the shortest turn onto the runway line, left or right, descending on the way, and lands (it may swing a little outside the circle). Too high to get down in time, or the runway busy: it circles inside the circle until it can. Still high when it leaves the circle: it goes around.</td></tr>
 <tr><td>wren takeoff e</td><td>departures in the <b>ready</b> list: it taxis from the apron to that runway end, waits there until the runway is free, takes off <b>east</b> or <b>west</b>, climbs to mid and flies straight on until you turn it (you may turn it while it taxis).</td></tr>
 <tr><td>abort</td><td>cancel a hold (flies straight on) or a landing: it goes around, climbing to mid straight ahead</td></tr>
@@ -98,7 +98,7 @@ main{flex:1;min-height:0;display:flex}
 <table>
 <tr><td>realistic</td><td>1 px is about 25 m and time runs 6× fast: the runway is 3 km, a jet approaches at about 140 kt and flies faster higher up (about 190 kt high). Speeds change gradually, planes roll into turns, departures taxi out and need a takeoff run (a heavy the longest), landed planes brake down the runway and taxi in. Levels are 3000, 5000, 7000 ft.</td></tr>
 <tr><td>types</td><td><b>prop</b> slow, turns tight · <b>jet</b> · <b>bizjet</b> fast, climbs quickly · <b>heavy</b> big, turns wide, climbs slowly, needs more room around it, and its runway rests a few seconds after it (wake)</td></tr>
-<tr><td>fuel</td><td>From level 5, arrivals carry fuel. Below 90 s it shows on the label, below 45 s it calls MAYDAY: land it next. Empty: a strike.</td></tr>
+<tr><td>fuel</td><td>From level 5, arrivals carry fuel: the tank next to the name, full when they enter. How long it lasts depends on the type (a bizjet is thirsty for its small tanks, a prop lasts longest). Amber below half, red below a quarter; below 45 s it glows and calls MAYDAY: land it next. Empty: a strike.</td></tr>
 <tr><td>wind</td><td>From level 6, planes take off and land into the wind (top left): only the landing circles whose approach faces the wind are open (the others grey out), and departures roll from the end marked in gold. Now and then the wind turns: cleared arrivals already circling in a circle that closes keep circling there until it turns back (abort sends one off). A storm over a circle closes it too.</td></tr>
 <tr><td>storms</td><td>From level 7, storm cells drift across with the wind. A plane that flies into one loses control and crash-lands: a strike.</td></tr>
 <tr><td>readback</td><td>From level 6, a pilot sometimes mishears: the reply shows what it understood (a turn 45° off, another level). Say it again.</td></tr>
@@ -200,14 +200,18 @@ const ACC=1,RUN=2.6,FEET=['3000','5000','7000','9000','11000'];
 const SEP=38,WAKE=14,TURN=30*Math.PI/180,CLIMB=2/(2/.22+5),SPEED=17,TAXI=5,GATE_R=50,GATE_D=150;   // landing circles: radius, and how far out from the runway end (room for a gentle line-up)
 // aircraft types scale speed, turn rate and climb rate; a heavy needs more room around it (wake turbulence)
 // and leaves its runway unusable for a few seconds after it
+// fuel: seconds full tanks last, from how much the type burns against the size of its tanks (a bizjet is thirsty for its small tanks)
 const TYPES={
-  light:{tag:'prop',spd:.7,turn:1.4,climb:1.1,wake:0,size:.8},
-  jet:{tag:'',spd:1,turn:1,climb:1,wake:0,size:1},
-  bizjet:{tag:'bizjet',spd:1.2,turn:1,climb:1.3,wake:0,size:.85},
-  heavy:{tag:'heavy',spd:1.05,turn:.7,climb:.7,wake:1,size:1.3}};
+  light:{tag:'prop',spd:.7,turn:1.4,climb:1.1,wake:0,size:.8,fuel:270},
+  jet:{tag:'',spd:1,turn:1,climb:1,wake:0,size:1,fuel:240},
+  bizjet:{tag:'bizjet',spd:1.2,turn:1,climb:1.3,wake:0,size:.85,fuel:180},
+  heavy:{tag:'heavy',spd:1.05,turn:.7,climb:.7,wake:1,size:1.3,fuel:210}};
 const pickType=()=>{const r=rnd();return r<.25?'light':r<.65?'jet':r<.8?'bizjet':'heavy'};
 // holding fixes: named points north and south of the field to send a plane to and circle over
-const FIXES={alpha:{x:AX-110,y:AY-210},bravo:{x:AX+110,y:AY-210},kilo:{x:AX+110,y:AY+230},zulu:{x:AX-110,y:AY+230}};
+// holding fixes: a plane holds by circling the fix on its ring (ringR, right turns, at its low-level speed). A heavy's ring is the widest
+// (about 61); the fixes sit where that ring, with room to spare, stays inside your area and clear of each other and of every
+// landing circle (also runway 2's)
+const FIXES={alpha:{x:AX-100,y:AY-220},bravo:{x:AX+100,y:AY-220},kilo:{x:AX+100,y:AY+220},zulu:{x:AX-100,y:AY+220}};
 // points per plane: 100, less a point for every second beyond par (from appearing to landing or hand-off)
 const PAR={arr:70,dep:55,ovf:40};
 // the rules; each level (a traffic scenario) switches some on, and shift upgrades raise them
@@ -320,7 +324,8 @@ function heldUp(p){const[wx,wy]=p.path[0],h=Math.atan2(wy-p.y,wx-p.x),ux=Math.co
     return d<8*(p.T.size+q.T.size)&&dx*ux+dy*uy>.5*d&&outranks(q,p)})}
 function spawnDep(dest){const name=freshName();if(name)S.planes.push(newPlane({name,kind:'dep',dest,state:'ready',x:AX,y:OUT_Y,hdg:0,tgt:0,alt:0,tgtAlt:0,altFrom:0,spd:0}))}
 function spawnArr(bearing){const b=rad(bearing),x=AX+Math.cos(b)*(RADAR-6),y=AY+Math.sin(b)*(RADAR-6),h=wrap(b+Math.PI+rad((rnd()-.5)*40));
-  const name=freshName();if(name)SFX.contact();if(name)S.planes.push(newPlane({name,kind:'arr',state:'fly',x,y,hdg:h,tgt:h,alt:2,tgtAlt:2,altFrom:2,fuel:CFG.fuel?180+rnd()*120+CFG.tank:Infinity}))}
+  const name=freshName();if(!name)return;SFX.contact();const p=newPlane({name,kind:'arr',state:'fly',x,y,hdg:h,tgt:h,alt:2,tgtAlt:2,altFrom:2});
+  p.fuel=p.fuel0=CFG.fuel?p.T.fuel+CFG.tank:Infinity;S.planes.push(p)}   // it enters with full tanks
 // an overflight from the neighbouring sector: crosses your area in a straight line, to leave through the slice it is aimed at
 function spawnOvf(bearing){const b=rad(bearing),ex=Math.cos(b)*(RADAR-6),ey=Math.sin(b)*(RADAR-6),h=Math.atan2((rnd()-.5)*200-ey,(rnd()-.5)*200-ex);
   const ux=Math.cos(h),uy=Math.sin(h),eu=ex*ux+ey*uy,t=-eu+Math.sqrt(eu*eu-(ex*ex+ey*ey-RADAR*RADAR)),lv=1+Math.floor(rnd()*(CFG.levels-1)),name=freshName();
@@ -350,6 +355,9 @@ const ONRUNWAY=['final','enter','roll','rollout'];
 const sizeFor=p=>(onGround(p)?.045:.065+p.alt*.01)*p.T.size;
 const runwayUser=(r)=>S.planes.find(p=>ONRUNWAY.includes(p.state)&&(!r||p.rw===r));
 const rwBusy=r=>!!runwayUser(r)||r.wake>0;
+// arrivals first: a departure enters the runway only while no arrival is cleared to land on it (one waiting for the wind to
+// turn back does not count, it cannot land yet)
+const landingOn=r=>S.planes.some(q=>{if(!q.cleared||q.inGate&&tailwind(q.inGate))return false;const k=q.inGate||q.navGate;return!k||GATES[k].rw===r});
 // which way down the runway suits a departure: the wind decides, else the end that points closest to where it wants to go
 const runwayFor=d=>CFG.wind?(S.rwdir>0?'east':'west'):Math.cos(rad(HEADINGS[d]))<-.01?'west':'east';
 // a landing circle is closed while a storm cell overlaps it, and with wind, when landing from it would have the wind behind:
@@ -367,7 +375,6 @@ const landGate=p=>{const k=inGate(p);return k&&gateOpen(k)&&facing(p,k)&&lowNow(
 const nearestGate=p=>(Object.keys(GATES).some(gateOpen)?Object.keys(GATES).filter(gateOpen):Object.keys(GATES)).sort((a,b)=>Math.hypot(GATES[a].x-p.x,GATES[a].y-p.y)-Math.hypot(GATES[b].x-p.x,GATES[b].y-p.y))[0];
 // the compass word that points a plane at the nearest open landing circle, at its outer half so it has room to line up
 const toGate=p=>{const g=GATES[nearestGate(p)];return compass(g.x-g.dir*GATE_R*.5-p.x,g.y-p.y)};
-const holdR=p=>p.spd/(TURN*p.T.turn*APP_TURN);   // the circle a plane holding on the spot flies
 // on the approach a plane banks gently: wider, slower turns than when you steer it
 const APP_TURN=.8,appR=p=>p.spd/(TURN*p.T.turn*APP_TURN);
 // the ring a plane circles a landing circle's centre on: its type's turn radius at normal speed, so planes of a type share one ring
@@ -380,9 +387,6 @@ function pathAt(P,s){for(const q of P){if(s<=q.len||q===P[P.length-1]){s=Math.mi
   const cx=q.x-q.r*Math.sin(q.h)*q.d,cy=q.y+q.r*Math.cos(q.h)*q.d,a=Math.atan2(q.y-cy,q.x-cx)+q.d*s/q.r;   // turn centre, then round it
   return{x:cx+Math.cos(a)*q.r,y:cy+Math.sin(a)*q.r,h:wrap(q.h+q.d*s/q.r),k:q.d/q.r}}s-=q.len}}
 const pathLen=P=>P.reduce((t,q)=>t+q.len,0);
-// a holding pattern: over the fix on the inbound course h, a right turn, an outbound leg, a right turn back, the inbound leg
-function racetrack(x,y,h,r,L=60){const ux=Math.cos(h),uy=Math.sin(h),nx=-Math.sin(h),ny=Math.cos(h),x1=x+2*r*nx,y1=y+2*r*ny,x2=x1-L*ux,y2=y1-L*uy;
-  return[{x,y,h,d:1,r,len:Math.PI*r},{x:x1,y:y1,h:wrap(h+Math.PI),d:0,len:L},{x:x2,y:y2,h:wrap(h+Math.PI),d:1,r,len:Math.PI*r},{x:x-L*ux,y:y-L*uy,h,d:0,len:L}]}
 // the shortest turn-straight-turn path from one position and heading to another, every turn of radius r (Dubins)
 function dubins(x0,y0,h0,x1,y1,h1,r){let best=null;const tw=a=>((a%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
   for(const d1 of[1,-1])for(const d2 of[1,-1]){
@@ -409,6 +413,17 @@ function lineUp(p,g,free=false){const ty=g.rw.y,rh=g.dir>0?0:Math.PI,r=ringR(p),
 // in the zone; nose straight at the centre, either way works, so the way the shortest line-up turns
 const orbitSide=(p,g)=>{const bear=wrap(Math.atan2(g.y-p.y,g.x-p.x)-p.hdg);if(Math.abs(bear)>=rad(3))return Math.sign(bear);
   const P=lineUp(p,g,true),q=P&&P.find(q=>q.d);return q?q.d:1};
+// circling a centre on the plane's ring, side +1 right turns: outside the ring, straight for the point where its line touches
+// the ring; on or inside it, the ring's tangent tilted outward by how far inside it is. Both meet at the ring, so it joins it
+// smoothly and stays on it. Returns the turn rate it wants (null: it steers by p.tgt)
+function circle(p,cx,cy,side){const ro=ringR(p),r=Math.hypot(p.x-cx,p.y-cy),a=Math.atan2(p.y-cy,p.x-cx);
+  if(r>1.4*ro){p.tgt=wrap(Math.atan2(cy-p.y,cx-p.x)-side*Math.asin(ro/r));return null}
+  return follow(p,cx+Math.cos(a)*ro,cy+Math.sin(a)*ro,wrap(a+side*Math.PI/2),side/ro)}
+// a hold on the spot circles a centre beside the plane, on the side toward the airport (turning that way), moved inward when
+// the ring would poke out of your area
+function spotCentre(p){const ro=ringR(p),side=-Math.sin(p.hdg)*(AX-p.x)+Math.cos(p.hdg)*(AY-p.y)>=0?1:-1;
+  let x=p.x-side*ro*Math.sin(p.hdg),y=p.y+side*ro*Math.cos(p.hdg);const d=Math.hypot(x-AX,y-AY),m=RADAR-ro-12;
+  if(d>m){x=AX+(x-AX)*m/d;y=AY+(y-AY)*m/d}return{x,y,side}}
 // following a path or a ring: the turn it needs there, plus a correction toward it (intercept up to 50°) and onto its heading
 function follow(p,x,y,h,k){const lat=(p.x-x)*-Math.sin(h)+(p.y-y)*Math.cos(h),want=-Math.max(-.9,Math.min(.9,lat*.035));
   return p.spd*k+1.6*wrap(want-wrap(p.hdg-h))}
@@ -453,7 +468,7 @@ function step(dt){
     if(p.atGate){if(S.planes.some(q=>q!==p&&TAXI_RANK[q.state]&&!q.atGate&&Math.hypot(q.x-p.x,q.y-p.y)<8*(p.T.size+q.T.size)))continue;p.atGate=false;p.gt=S.gt=(S.gt||0)+1}
     if(p.state==='taxi'||p.state==='enter'||p.state==='taxiin'){if(p.path.length&&!heldUp(p)&&taxi(p,dt)){if(p.state==='taxi')p.state='lineup';else if(p.state==='taxiin'){remove(p);continue}}
       if(p.state!=='enter'||p.path.length)continue}
-    if(p.state==='lineup'){if(!rwBusy(p.rw)){p.state='enter';p.path=[[p.hx,p.rw.y],[AX-p.rdir*RW,p.rw.y]]}continue}
+    if(p.state==='lineup'){if(!rwBusy(p.rw)&&!landingOn(p.rw)){p.state='enter';p.path=[[p.hx,p.rw.y],[AX-p.rdir*RW,p.rw.y]]}continue}
     if(p.state==='enter'){const d=wrap((p.rdir>0?0:Math.PI)-p.hdg);p.hdg=wrap(p.hdg+Math.sign(d)*Math.min(Math.abs(d),2.5*dt));if(Math.abs(d)>.01)continue;startRoll(p)}
     // the takeoff run: it lifts off at its rotation speed (a heavy needs more runway), or at the latest at the end of the runway
     if(p.state==='roll'){p.spd+=RUN*p.T.climb*dt;if(p.spd>=.85*SPEED*p.T.spd||p.rdir*(p.x-AX)>RW){p.state='fly';if(p.T.wake)p.rw.wake=6}}
@@ -475,9 +490,7 @@ function step(dt){
           if(!p.orbit){p.orbit=orbitSide(p,g);p.orbitT=0}
           // circling the centre on its ring: outside it, straight for the point where its line touches the ring; on or inside it,
           // the ring's tangent tilted outward by how far inside it is. Both meet at the ring, so it joins it smoothly and stays on it
-          const ro=ringR(p),r=Math.hypot(p.x-g.x,p.y-g.y),a=Math.atan2(p.y-g.y,p.x-g.x);p.orbitT+=dt;
-          if(r>1.4*ro)p.tgt=wrap(Math.atan2(g.y-p.y,g.x-p.x)-p.orbit*Math.asin(ro/r));
-          else wd=follow(p,g.x+Math.cos(a)*ro,g.y+Math.sin(a)*ro,wrap(a+p.orbit*Math.PI/2),p.orbit/ro);
+          p.orbitT+=dt;wd=circle(p,g.x,g.y,p.orbit);
           // the wind closed the circle under it: it keeps circling, without limit, until the wind turns back (or you send it off)
           const waitWind=tailwind(p.inGate);if(waitWind)p.orbitT=0;
           const c=!waitWind&&!pastThreshold(p,g)&&S.t>=(p.planAt||0)&&(p.planAt=S.t+.25,lineUp(p,g));   // planning is costly: 4 tries a second
@@ -485,18 +498,18 @@ function step(dt){
           // a missed approach: climb straight ahead to mid
           else if(high||d>GATE_R+2.6*appR(p)||pastThreshold(p,g)||p.orbitT>2.2*2*Math.PI/(turn*APP_TURN)||stormOver(p.inGate)){const was=p.inGate;SFX.goAround();p.cleared=false;p.inGate=null;p.orbit=0;p.tgt=p.hdg;setLevel(p,Math.max(1,p.tgtAlt));
             say(`!${p.name} going around, climbing to mid straight ahead: ${high?'it was not low yet':stormOver(was)?'a storm moved over the circle':p.blocked?'the runway was busy':'it could not line up'}. bring it back low into a circle, then land`);p.blocked=false}}}
-      if(p.state==='tofix'){const f=FIXES[p.fix];p.tgt=Math.atan2(f.y-p.y,f.x-p.x);if(Math.hypot(f.x-p.x,f.y-p.y)<8){p.state='hold';p.loop=racetrack(f.x,f.y,p.hdg,holdR(p));p.s=0}}
-      // holding at a fix: the racetrack, right turns, flown like any path
-      if(p.state==='hold'&&p.loop){const L=pathLen(p.loop),q=pathAt(p.loop,p.s%L);p.s+=p.spd*dt*Math.max(0,Math.cos(wrap(p.hdg-q.h)));wd=follow(p,q.x,q.y,q.h,q.k)}
+      // holding: circling its centre (the fix: right turns; the spot: turning toward the airport); flying to a fix becomes holding once at its ring
+      if(p.state==='tofix'||p.state==='hold'){const c=p.state==='tofix'?FIXES[p.fix]:p.hc;wd=circle(p,c.x,c.y,c.side||1);
+        if(p.state==='tofix'&&Math.hypot(c.x-p.x,c.y-p.y)<1.5*ringR(p)){p.state='hold';p.hc=c}}
       // final: following the line-up path to the runway end, touching down there and rolling out
       if(p.state==='final'){p.alt=Math.max(0,p.alt-CLIMB*p.T.climb*dt);const q=pathAt(p.app,p.s);
         p.s+=p.spd*dt*Math.max(0,Math.cos(wrap(p.hdg-q.h)));wd=follow(p,q.x,q.y,q.h,q.k);p.tgt=q.h;
         if(p.dir*(p.x-(AX-p.dir*RW))>=0){p.state='rollout';SFX.touchdown();p.alt=p.tgtAlt=0}}
       // turning: a plane rolls into and out of a turn (its turn rate changes gradually, full bank in about 0.7 s)
-      if(p.state!=='rollout'){if(wd===null)wd=p.state==='hold'?turn*APP_TURN:1.4*wrap(p.tgt-p.hdg);wd=Math.max(-turn,Math.min(turn,wd));
+      if(p.state!=='rollout'){if(wd===null)wd=1.4*wrap(p.tgt-p.hdg);wd=Math.max(-turn,Math.min(turn,wd));
         p.w=p.w||0;p.w+=Math.max(-1.4*turn*dt,Math.min(1.4*turn*dt,wd-p.w));p.hdg=wrap(p.hdg+p.w*dt)}
       if(p.state!=='rollout')p.alt+=Math.sign(p.tgtAlt-p.alt)*Math.min(Math.abs(p.tgtAlt-p.alt),CLIMB*p.T.climb*dt);
-      const want=p.state==='final'?.85*SPEED*p.T.spd:speedFor(p);   // on final: the approach speed, a little under normal
+      const want=p.state==='final'?.85*SPEED*p.T.spd:p.state==='hold'||p.state==='tofix'?SPEED*p.T.spd:speedFor(p);   // on final: the approach speed, a little under normal; holding: its low-level speed at any level
       p.spd+=Math.max(-ACC*dt,Math.min(ACC*dt,want-p.spd));
     }
     p.x+=Math.cos(p.hdg)*p.spd*dt;p.y+=Math.sin(p.hdg)*p.spd*dt;
@@ -590,8 +603,8 @@ function exec(words){
     if(up?lv<=p.tgtAlt:lv>=p.tgtAlt)return`!${n} is already ${LV[p.tgtAlt]}`;
     const alt=argsFor(p,act).map(w=>LV.indexOf(w)).filter(i=>i!==lv);if(alt.length&&mishear())lv=alt[rnd()*alt.length|0];
     setLevel(p,lv);return`${n}: ${up?'climb':'descend'} and maintain ${FEET[lv]} ft (${LV[lv]}, takes a while)`}
-  if(act==='hold'){p.loop=null;if(arg){p.state='tofix';p.fix=arg;p.cleared=false;return`${n}: direct ${arg.toUpperCase()}, hold there, right turns`}
-    p.state='hold';return`${n}: orbiting right here, until you turn it (or land, inside a landing circle)`}
+  if(act==='hold'){if(arg){p.state='tofix';p.fix=arg;p.cleared=false;return`${n}: direct ${arg.toUpperCase()}, hold there, right turns`}
+    p.state='hold';p.fix=null;p.hc=spotCentre(p);return`${n}: orbiting right here, until you turn it (or land, inside a landing circle)`}
   if(act==='land'){
     // only inside an open landing circle (with navigation: anywhere); it stops any circling and turns onto the runway there
     if(p.cleared)return`!${n} is already cleared to land`;
@@ -628,7 +641,7 @@ function hintFor(n){
   const u=runwayUser(),fuel=p.mayday?`MAYDAY ${Math.ceil(p.fuel)} s of fuel · `:'';
   if(p.state==='ready')return`${p.name} wants to leave ${U(p.dest)} → ${p.name} takeoff ${U(runwayFor(p.dest))} (${CFG.wind?'into the wind':`the runway direction closest to ${U(p.dest)}`})${u?` · it waits at the runway end while ${u.name} uses it`:''}`;
   if(p.state==='taxi')return`${p.name} ${p.atGate?'waits at its gate for the apron to clear':'is taxiing to the holding point'}${p.turned?'':` · you can already give it ${p.name} turn ${U(p.dest)}`}`;
-  if(p.state==='lineup')return`${p.name} waits at the holding point until the runway is free${p.rw.wake>0?' (wake turbulence behind a heavy)':''}`;
+  if(p.state==='lineup')return`${p.name} waits at the holding point until the runway is free and no arrival is cleared to land${p.rw.wake>0?' (wake turbulence behind a heavy)':''}`;
   if(p.state==='rollout')return`${p.name} is rolling out: the runway is busy until it turns off`;
   if(p.state==='taxiin')return`${p.name} is taxiing in to the apron`;
   if(p.state==='roll')return`${p.name} is taking off ${p.rdir>0?'east':'west'}${headingFor(p,p.dest)?'':` → ${p.name} turn ${U(p.dest)}`}`;
@@ -647,9 +660,8 @@ function hintFor(n){
 /* ---------- a good controller: suggests moves in early levels, and plays the demo ---------- */
 // where a plane will be in t seconds if nothing changes; a circling plane is its circle's centre, widened by its radius
 function future(p,t,alt=p.tgtAlt){
-  const c=CLIMB*p.T.climb,lvl=p.alt+Math.sign(alt-p.alt)*Math.min(Math.abs(alt-p.alt),c*t),hr=holdR(p);
-  if(p.state==='hold'&&p.loop){const a=pathAt(p.loop,0),b=pathAt(p.loop,Math.PI*p.loop[0].r+30);return[(a.x+b.x)/2,(a.y+b.y)/2,lvl,p.loop[0].r+30]}
-  if(p.state==='hold')return[p.x-hr*Math.sin(p.hdg),p.y+hr*Math.cos(p.hdg),lvl,hr];
+  const c=CLIMB*p.T.climb,lvl=p.alt+Math.sign(alt-p.alt)*Math.min(Math.abs(alt-p.alt),c*t);
+  if(p.state==='hold'){const c=p.hc||spotCentre(p);return[c.x,c.y,lvl,ringR(p)]}   // also a plane asked to hold here
   // landing: to the runway end, then along it; taking off: down the runway, then out
   const legs=p.state==='final'?[[AX-p.dir*RW,p.rw.y],[AX,p.rw.y]]:p.state==='roll'?[[AX+p.rdir*RW,p.rw.y]]:[];
   const v=Math.max(p.spd,SPEED*p.T.spd*.8),tgt=p.state==='tofix'?Math.atan2(FIXES[p.fix].y-p.y,FIXES[p.fix].x-p.x):p.tgt;
@@ -689,7 +701,7 @@ function decide(peek){
     for(const p of [a,b].filter(q=>free(q)&&!q.cleared).sort((x,y)=>(y.kind!=='arr')-(x.kind!=='arr'))){const o=p===a?b:a;
       for(const lv of p.kind!=='arr'?ups:p===next?[0,...ups.slice().reverse()]:ups)if(lv!==p.tgtAlt&&clearAt(p,lv)&&once(p,'sep',4))
         return[levelCmd(p,lv),`${p.name} and ${o.name} are heading for the same spot at the same level. ${p.name} goes ${LV[lv]}, so one passes over the other.`];
-      const nearEdge=fromAirport(p)>RADAR-2*holdR(p)-25;   // its circle would poke out of your area
+      const nearEdge=fromAirport(p)>RADAR-2*ringR(p)-25;   // its circle would be pulled far inward to stay in your area
       if(p.kind==='arr'&&p.state!=='hold'&&!nearEdge&&holdLevel(p,[p.tgtAlt])!==undefined&&once(p,'sep',4))
         return[[p.name,'hold'],`${p.name} would get too close to ${o.name}. It circles on the spot until the way is clear.`]}}
   // storms: turn away to the nearest heading that misses them
@@ -904,8 +916,7 @@ function draw(){
     cx.fillStyle=col;p.trail.forEach(([x,y],i)=>{cx.globalAlpha=.06+i*.05;cx.beginPath();cx.arc(x,y,1.6,0,7);cx.fill()});cx.globalAlpha=1;
     if(p.warn){cx.fillStyle='rgba(255,107,94,.1)';cx.strokeStyle='rgba(255,107,94,.6)';cx.beginPath();cx.arc(p.x,p.y,(SEP+(p.T.wake?WAKE:0))/2,0,7);cx.fill();cx.stroke()}
     // timing cues: the circle it is flying, where it is turning to, the fix it is flying to
-    if(p.state==='hold'&&p.loop){cx.setLineDash([2,4]);cx.strokeStyle='rgba(211,234,217,.25)';cx.beginPath();const L=pathLen(p.loop);for(let s=0;s<=L;s+=4){const q=pathAt(p.loop,s);cx.lineTo(q.x,q.y)}cx.closePath();cx.stroke();cx.setLineDash([])}
-    else if(p.state==='hold'){const hr=holdR(p);cx.setLineDash([2,4]);cx.strokeStyle='rgba(211,234,217,.25)';cx.beginPath();cx.arc(p.x-hr*Math.sin(p.hdg),p.y+hr*Math.cos(p.hdg),hr,0,7);cx.stroke();cx.setLineDash([])}
+    if(p.state==='hold'){cx.setLineDash([2,4]);cx.strokeStyle='rgba(211,234,217,.25)';cx.beginPath();cx.arc(p.hc.x,p.hc.y,ringR(p),0,7);cx.stroke();cx.setLineDash([])}
     if(p.inGate&&p.orbit){const g=GATES[p.inGate];cx.setLineDash([2,5]);cx.strokeStyle='rgba(211,234,217,.22)';cx.beginPath();cx.arc(g.x,g.y,ringR(p),0,7);cx.stroke();cx.setLineDash([])}   // the ring it circles
     if(p.state==='final'){cx.setLineDash([3,4]);cx.strokeStyle='rgba(126,224,168,.45)';cx.beginPath();cx.moveTo(p.x,p.y);
       const L=pathLen(p.app);for(let s=p.s;s<L+3;s+=3){const q=pathAt(p.app,Math.min(s,L));cx.lineTo(q.x,q.y)}cx.stroke();cx.setLineDash([])}
@@ -920,17 +931,25 @@ function draw(){
     const moving=Math.abs(p.tgtAlt-p.alt)>.01,lvTxt=moving?`${ALTCH[lvl]}→${ALTCH[p.tgtAlt]}`:ALTCH[lvl];
     let tag=p.state==='hold'?' ⟳':p.state==='tofix'?` →${p.fix.toUpperCase()}`:p.state==='final'?' landing':p.state==='roll'?' taking off':p.state==='taxi'?' taxi':p.state==='lineup'?' waiting':p.state==='enter'?' lining up':p.state==='rollout'?' landed':p.state==='taxiin'?' taxi in':p.cleared?(p.inGate&&tailwind(p.inGate)?' · waits for wind':' · cleared'):'';
     if(p.kind==='arr'&&p.state!=='final'&&!p.cleared&&landGate(p))tag+=rwBusy(GATES[landGate(p)].rw)?' · wait':' · can land';
-    const fuel=p.kind==='arr'&&p.fuel<90?` fuel ${Math.ceil(p.fuel)}`:'';
-    const txt=`${p.name}${ground?'':' '+lvTxt}${p.T.tag?' '+p.T.tag:''}${tag}${p.kind!=='arr'&&!ground?' → '+U(p.dest):''}${fuel}`;font(ground?11:12.5,hot?600:500);
-    const lx=p.x+18,ly=p.y-20,tw=cx.measureText(txt).width;
+    const rest=`${ground?'':' '+lvTxt}${p.T.tag?' '+p.T.tag:''}${tag}${p.kind!=='arr'&&!ground?' → '+U(p.dest):''}`;font(ground?11:12.5,hot?600:500);
+    const gauge=p.kind==='arr'&&!ground&&isFinite(p.fuel0),nw=cx.measureText(p.name).width,gw=gauge?12:0;   // the fuel gauge sits right after the name
+    const lx=p.x+18,ly=p.y-20,tw=nw+gw+cx.measureText(rest).width;
     cx.strokeStyle=col;cx.globalAlpha=.5;cx.beginPath();cx.moveTo(p.x+6,p.y-6);cx.lineTo(lx-4,ly+6);cx.stroke();cx.globalAlpha=1;
     cx.fillStyle=p.mayday&&S.t%1<.5?'rgba(80,14,10,.85)':'rgba(4,11,8,.72)';cx.beginPath();cx.roundRect(lx-5,ly-9,tw+10,19,4);cx.fill();
-    cx.textAlign='left';cx.fillStyle=hot?'#fff':p.mayday?'#ff8a7e':col;cx.fillText(txt,lx,ly+.5);cx.textAlign='center';
+    cx.textAlign='left';cx.fillStyle=hot?'#fff':p.mayday?'#ff8a7e':col;cx.fillText(p.name,lx,ly+.5);cx.fillText(rest,lx+nw+gw,ly+.5);cx.textAlign='center';
+    if(gauge)fuelGauge(lx+nw+4,ly,p);
     if(moving&&!ground){const f=1-Math.abs(p.tgtAlt-p.alt)/Math.max(.01,Math.abs(p.tgtAlt-p.altFrom));
       cx.fillStyle='rgba(211,234,217,.15)';cx.fillRect(lx-5,ly+9,tw+10,2);cx.fillStyle=col;cx.fillRect(lx-5,ly+9,(tw+10)*f,2)}
     p.warn=0}
   for(const f of S.fx)drawFx(f);
   glow('',0)}
+// a small tank: four cells, as full as the tanks are (full on entry). Green, amber below half, red below a quarter;
+// at MAYDAY it glows red and pulses
+function fuelGauge(x,y,p){const f=Math.max(0,p.fuel/p.fuel0),cells=Math.ceil(f*4),c=f>.5?'#7ee0a8':f>.25?'#f2c94c':'#ff6b5e';
+  if(p.mayday){glow('#ff3b2e',8+6*Math.sin(S.t*8))}
+  cx.strokeStyle=p.mayday?'#ff6b5e':'rgba(211,234,217,.6)';cx.lineWidth=1;cx.strokeRect(x+.5,y-6.5,6,12);
+  cx.fillStyle=cx.strokeStyle;cx.fillRect(x+2,y-8,3,1.5);   // the cap
+  cx.fillStyle=c;for(let i=0;i<cells;i++)cx.fillRect(x+2,y+3.5-i*3,3,2);glow('',0)}
 const over=document.getElementById('over'),$=id=>document.getElementById(id);
 // after a shift: the score, tokens earned, and the upgrades to buy (or today's best, for the daily shift)
 function shiftOver(){
