@@ -138,13 +138,13 @@ function meaning(w,opts){
   return pick}
 function resolve(toks){const out=[];for(const w of toks){const opts=options(out);
   if(!opts.length){if(out.length===2)break;return{err:'!too many words: plane action [direction]'}}   // nothing left to choose: let the action say why
-  const o=meaning(w,opts);if(!o)return{err:`!${w}? ${opts.slice(0,8).map(U).join(' · ')}`};out.push(o)}return{words:out}}
+  const o=meaning(w,opts);if(!o)return{err:`!${w}? ${validOpts(out).slice(0,8).map(U).join(' · ')}`};out.push(o)}return{words:out}}
 function parts(){const t=cmd.value.toLowerCase().split(/\s+/);return{done:t.slice(0,-1).filter(Boolean),part:t[t.length-1]}}
 function ghostRest(){const low=cmd.value.toLowerCase();
-  if(T.sug){const full=T.sug.join(' ');if(full.startsWith(low)&&full.length>low.length)return full.slice(low.length)}
+  if(T.sug&&T.sug.every((_,i)=>valid(T.sug.slice(0,i+1)))){const full=T.sug.join(' ');if(full.startsWith(low)&&full.length>low.length)return full.slice(low.length)}
   const{part}=parts();return part&&T.cands.length?T.cands[T.sel].slice(part.length):''}
 function refreshSug(){const{done,part}=parts();const r=resolve(done);
-  T.cands=(r.err||!cmd.value.trim())?[]:options(r.words).filter(o=>o.startsWith(part));
+  T.cands=(r.err||!cmd.value.trim())?[]:validOpts(r.words).filter(o=>o.startsWith(part));
   if(T.sel>=T.cands.length)T.sel=0;
   coach();T.ghost=ghostRest();
   ghostEl.innerHTML=`<span class="t">${esc(cmd.value)}</span>${esc(T.ghost)}`;
@@ -545,6 +545,18 @@ function options(words){
   if(words.length===1)return actions(p);
   if(words.length===2)return argsFor(p,words[1]);
   return[]}
+// what the prompt suggests: only orders that would be carried out. options() stays wider, so a typed order that cannot be
+// carried out is still read as typed and answered with the reason
+function valid(words){const[w0,act,arg]=words;
+  if(w0==='buy')return act?meta.tokens>=UPGRADES[act].cost[meta[act]]:options(['buy']).some(a=>valid(['buy',a]));
+  if(w0==='pause')return!S.over;
+  const p=plane(w0);if(!p)return true;
+  if(!act)return actions(p).some(a=>valid([w0,a]));
+  if(act==='land'){if(p.cleared)return false;const k=inGate(p);return k?gateOpen(k):CFG.nav}
+  if(act==='ascend'||act==='descend')return argsFor(p,act).length>0;
+  if(act==='takeoff')return!arg||!CFG.wind||(arg==='east'?1:-1)===S.rwdir;
+  return true}
+const validOpts=words=>options(words).filter(o=>valid([...words,o]));
 function setLevel(p,lv){p.altFrom=p.alt;p.tgtAlt=lv}
 function steer(p,d){
   if(d in HEADINGS)p.tgt=rad(HEADINGS[d]);
@@ -563,11 +575,11 @@ function exec(words){
   if(w0==='help'){showHelp(true);return''}
   if(w0==='demo'){startDemo();return''}
   if(w0==='daily'){startLevel(LEVELS.length-1,false,true);return`daily shift ${today()}: the same traffic for everyone today, no upgrades`}
-  if(w0==='buy'){if(!act)return`!buy what? ${options(['buy']).join(' · ')||'everything is bought'}`;
+  if(w0==='buy'){if(!act)return`!buy what? ${validOpts(['buy']).join(' · ')||(options(['buy']).length?'nothing you can afford yet':'everything is bought')}`;
     const u=UPGRADES[act],c=u.cost[meta[act]];if(meta.tokens<c)return`!${act} costs ${c} tokens, you have ${meta.tokens}`;
     meta.tokens-=c;meta[act]++;saveMeta();return`bought ${act}: ${u.what}`}
   const p=plane(w0),n=p.name;
-  if(!act)return p.state==='rollout'||p.state==='taxiin'?`${n} has landed: nothing to do`:`!${n} what? ${actions(p).join(' · ')}`;
+  if(!act)return p.state==='rollout'||p.state==='taxiin'?`${n} has landed: nothing to do`:`!${n} what? ${actions(p).filter(a=>valid([n,a])).join(' · ')}`;
   if(act==='turn'){if(!arg)return`!${n} turn where? e.g. ${n} turn n, ${n} turn l`;
     const d=arg in HEADINGS&&mishear()?nextTo(arg):arg;
     const from=p.state==='hold'?p.hdg:p.tgt;steer(p,d);const side=wrap(p.tgt-(onGround(p)||p.state==='roll'?p.tgt:p.hdg))<0?'left':'right';
