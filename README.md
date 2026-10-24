@@ -1,5 +1,11 @@
 # Tower Power
 
+### ▶ [Play Tower Power in your browser](https://louisvandenbruwaene.github.io/tower/)
+
+No install, no account: open the link, click into the prompt and type. Level 1 shows you every move.
+
+[![Tower Power: a radar with arrivals, a departure taxiing out and a typed order](screenshot.png)](https://louisvandenbruwaene.github.io/tower/)
+
 Air traffic control, very realistic in spirit but highly simplified, played only by typing words. Your area is the radar circle. Arrivals (blue) come in high; bring them down low and fly them into one of the two landing circles off the runway ends, then land: they turn onto the runway by themselves. Departures (gold) each want to leave in one of 8 directions: take them off east or west down the runway, then turn them so they leave the circle through their own slice. Same level and too close, a departure leaving through the wrong slice, or an arrival leaving your area: strike. Three strikes and you replay the level.
 
 Every command is `plane action [direction]`, in any capitals:
