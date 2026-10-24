@@ -12,7 +12,8 @@ body{display:flex;flex-direction:column;background:radial-gradient(ellipse 70% 8
 #brand::before{content:'';display:inline-block;width:8px;height:8px;margin-right:11px;border-radius:50%;background:var(--acc);box-shadow:0 0 10px var(--acc);vertical-align:1px;animation:blink 2s infinite}
 @keyframes blink{50%{opacity:.35}}
 #lvl{font-weight:500;font-size:13px;padding:3px 12px;border:1px solid var(--chipon);border-radius:99px;background:var(--chip)}
-#todo{margin-left:auto;color:var(--dim);font-size:13px} #todo .tok{color:var(--gold)} #todo .tok small{color:var(--dim);font-size:11.5px}
+#todo{margin-left:auto;color:var(--dim);font-size:13px} #todo .tok{color:var(--fg)} #todo .tok small{color:var(--dim);font-size:11.5px} #todo b{font-weight:600;color:var(--fg);border-radius:3px;padding:0 3px}
+.coin{display:inline-block;width:.78em;height:.78em;border-radius:50%;background:var(--gold);box-shadow:inset 0 0 0 .14em #a87f12,0 .1em 0 #3a2c06;vertical-align:-.06em;margin-right:.3em}
 #ff+#snd,#snd+#qm{margin-left:-8px} #ff{width:auto;padding:0 8px;border-radius:13px;font-size:12px}
 .rb{width:26px;height:26px;padding:0;border-radius:50%;border:1px solid var(--chipon);background:var(--chip);color:var(--acc);font:600 14px var(--mono);cursor:pointer}
 .rb:hover{background:var(--chipon);box-shadow:0 0 12px rgba(126,224,168,.3)}
@@ -20,19 +21,20 @@ main{flex:1;min-height:0;display:flex}
 /* radar */
 #view{flex:1;position:relative;min-width:0} canvas{position:absolute;inset:0;width:100%;height:100%}
 #over{position:absolute;inset:0;display:none;place-items:center;font-size:30px;font-weight:600;background:rgba(2,8,5,.6);backdrop-filter:blur(3px);text-align:center;line-height:1.6;text-shadow:0 0 18px rgba(126,224,168,.4)}
-#over small{font-size:16px;font-weight:400;color:var(--dim)} #over .big{font-size:64px;color:var(--gold);text-shadow:0 0 30px rgba(242,201,76,.45)}
+#over small{font-size:16px;font-weight:400;color:var(--dim)} #over .big{display:inline-block;font-size:72px;font-weight:800;color:#04140b;background:var(--gold);padding:0 22px;margin:6px 0;border-radius:10px;box-shadow:0 6px 0 #6b520c;text-shadow:none;line-height:1.25}
+#over .tally{font-size:16px;font-weight:500;text-shadow:none;display:grid;grid-template-columns:auto auto;gap:2px 28px;justify-content:center;margin-top:10px} #over .tally span:nth-child(odd){color:var(--dim);text-align:right} #over .tally span:nth-child(even){text-align:left}
 #over .shop{font-size:15px;font-weight:400;line-height:1.45;text-align:left;margin:18px auto 0;width:min(780px,calc(100vw - 440px));text-shadow:none} #over .shop b{color:var(--gold);font-weight:500}
-#over .purse{color:var(--dim);font-size:14px;text-align:center} #over .purse span{color:var(--gold);font-size:22px;font-weight:600;margin-right:4px;text-shadow:0 0 14px rgba(242,201,76,.35)}
+#over .purse{color:var(--dim);font-size:14px;text-align:center} #over .purse span{color:var(--fg);font-size:22px;font-weight:700;margin-right:4px}
 #over .ups{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
-#over .up{padding:12px 16px;border:1px solid var(--line);border-radius:10px;background:linear-gradient(#0a1912,#06100b)}
-#over .up.ok{border-color:var(--gold);box-shadow:0 0 18px rgba(242,201,76,.15)} #over .up.done{opacity:.6}
+#over .up{padding:12px 16px;border:2px solid var(--line);border-radius:8px;background:#0a1711;box-shadow:0 4px 0 #020805}
+#over .up.ok{border-color:var(--gold);box-shadow:0 4px 0 #6b520c} #over .up.done{opacity:.6}
 #over .uh{display:flex;align-items:baseline;justify-content:space-between} #over .uh b{color:var(--acc);font-size:20px;font-weight:600}
 #over .uh i{font-style:normal;font-size:13px;color:var(--dim)} #over .up.ok .uh i{color:var(--gold)}
 #over .up p{margin:2px 0 8px;font-size:13px;color:var(--dim)}
 #over .up ol{list-style:none;margin:0;padding:0} #over .up li{display:flex;justify-content:space-between;padding:3px 0;border-top:1px solid var(--line);font-size:14px;color:var(--dim)}
 #over .up li em{font-style:normal} #over .up li.got{color:var(--acc)} #over .up li.next{color:var(--fg)} #over .up li.next em{color:var(--gold)}
 #demo{position:absolute;top:12px;left:50%;transform:translateX(-50%);display:none;width:min(560px,calc(100% - 32px));box-sizing:border-box;padding:9px 16px;background:rgba(14,32,24,.92);border:1px solid var(--chipon);border-radius:10px;font-size:14px;line-height:1.45;box-shadow:0 8px 30px rgba(0,0,0,.4)}
-#demo small{color:var(--dim)} #demo .tc{color:var(--gold);font-weight:500;white-space:nowrap}
+#demo small{color:var(--dim)} #demo .tc{color:var(--fg);font-weight:500;white-space:nowrap;background:#132a1e;border:1px solid var(--chipon);border-bottom-width:3px;border-radius:5px;padding:0 6px;margin:0 1px}
 /* terminal */
 #term{width:370px;flex:none;display:flex;flex-direction:column;border-left:1px solid var(--line);background:linear-gradient(180deg,#08150f,#050d09);padding:16px 18px 16px;box-sizing:border-box;min-height:0;box-shadow:-10px 0 30px rgba(0,0,0,.25)}
 .lbl{color:var(--dim);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;width:64px;flex:none}
@@ -112,7 +114,7 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>wind</td><td>Planes take off and land into the wind (top left): only the landing circles whose approach faces the wind are open (the others grey out), and departures roll from the end marked in gold. Now and then the wind turns: cleared arrivals already circling in a circle that closes keep circling there until it turns back (abort sends one off). A storm over a circle closes it too.</td></tr>
 <tr><td>storms</td><td>Storm cells drift across with the wind. A plane that flies into one loses control and crash-lands: a strike.</td></tr>
 <tr><td>readback</td><td>A pilot sometimes mishears: the reply shows what it understood (a turn 45° off, another level). Say it again.</td></tr>
-<tr><td>score</td><td>100 per plane, less a point for every second it took beyond par, plus a <b>streak</b> bonus: every plane in a row without a strike adds 10 more, up to +50. The game is one <b>shift</b> that never ends: its first five planes come in slow motion, then it runs at full speed. Three strikes end it and pay a token (◆) per 100 points, to <b>buy</b> upgrades for later shifts in small steps at 10, 20, 50, 100, 200 tokens: <b>tanks</b> (+20 s fuel a step), <b>height</b> (levels top, peak), <b>nav</b> (departures turn by themselves, then land anywhere), <b>runway</b> (shorter wake rest, then a second runway). <b>daily</b>: today's shift, the same for everyone, no upgrades. After 15 minutes the traffic stops growing. <b>hard</b> (once a shift scores 1000): no autopilot and no navigation. <b>land</b> works only for a plane you have flown onto the lit strip yourself: low, facing the runway, on its line, the runway free. It then flies straight in. <b>hold alpha</b> works only once it is at ALPHA.</td></tr>
+<tr><td>score</td><td>100 per plane, less a point for every second it took beyond par, plus a <b>streak</b> bonus: every plane in a row without a strike adds 10 more, up to +50. The game is one <b>shift</b> that never ends: its first five planes come in slow motion, then it runs at full speed. Three strikes end it and pay a token per 100 points, to <b>buy</b> upgrades for later shifts in small steps at 10, 20, 50, 100, 200 tokens: <b>tanks</b> (+20 s fuel a step), <b>height</b> (levels top, peak), <b>nav</b> (departures turn by themselves, then land anywhere), <b>runway</b> (shorter wake rest, then a second runway). <b>daily</b>: today's shift, the same for everyone, no upgrades. After 15 minutes the traffic stops growing. <b>hard</b> (once a shift scores 1000): no autopilot and no navigation. <b>land</b> works only for a plane you have flown onto the lit strip yourself: low, facing the runway, on its line, the runway free. It then flies straight in. <b>hold alpha</b> works only once it is at ALPHA.</td></tr>
 </table>
 <p>Faded text in the prompt is a suggestion: <b>→</b> takes all of it, <b>Tab</b> takes one word. Capitals don't matter. Typos are fixed for you (<b>nt</b> = north): the reply shows what was understood. <b>demo</b> shows a good controller at work, <b>Esc</b> pauses, <b>help</b> shows this card.</p>
 <h2 id="acdata" style="margin-top:18px">Aircraft</h2><div id="actable"></div>
@@ -313,7 +315,7 @@ const RULES={levels:3,runways:1,nav:0,wakeRest:WAKE_REST,fuel:false,types:false,
 const SHIFT={scale:1,rules:{types:true,fuel:true,readback:.06,wind:true,storms:1,ovf:true}};
 // bought with tokens after a shift; they last for every later shift (not the daily one)
 // in small steps: each upgrade's next step costs the next price, 10, 20, 50, 100, 200 tokens
-const PRICES=[10,20,50,100,200];
+const PRICES=[10,20,50,100,200],COIN='<i class="coin"></i>';
 const TANK_STEP=20;            // game s of extra fuel per tanks step
 const UPGRADES={
   tanks:{tiers:['+20 s fuel','+40 s fuel','+60 s fuel','+80 s fuel','+100 s fuel'],what:'arrivals carry more fuel'},
@@ -363,6 +365,7 @@ const SFX=(()=>{let ac=null,bus=null,noise=null,on=store('tower-sound')!=='off';
     landed(n=1){const k=2**(Math.min(n-1,7)*2/12);for(const[at,f]of[[0,660],[.13,990]]){tone(at,f*k,{len:.7,v:.08});tone(at,f*2*k,{len:.3,v:.025})}if(n>1)tone(.26,1320*k,{len:.5,v:.04})},
     handoff(n=1){const k=2**(Math.min(n-1,7)*2/12);tone(0,880*k,{len:.12,v:.05});tone(.08,1320*k,{len:.25,v:.05})},
     milestone(){[523,659,784,1047,1319].forEach((f,i)=>{tone(i*.07,f,{len:.5,v:.07,type:'triangle'});tone(i*.07,f*2,{len:.2,v:.02})})},
+    chips(n,st=1){for(let i=1;i<n;i++){const f=392*2**((i*4+Math.min(st,8))/12);tone(.16*i,f,{len:.09,v:.07,type:'triangle',a:.002});tone(.16*i,f*3,{len:.03,v:.02})}},
     tick(){tone(0,1800+Math.random()*300,{len:.025,v:.02,type:'square'})},
     // a collision: a crack, a falling roar and a sub-bass drop
     boom(){hiss(0,{len:.08,v:.35,type:'highpass',f:1500,q:.5});hiss(0,{len:1.8,v:.45,type:'lowpass',f:1600,f1:90,q:.5});tone(0,80,{f1:28,len:1.2,v:.45})},
@@ -447,23 +450,24 @@ const activeCount=()=>S.planes.filter(p=>p.state!=='rollout'&&p.state!=='taxiin'
 function spawnGap(){const n=activeCount();if(!n)return TRAFFIC_EMPTY;const want=TRAFFIC_START+TRAFFIC_GROWTH*Math.min(S.t/60,TRAFFIC_CAP_MIN);
   return Math.max(TRAFFIC_EMPTY,Math.min(120,TRAFFIC_GAP*TRAFFIC_BUSY**(n-want)))}
 function spawnRandom(){const r=rnd();spawnKind(S.ovfOn&&r<.22?'ovf':r<(S.ovfOn?.52:.38)&&S.planes.filter(p=>p.state==='ready').length<3?'dep':'arr')}
-function strike(msg,x,y){if(S.over)return;if(S.streak>1&&!S.admin&&!S.tut)pop({x,y:y-24,text:'streak lost',c:'#ff6b5e',size:20,life:1.4});S.streak=0;if(S.admin||S.tut){SFX.strike();say('!'+msg);S.fx.push({x,y,t:0,c:'#ff6b5e',r:40});return}SFX.strike();S.strikes++;S.lastStrike=msg;say('!'+msg);S.fx.push({x,y,t:0,c:'#ff6b5e',r:40});if(S.strikes>=3)endShift()}
+function strike(msg,x,y){if(S.over)return;if(S.streak>1&&!S.admin&&!S.tut)pop({x,y:y-28,chips:[{kind:'bad',text:'streak lost'}],size:14,life:1.5});S.streak=0;if(S.admin||S.tut){SFX.strike();say('!'+msg);S.fx.push({x,y,t:0,c:'#ff6b5e',r:40});return}SFX.strike();S.strikes++;S.lastStrike=msg;say('!'+msg);S.fx.push({x,y,t:0,c:'#ff6b5e',r:40});if(S.strikes>=3)endShift()}
 // three strikes: a shift pays tokens for its score, and the daily shift keeps today's five best
-function endShift(){S.over=true;S.overShown=0;S.result='lost';SFX.lose();if(S.demo)return;
+function endShift(){S.over=true;S.overShown=0;S.overAt=performance.now();S.result='lost';SFX.lose();if(S.demo)return;
   if(S.hard){if(S.score>hardBest){hardBest=S.score;store('tower-hard-best',hardBest)}}
   else if(S.score>best){S.unlockedHard=best<HARD_UNLOCK&&S.score>=HARD_UNLOCK;best=S.score;store('tower-best-score',best)}
   S.earned=Math.floor(S.score/100);meta.tokens+=S.earned;saveMeta();
   if(S.daily){const k='tower-daily-'+today();store(k,JSON.stringify([...load(k,[]),S.score].sort((a,b)=>b-a).slice(0,5)))}}
 function handled(p,c,msg,keep){const pts=Math.max(10,100-Math.max(0,Math.round(S.t-p.born-PAR[p.kind])));
-  S.streak=(S.streak||0)+1;const bonus=STREAK_BONUS*(Math.min(S.streak,STREAK_MAX)-1),before=S.score;
+  S.streak=(S.streak||0)+1;S.bestStreak=Math.max(S.bestStreak||0,S.streak);const bonus=STREAK_BONUS*(Math.min(S.streak,STREAK_MAX)-1),before=S.score;
   p.ok=true;S.done++;S.score+=pts+bonus;p.kind==='arr'?SFX.landed(S.streak):SFX.handoff(S.streak);S.fx.push({x:p.x,y:p.y,t:0,c,r:24});say(`${msg} · +${pts}${bonus?` · streak ×${S.streak} +${bonus}`:''}`);if(!keep)remove(p);
   if(S.tut)return;
-  const tok=Math.floor(S.score/100)-Math.floor(before/100),sub=[bonus&&`streak ×${S.streak} +${bonus}`,tok>0&&`◆ +${tok}`].filter(Boolean).join('  ');
+  const tok=Math.floor(S.score/100)-Math.floor(before/100);
+  const chips=[{kind:'pts',text:'+'+pts},bonus&&{kind:'streak',text:`×${S.streak} +${bonus}`},tok>0&&{kind:'coin',text:'+'+tok}].filter(Boolean);
   const d=Math.hypot(p.x-AX,p.y-AY),k=Math.min(1,(RADAR-40)/d);   // kept inside the radar, a plane handed off at the edge too
-  pop({x:AX+(p.x-AX)*k,y:AY+(p.y-AY)*k,text:'+'+(pts+bonus),sub,c:bonus?'#ffd75e':'#7ee0a8',size:26+Math.min(30,(pts+bonus)/5)});
+  pop({x:AX+(p.x-AX)*k,y:AY+(p.y-AY)*k-22,chips,size:15+Math.min(9,pts/12)});SFX.chips(chips.length,S.streak);
   BUMP.score=performance.now();if(tok>0)BUMP.tok=performance.now();
   if(Math.floor(S.score/MILESTONE)>Math.floor(before/MILESTONE)){const m=Math.floor(S.score/MILESTONE)*MILESTONE;
-    setTimeout(()=>{pop({x:AX,y:AY-140,text:String(m),sub:'points',c:'#ffd75e',size:96,life:2.4,rise:20});SFX.milestone();S.shake=Math.max(S.shake,.18)},350)}}
+    setTimeout(()=>{pop({x:AX,y:AY-150,chips:[{kind:'coin',text:m+' points'}],size:40,life:2.4,rise:14,tilt:-.05});SFX.milestone();S.shake=Math.max(S.shake,.18)},350)}}
 // along a taxi route at taxi speed, turning smoothly at the corners; true once at its end
 function taxi(p,dt){const[wx,wy]=p.path[0],d=Math.hypot(wx-p.x,wy-p.y),go=TAXI*dt,h=Math.atan2(wy-p.y,wx-p.x),dh=wrap(h-p.hdg);
   if(d>.5)p.hdg=wrap(p.hdg+Math.sign(dh)*Math.min(Math.abs(dh),2.5*dt));
@@ -1182,14 +1186,27 @@ const SHAPES={
 const MONO="'JetBrains Mono',ui-monospace,Menlo,monospace",font=(px,w='')=>cx.font=`${w} ${px}px ${MONO}`;
 const ray=(b,r0,r1)=>{cx.beginPath();cx.moveTo(AX+Math.cos(b)*r0,AY+Math.sin(b)*r0);cx.lineTo(AX+Math.cos(b)*r1,AY+Math.sin(b)*r1);cx.stroke()};
 const glow=(c,b)=>{cx.shadowColor=c;cx.shadowBlur=b*(devicePixelRatio||1)};
-// score pops: a number that punches in big, settles, rises and fades. Real time, not game time
-const POPS=[],pop=o=>POPS.push({t0:performance.now(),life:1.8,rise:34,...o});
-function drawPops(){const now=performance.now();
-  for(let i=POPS.length-1;i>=0;i--){const p=POPS[i],t=(now-p.t0)/1000;if(t>p.life){POPS.splice(i,1);continue}
-    const e=t<.12?.3+1.4*t/.12:1+.7*Math.exp(-(t-.12)*9)*Math.cos((t-.12)*22),a=Math.min(1,(p.life-t)/.5);
-    cx.save();cx.translate(p.x,p.y-p.rise*(1-Math.exp(-t*2.2)));cx.scale(e,e);cx.globalAlpha=a;cx.textAlign='center';cx.textBaseline='middle';
-    font(p.size,'800');glow(p.c,22);cx.lineWidth=p.size/7;cx.strokeStyle='rgba(2,8,5,.85)';cx.strokeText(p.text,0,0);cx.fillStyle=p.c;cx.fillText(p.text,0,0);
-    if(p.sub){font(Math.max(12,p.size*.4),'700');cx.strokeText(p.sub,0,p.size*.78);cx.fillText(p.sub,0,p.size*.78)}cx.restore()}}
+// score pops: flat chips that land one after another, each punching in with a small tilt, then the row floats up and fades.
+// Real time, not game time
+const POPS=[],pop=o=>POPS.push({t0:performance.now(),life:1.9,rise:30,gap:.16,...o});
+const CHIP={pts:['#7ee0a8','#04140b','#2c6b47'],streak:['#ff7a45','#1a0700','#7a2d10'],coin:['#f2c94c','#1d1503','#6b520c'],bad:['#ff5a4e','#fff','#6e1a14']};
+function chipW(c,size){font(size,'800');return cx.measureText(c.text).width+size*.9+(c.kind==='coin'?size*.9:0)}
+function drawChip(c,size){const[bg,fg,sh]=CHIP[c.kind],w=chipW(c,size),h=size*1.4,r=size*.28;
+  cx.fillStyle=sh;cx.beginPath();cx.roundRect(-w/2,-h/2+size*.16,w,h,r);cx.fill();
+  cx.fillStyle=bg;cx.beginPath();cx.roundRect(-w/2,-h/2,w,h,r);cx.fill();
+  let tx=0;if(c.kind==='coin'){const cr=size*.36,ccx=-w/2+size*.45+cr;cx.fillStyle='#a87f12';cx.beginPath();cx.arc(ccx,0,cr,0,7);cx.fill();
+    cx.fillStyle='#ffe28a';cx.beginPath();cx.arc(ccx,0,cr*.62,0,7);cx.fill();tx=size*.45}
+  cx.fillStyle=fg;cx.fillText(c.text,tx,size*.05)}
+function drawPops(){const now=performance.now();glow('',0);
+  for(let i=POPS.length-1;i>=0;i--){const p=POPS[i],t=(now-p.t0)/1000,n=p.chips.length,end=p.life+p.gap*(n-1);if(t>end){POPS.splice(i,1);continue}
+    const ws=p.chips.map(c=>chipW(c,p.size)),gap=p.size*.35,tot=ws.reduce((a,b)=>a+b,0)+gap*(n-1);
+    cx.save();cx.translate(p.x,p.y-p.rise*Math.max(0,1-Math.exp(-(t-.3)*2)));cx.globalAlpha=Math.max(0,Math.min(1,(end-t)/.45));
+    cx.textAlign='center';cx.textBaseline='middle';let x=-tot/2;
+    p.chips.forEach((c,j)=>{const lt=t-j*p.gap,w=ws[j];x+=w/2;
+      if(lt>0){const e=lt<.09?.2+.9*lt/.09:1+.35*Math.exp(-(lt-.09)*10)*Math.cos((lt-.09)*26);
+        cx.save();cx.translate(x,0);cx.rotate((j%2?.12:-.12)*Math.exp(-lt*7)*Math.cos(lt*30)+(p.tilt||0));cx.scale(e,e);drawChip(c,p.size);cx.restore()}
+      x+=w/2+gap});
+    cx.restore()}}
 function draw(){
   cx.setTransform(1,0,0,1,0,0);cx.clearRect(0,0,cv.width,cv.height);
   const sh=S.shake>0?S.shake*12*sc:0;cx.setTransform(sc,0,0,sc,ox+R(-sh,sh),oy+R(-sh,sh));   // a collision shakes the screen
@@ -1312,23 +1329,26 @@ function clockSVG(p){if(!isFinite(p.patience0))return'';const f=Math.max(0,p.pat
   return`<svg width="14" height="14" viewBox="0 0 14 14" style="vertical-align:-2px;margin:0 3px${p.impatient?';filter:drop-shadow(0 0 4px #ff3b2e)':''}">${slice}<circle cx="7" cy="7" r="5.5" fill="none" stroke="${p.impatient?'#ff6b5e':'rgba(211,234,217,.65)'}"/></svg>`}
 const over=document.getElementById('over'),$=id=>document.getElementById(id);
 // after a shift: the score, tokens earned, and the upgrades to buy (or today's best, for the daily shift)
+// the shift's numbers, one row after another once the score has counted up
+function tally(){const at=(performance.now()-S.overAt)/1000-1.5,rows=[['planes',S.done],['best streak',`×${S.bestStreak||0}`],['tokens',`${COIN}+${S.earned}`]];
+  return`<div class="tally">${rows.map(([k,v],i)=>at>i*.3?`<span>${k}</span><span>${v}</span>`:'<span></span><span></span>').join('')}</div>`}
 function shiftOver(){
-  const head=`${S.hard?'hard ':''}shift over<br><b class="big">${Math.round(S.overShown??S.score)}</b> <small>points · ${S.done} planes · +${S.earned} tokens${S.unlockedHard?'<br>hard mode unlocked: type <b>hard</b>':''}</small>`;
+  const head=`${S.hard?'hard ':''}shift over<br><b class="big">${Math.round(S.overShown??S.score)}</b>${tally()}<small>${S.unlockedHard?'<br>hard mode unlocked: type <b>hard</b>':''}</small>`;
   if(S.daily)return`${head}<br><small>today's best: ${load('tower-daily-'+today(),[]).join(' · ')}<br>Enter: play today's shift again</small>`;
   const cards=Object.entries(UPGRADES).map(([k,u])=>{const own=meta[k],done=maxed(k),ok=!done&&meta.tokens>=price(k);
-    const steps=u.tiers.map((t,i)=>`<li class="${i<own?'got':i===own?'next':''}"><span>${t}</span><em>${i<own?'✓':PRICES[i]+' ◆'}</em></li>`).join('');
-    return`<div class="up${done?' done':ok?' ok':''}"><div class="uh"><b>${k}</b><i>${done?'complete':`buy ${k} · ${price(k)} ◆`}</i></div><p>${u.what}</p><ol>${steps}</ol></div>`}).join('');
-  return`${head}<div class="shop"><div class="purse"><span>◆ ${meta.tokens}</span> tokens · a shift pays 1 per 100 points · type <b>buy &lt;upgrade&gt;</b> · Enter: next ${S.hard?'hard ':''}shift</div><div class="ups">${cards}</div></div>`}
+    const steps=u.tiers.map((t,i)=>`<li class="${i<own?'got':i===own?'next':''}"><span>${t}</span><em>${i<own?'✓':`${COIN}${PRICES[i]}`}</em></li>`).join('');
+    return`<div class="up${done?' done':ok?' ok':''}"><div class="uh"><b>${k}</b><i>${done?'complete':`buy ${k} · ${COIN}${price(k)}`}</i></div><p>${u.what}</p><ol>${steps}</ol></div>`}).join('');
+  return`${head}<div class="shop"><div class="purse"><span>${COIN}${meta.tokens}</span> tokens · a shift pays 1 per 100 points · type <b>buy &lt;upgrade&gt;</b> · Enter: next ${S.hard?'hard ':''}shift</div><div class="ups">${cards}</div></div>`}
 let last=performance.now();
 // the score in the bar counts up to the real one and swells when it grows; the tokens flash when a 100 is passed
 const BUMP={score:-1e9,tok:-1e9},SHOWN={score:0};
-const bump=(t,c)=>{const u=Math.exp(-(performance.now()-t)/180);return`display:inline-block;transform:scale(${(1+.6*u).toFixed(3)});${u>.05?`color:${c};text-shadow:0 0 ${(14*u).toFixed(1)}px ${c}`:''}`};
+const bump=(t,c)=>{const u=Math.exp(-(performance.now()-t)/220);return`display:inline-block;transform:scale(${(1+.5*u).toFixed(3)}) rotate(${(-6*u*Math.sin((performance.now()-t)/40)).toFixed(2)}deg);${u>.05?`background:${c};color:#04140b`:''}`};
 function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;
   if(S.score<SHOWN.score)SHOWN.score=S.score;else SHOWN.score+=Math.max(Math.min(S.score-SHOWN.score,1),(S.score-SHOWN.score)*Math.min(1,dt*6));
   if(S.over&&S.overShown<S.score){const before=Math.floor(S.overShown/7);S.overShown=Math.min(S.score,S.overShown+Math.max(1,S.score*dt/1.4));if(Math.floor(S.overShown/7)>before)SFX.tick()}
   for(let i=0;i<FF;i++){if(!S.paused&&!S.over&&!helpOpen())step(dt*S.L.scale*warmup());if(D.on&&!S.paused)demoTick(dt);if(S.tut&&!S.paused&&!helpOpen())tutTick(dt)}draw();
   $('lvl').textContent=S.tut?'tutorial':S.admin?`admin${S.sweep?` · sweep ${S.sweep.log.length+1}/${S.sweep.log.length+S.sweep.list.length+1}`:''}`:S.demo?'demo':S.daily?`daily · ${today()}`:S.hard?`hard · best ${hardBest}`:`shift · best ${best}`;
-  $('todo').innerHTML=S.demo?'':`${S.done} planes · <b style="${bump(BUMP.score,'#ffd75e')}">${Math.round(SHOWN.score)}</b> pts${S.streak>1&&!S.over?` · <b style="color:var(--gold)">streak ×${S.streak}</b>`:''}${!S.daily?` · <span class="tok" style="${bump(BUMP.tok,'#ffd75e')}" title="tokens buy upgrades after a shift: it pays 1 per 100 points when it ends">◆ ${meta.tokens} ${S.over?'':`<small>+${Math.floor(S.score/100)} at shift end · 1 per 100 pts</small>`}</span>`:''}`;
+  $('todo').innerHTML=S.demo?'':`${S.done} planes · <b style="${bump(BUMP.score,'#7ee0a8')}">${Math.round(SHOWN.score)}</b> pts${S.streak>1&&!S.over?` · <b style="background:#ff7a45;color:#04140b">×${S.streak} streak</b>`:''}${!S.daily?` · <span class="tok" title="tokens buy upgrades after a shift: it pays 1 per 100 points when it ends"><b style="${bump(BUMP.tok,'#f2c94c')}">${COIN}${meta.tokens}</b> ${S.over?'':`<small>+${Math.floor(S.score/100)} at shift end · 1 per 100 pts</small>`}</span>`:''}`;
   $('strikes').innerHTML=[0,1,2].map(i=>`<i class="${i<S.strikes?'on':''}"></i>`).join('');
   const focus=typedHead(),u=runwayUser();
   $('ready').innerHTML=S.planes.filter(p=>p.state==='ready').map(p=>`<b style="color:${p.name===focus?'#fff':LABEL.dep}">${p.name}${clockSVG(p)}${p.T.tag?' '+p.T.tag:''} → ${U(p.dest)}</b>`).join(' ')+(u&&S.planes.some(p=>p.state==='ready')?'<span class="busy">runway busy</span>':'')||'<span style="color:var(--dim)">none</span>';
