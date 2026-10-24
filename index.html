@@ -367,9 +367,12 @@ const price=k=>(UPGRADES[k].prices||PRICES)[meta[k]],maxed=k=>meta[k]>=UPGRADES[
 const store=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){}};
 const load=(k,d)=>{try{return JSON.parse(store(k))??d}catch(e){return d}};
 /* ---------- sound: every effect synthesised with Web Audio, no files. Math.random only, so the daily seed is untouched ---------- */
+// the music: "electro" by Pro Sensory (CC0, opengameart.org/content/electro), looping under the sounds; the ♪ switch turns both off
+const MUSIC_VOL=.35;
 const SFX=(()=>{let ac=null,bus=null,noise=null,on=store('tower-sound')!=='off';
+  const music=new Audio('music/electro.mp3');music.loop=true;music.volume=MUSIC_VOL;
   // the context starts on the first key or click (browsers block audio before a gesture); no Web Audio (headless): all silent
-  function init(){if(ac||!on||typeof AudioContext==='undefined')return;try{ac=new AudioContext();
+  function init(){if(ac||!on||typeof AudioContext==='undefined')return;music.play().catch(()=>{});try{ac=new AudioContext();
     const comp=ac.createDynamicsCompressor(),vol=ac.createGain();vol.gain.value=.55;comp.connect(vol);vol.connect(ac.destination);bus=comp;
     noise=ac.createBuffer(1,ac.sampleRate*2,ac.sampleRate);const d=noise.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}catch(e){ac=null}}
   const live=()=>on&&ac&&ac.state!=='closed'&&(ac.state==='running'||ac.resume(),true);
@@ -417,7 +420,7 @@ const SFX=(()=>{let ac=null,bus=null,noise=null,on=store('tower-sound')!=='off';
     // the radar sweep passing north: a faint ping
     sweep(){tone(0,1900,{len:.35,v:.012})}};
   const api={init,get on(){return on},
-    toggle(){on=!on;store('tower-sound',on?'on':'off');if(on)init();else if(ac){ac.close();ac=null}return on}};
+    toggle(){on=!on;store('tower-sound',on?'on':'off');if(on)init();else{music.pause();if(ac){ac.close();ac=null}}return on}};
   for(const[k,f]of Object.entries(fx))api[k]=(...a)=>{if(live())try{f(...a)}catch(e){}};
   return api})();
 addEventListener('keydown',SFX.init,true);addEventListener('mousedown',SFX.init,true);
