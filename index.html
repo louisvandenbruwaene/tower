@@ -20,19 +20,17 @@ body{display:flex;flex-direction:column;background:radial-gradient(ellipse 70% 8
 main{flex:1;min-height:0;display:flex}
 /* radar */
 #view{flex:1;position:relative;min-width:0} canvas{position:absolute;inset:0;width:100%;height:100%}
-#over{position:absolute;inset:0;display:none;place-items:center;font-size:30px;font-weight:600;background:rgba(2,8,5,.6);backdrop-filter:blur(3px);text-align:center;line-height:1.6;text-shadow:0 0 18px rgba(126,224,168,.4)}
+#over{position:absolute;inset:0;display:none;place-items:safe center;overflow:auto;padding:16px;box-sizing:border-box;font-size:30px;font-weight:600;background:rgba(2,8,5,.6);backdrop-filter:blur(3px);text-align:center;line-height:1.6;text-shadow:0 0 18px rgba(126,224,168,.4)}
 #over small{font-size:16px;font-weight:400;color:var(--dim)} #over .big{display:inline-block;font-size:72px;font-weight:800;color:#04140b;background:var(--gold);padding:0 22px;margin:6px 0;border-radius:10px;box-shadow:0 6px 0 #6b520c;text-shadow:none;line-height:1.25}
 #over .tally{font-size:16px;font-weight:500;text-shadow:none;display:grid;grid-template-columns:auto auto;gap:2px 28px;justify-content:center;margin-top:10px} #over .tally span:nth-child(odd){color:var(--dim);text-align:right} #over .tally span:nth-child(even){text-align:left}
-#over .shop{font-size:15px;font-weight:400;line-height:1.45;text-align:left;margin:18px auto 0;width:min(780px,calc(100vw - 440px));text-shadow:none} #over .shop b{color:var(--gold);font-weight:500}
-#over .purse{color:var(--dim);font-size:14px;text-align:center} #over .purse span{color:var(--fg);font-size:22px;font-weight:700;margin-right:4px}
+#over .shop{font-size:15px;font-weight:400;line-height:1.45;text-align:left;margin:18px auto 0;width:min(560px,100%);text-shadow:none} #over .shop b{color:var(--gold);font-weight:500}
+#over .purse{color:var(--dim);font-size:14px;text-align:center} #over .purse span{color:var(--fg);font-size:20px;font-weight:700}
 #over .ups{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
-#over .up{padding:12px 16px;border:2px solid var(--line);border-radius:8px;background:#0a1711;box-shadow:0 4px 0 #020805}
-#over .up.ok{border-color:var(--gold);box-shadow:0 4px 0 #6b520c} #over .up.done{opacity:.6}
-#over .uh{display:flex;align-items:baseline;justify-content:space-between} #over .uh b{color:var(--acc);font-size:20px;font-weight:600}
-#over .uh i{font-style:normal;font-size:13px;color:var(--dim)} #over .up.ok .uh i{color:var(--gold)}
-#over .up p{margin:2px 0 8px;font-size:13px;color:var(--dim)}
-#over .up ol{list-style:none;margin:0;padding:0} #over .up li{display:flex;justify-content:space-between;padding:3px 0;border-top:1px solid var(--line);font-size:14px;color:var(--dim)}
-#over .up li em{font-style:normal} #over .up li.got{color:var(--acc)} #over .up li.next{color:var(--fg)} #over .up li.next em{color:var(--gold)}
+#over .up{padding:10px 14px;border:2px solid var(--line);border-radius:8px;background:#0a1711;box-shadow:0 4px 0 #020805;min-width:0}
+#over .up.ok{border-color:var(--gold);box-shadow:0 4px 0 #6b520c} #over .up.done{opacity:.5}
+#over .uh{display:flex;align-items:baseline;justify-content:space-between} #over .uh b{color:var(--acc);font-size:19px;font-weight:600} #over .pip{color:var(--dim);font-size:11px;letter-spacing:2px}
+#over .un{display:flex;justify-content:space-between;gap:8px;margin-top:4px;font-size:14px;color:var(--dim)} #over .up.ok .un{color:var(--fg)}
+#over .un em{font-style:normal;color:var(--fg);white-space:nowrap} #over .up.ok .un em{color:var(--gold)}
 #demo{position:absolute;top:12px;left:50%;transform:translateX(-50%);display:none;width:min(560px,calc(100% - 32px));box-sizing:border-box;padding:9px 16px;background:rgba(14,32,24,.92);border:1px solid var(--chipon);border-radius:10px;font-size:14px;line-height:1.45;box-shadow:0 8px 30px rgba(0,0,0,.4)}
 #demo small{color:var(--dim)} #demo .tc{color:var(--fg);font-weight:500;white-space:nowrap;background:#132a1e;border:1px solid var(--chipon);border-bottom-width:3px;border-radius:5px;padding:0 6px;margin:0 1px}
 /* terminal */
@@ -320,8 +318,8 @@ const TANK_STEP=20;            // game s of extra fuel per tanks step
 const UPGRADES={
   tanks:{tiers:['+20 s fuel','+40 s fuel','+60 s fuel','+80 s fuel','+100 s fuel'],what:'arrivals carry more fuel'},
   height:{tiers:['level top','level peak'],what:'one more level up: more room to stack planes'},
-  nav:{tiers:['departures turn to their exit','land works anywhere'],what:'the autopilot does more: land anywhere flies the plane to the nearest open circle'},
-  runway:{tiers:['heavy wake rest halved','no wake rest','second runway'],what:'the runway is free sooner, then a second one south of the first'}};
+  nav:{tiers:['departures turn alone','land anywhere'],what:'the autopilot does more: land anywhere flies the plane to the nearest open circle'},
+  runway:{tiers:['half wake rest','no wake rest','second runway'],what:'the runway is free sooner, then a second one south of the first'}};
 const price=k=>PRICES[meta[k]],maxed=k=>meta[k]>=UPGRADES[k].tiers.length;
 const store=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){}};
 const load=(k,d)=>{try{return JSON.parse(store(k))??d}catch(e){return d}};
@@ -1330,15 +1328,15 @@ function clockSVG(p){if(!isFinite(p.patience0))return'';const f=Math.max(0,p.pat
 const over=document.getElementById('over'),$=id=>document.getElementById(id);
 // after a shift: the score, tokens earned, and the upgrades to buy (or today's best, for the daily shift)
 // the shift's numbers, one row after another once the score has counted up
-function tally(){const at=(performance.now()-S.overAt)/1000-1.5,rows=[['planes',S.done],['best streak',`×${S.bestStreak||0}`],['tokens',`${COIN}+${S.earned}`]];
+function tally(){const at=(performance.now()-S.overAt)/1000-1.5,rows=[['planes',S.done],...(S.bestStreak>1?[['best streak',`×${S.bestStreak}`]]:[]),['tokens',`${COIN}+${S.earned}`]];
   return`<div class="tally">${rows.map(([k,v],i)=>at>i*.3?`<span>${k}</span><span>${v}</span>`:'<span></span><span></span>').join('')}</div>`}
 function shiftOver(){
   const head=`${S.hard?'hard ':''}shift over<br><b class="big">${Math.round(S.overShown??S.score)}</b>${tally()}<small>${S.unlockedHard?'<br>hard mode unlocked: type <b>hard</b>':''}</small>`;
   if(S.daily)return`${head}<br><small>today's best: ${load('tower-daily-'+today(),[]).join(' · ')}<br>Enter: play today's shift again</small>`;
   const cards=Object.entries(UPGRADES).map(([k,u])=>{const own=meta[k],done=maxed(k),ok=!done&&meta.tokens>=price(k);
-    const steps=u.tiers.map((t,i)=>`<li class="${i<own?'got':i===own?'next':''}"><span>${t}</span><em>${i<own?'✓':`${COIN}${PRICES[i]}`}</em></li>`).join('');
-    return`<div class="up${done?' done':ok?' ok':''}"><div class="uh"><b>${k}</b><i>${done?'complete':`buy ${k} · ${COIN}${price(k)}`}</i></div><p>${u.what}</p><ol>${steps}</ol></div>`}).join('');
-  return`${head}<div class="shop"><div class="purse"><span>${COIN}${meta.tokens}</span> tokens · a shift pays 1 per 100 points · type <b>buy &lt;upgrade&gt;</b> · Enter: next ${S.hard?'hard ':''}shift</div><div class="ups">${cards}</div></div>`}
+    return`<div class="up${done?' done':ok?' ok':''}"><div class="uh"><b>${k}</b><span class="pip">${'●'.repeat(own)}${'○'.repeat(u.tiers.length-own)}</span></div>
+      <div class="un"><span>${done?'complete':u.tiers[own]}</span>${done?'':`<em>${COIN}${price(k)}</em>`}</div></div>`}).join('');
+  return`${head}<div class="shop"><div class="purse"><span>${COIN}${meta.tokens}</span> · <b>buy &lt;upgrade&gt;</b> · Enter: next ${S.hard?'hard ':''}shift</div><div class="ups">${cards}</div></div>`}
 let last=performance.now();
 // the score in the bar counts up to the real one and swells when it grows; the tokens flash when a 100 is passed
 const BUMP={score:-1e9,tok:-1e9},SHOWN={score:0};
@@ -1353,7 +1351,7 @@ function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;
   const focus=typedHead(),u=runwayUser();
   $('ready').innerHTML=S.planes.filter(p=>p.state==='ready').map(p=>`<b style="color:${p.name===focus?'#fff':LABEL.dep}">${p.name}${clockSVG(p)}${p.T.tag?' '+p.T.tag:''} → ${U(p.dest)}</b>`).join(' ')+(u&&S.planes.some(p=>p.state==='ready')?'<span class="busy">runway busy</span>':'')||'<span style="color:var(--dim)">none</span>';
   over.style.display=(S.over&&!S.demo)||S.paused?'grid':'none';
-  over.innerHTML=S.paused?'paused<br><small>esc</small>':shiftOver();
+  over.innerHTML=`<div>${S.paused?'paused<br><small>esc</small>':shiftOver()}</div>`;   // one box, so the grid centres it as a whole
   requestAnimationFrame(frame)}
 requestAnimationFrame(frame);
 if(!store('tower-tut')&&!best)startTutorial();   // the first visit starts with the tutorial
