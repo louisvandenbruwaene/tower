@@ -104,7 +104,7 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>gold planes</td><td><b>Departures.</b> Each wants to leave through one of 8 slices of your area (the gold one). Take it off the runway way closest to it, then turn it that way before it reaches the edge.</td></tr>
 <tr><td>purple planes</td><td><b>Overflights</b> from the neighbouring sector, after 10 planes. They cross in a straight line: keep them apart and let them leave through their slice.</td></tr>
 <tr><td>types</td><td><b>prop</b> slow, turns tight · <b>jet</b> · <b>bizjet</b> fast, climbs quickly · <b>heavy</b> and <b>cargo</b> big, turn wide, climb slowly, need more room, and the runway rests after them (wake) · <b>MIL</b> fighters, fast and tight-turning</td></tr>
-<tr><td>priority</td><td><b>VIP</b> private jets (gold star) and <b>MEDEVAC</b> air ambulances (red cross) wear a turning ring and go first both ways: an arrival lands within 2 minutes, a departure is rolling within 50 s (the clock by its name), or it is a strike. While one waits, other planes of its kind may not land or take off (a MAYDAY may).</td></tr>
+<tr><td>priority</td><td><b>VIP</b> private jets (gold star) and <b>MEDEVAC</b> air ambulances (red cross) go first both ways: an arrival lands within 2 minutes, a departure is rolling within 50 s (the clock by its name), or it is a strike. While one waits, other planes of its kind may not land or take off (a MAYDAY may).</td></tr>
 </table>
 <table>
 <tr><td>strikes</td><td>Two planes on the <b>same level</b> too close (red ring), a departure leaving through the wrong slice, an arrival leaving your area, a flight cancelled or late, fuel run out, a storm flown into. Touching shapes collide: two strikes. Different levels cross safely. Three strikes end the shift.</td></tr>
@@ -270,7 +270,6 @@ const TOKEN_PER=1000;          // a shift pays a token per $1,000 earned
 // must be rolling within PRIO_DEP. Late: a strike and a quarter of the fare. While one waits, the others may not use the
 // runway before it (a MAYDAY still may)
 const PRIO_ARR=120,PRIO_DEP=50;
-const PRIO_COL={vip:'#f2c94c',medevac:'#ff5a4e'};
 const TRAFFIC_CAP_MIN=15;      // after this many minutes the expected number stops growing: the traffic stays as busy as it is then
 // hard mode (a shift without autopilot, unlocked by a shift earning HARD_UNLOCK): land works only for a plane you have
 // already flown onto the runway's line yourself, and a plane holds at a fix only once you have flown it there
@@ -1275,12 +1274,9 @@ function draw(){
     if(p.state==='tofix'){const f=FIXES[p.fix];cx.setLineDash([2,5]);cx.strokeStyle='rgba(211,234,217,.3)';cx.beginPath();cx.moveTo(p.x,p.y);cx.lineTo(f.x,f.y);cx.stroke();cx.setLineDash([])}
     if(p.state==='fly'&&!p.inGate&&Math.abs(wrap(p.tgt-p.hdg))>.05){
       cx.setLineDash([3,4]);cx.strokeStyle='rgba(255,255,255,.4)';cx.beginPath();cx.moveTo(p.x,p.y);cx.lineTo(p.x+Math.cos(p.tgt)*45,p.y+Math.sin(p.tgt)*45);cx.stroke();cx.setLineDash([])}
-    if(hot){cx.strokeStyle='#fff';cx.lineWidth=1.5;cx.beginPath();cx.arc(p.x,p.y,12+Math.sin(S.t*6)*1.5,0,7);cx.stroke();cx.lineWidth=1}
-    // its type's pictogram, a little bigger the higher it flies, small on the ground
+    // its type's pictogram, a little bigger the higher it flies, small on the ground; the plane being typed breathes softly
     const k=p.vs??sizeFor(p),fade=p.state==='taxiin'&&p.path.length===1?Math.min(1,Math.hypot(p.path[0][0]-p.x,p.path[0][1]-p.y)/20):1;   // a landed plane fades as it reaches the apron
-    cx.save();cx.globalAlpha=fade;cx.translate(p.x,p.y);cx.rotate(p.hdg+Math.PI/2);cx.scale(k,k);glow(col,10);cx.fillStyle=col;cx.fill(SHAPES[p.ty]);glow('',0);MARKS[p.ty]?.();cx.restore();
-    // a priority flight wears a turning dashed ring in its colour
-    if(p.T.prio&&!p.late&&!p.ok){cx.save();cx.strokeStyle=PRIO_COL[p.ty];cx.lineWidth=1.5;cx.setLineDash([4,4]);cx.lineDashOffset=-S.t*8;cx.beginPath();cx.arc(p.x,p.y,15,0,7);cx.stroke();cx.restore()}
+    cx.save();cx.globalAlpha=fade;cx.translate(p.x,p.y);cx.rotate(p.hdg+Math.PI/2);cx.scale(k,k);glow(col,hot?10+8*(.5+.5*Math.sin(S.t*4)):10);cx.fillStyle=col;cx.fill(SHAPES[p.ty]);glow('',0);MARKS[p.ty]?.();cx.restore();
     // data block on a leader line: name, level, type, fuel when short; a level change fills the bar under it
     const moving=Math.abs(p.tgtAlt-p.alt)>.01,lvTxt=moving?`${ALTCH[lvl]}→${ALTCH[p.tgtAlt]}`:ALTCH[lvl];
     let tag=p.state==='tofix'?` →${p.fix.toUpperCase()}`:STATE_TAG[p.state]||(p.cleared?(p.inGate&&tailwind(p.inGate)?' · waits for wind':' · cleared'):'');
@@ -1293,7 +1289,6 @@ function draw(){
     const lx=p.x+18,ly=p.y-20,tw=nw+gw+cx.measureText(rest).width;
     cx.strokeStyle=col;cx.globalAlpha=.5;cx.beginPath();cx.moveTo(p.x+6,p.y-6);cx.lineTo(lx-4,ly+6);cx.stroke();cx.globalAlpha=1;
     cx.fillStyle=p.mayday&&S.t%1<.5?'rgba(80,14,10,.85)':'rgba(4,11,8,.72)';cx.beginPath();cx.roundRect(lx-5,ly-9,tw+10,19,4);cx.fill();
-    if(p.T.prio&&!p.late){cx.strokeStyle=PRIO_COL[p.ty];cx.lineWidth=1.5;cx.stroke();cx.lineWidth=1}
     cx.textAlign='left';cx.fillStyle=hot?'#fff':p.mayday?'#ff8a7e':col;cx.fillText(p.name,lx,ly+.5);cx.fillText(rest,lx+nw+gw,ly+.5);cx.textAlign='center';
     if(gauge==='fuel')fuelGauge(lx+nw+5,ly,p);else if(gauge==='clock')clockGauge(lx+nw+5,ly,p);
     if(moving&&!ground){const f=1-Math.abs(p.tgtAlt-p.alt)/Math.max(.01,Math.abs(p.tgtAlt-p.altFrom));
