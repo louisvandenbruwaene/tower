@@ -202,7 +202,8 @@ const lettersInOrder = (w, o) => {
 // (same first letter), then the closest spelling. Ties: the shortest direction, else the earliest option.
 function meaning(w, opts) {
   if (opts.includes(w)) return w;
-  if (/^\d+$/.test(w) && levelOf(w) >= 0 && opts.includes(LEVEL_NAMES[levelOf(w)])) return LEVEL_NAMES[levelOf(w)]; // a level by numberif(ABBR[w]&&opts.includes(ABBR[w]))return ABBR[w];
+  if (/^\d+$/.test(w) && levelOf(w) >= 0 && opts.includes(LEVEL_NAMES[levelOf(w)])) return LEVEL_NAMES[levelOf(w)]; // a level by number
+  if (ABBREVIATIONS[w] && opts.includes(ABBREVIATIONS[w])) return ABBREVIATIONS[w];
   let pick = null,
     pickScore = 1e9;
   opts.forEach((o, i) => {
@@ -1155,8 +1156,8 @@ function spawnOverflight(bearing) {
       heading: h,
       targetHeading: h,
     }),
-    lv = 1 + Math.floor(r * highestLevel(p)); // any level from mid up to its type's highest
-  p.level = p.targetLevel = p.levelFrom = lv;
+    levels = rules.levels.filter(l => l >= DEPART_LEVEL && l <= highestLevel(p)); // any of your levels from mid up to its type's highest
+  p.level = p.targetLevel = p.levelFrom = levels[Math.floor(r * levels.length)];
   p.speed = levelSpeed(p);
   game.planes.push(p);
 }
@@ -1610,7 +1611,8 @@ function lineUp(p, g, free = false, arc = LANDING_ARC) {
   const two = turnTwice(p, g, free);
   if (two) cand.push(two);
   if (!cand.length) return null;
-  const cheapest = cand.reduce((a, b) => (b.cost < a.cost ? b : a)); // the cheapest: short, and close to the landing areaif(!best.d||free||arc<=0)return best.P;
+  const cheapest = cand.reduce((a, b) => (b.cost < a.cost ? b : a)); // the cheapest: short, and close to the landing area
+  if (!cheapest.d || free || arc <= 0) return cheapest.P; // a two-turn line-up, no limits, or the tightest arc wanted
   const fits = radius => {
     const c = turnIn(p, g, radius, cheapest.d);
     return c && c.len <= cheapest.len * (1 + LEN_SLACK) ? c : null;
@@ -1724,7 +1726,7 @@ function weather(dt) {
   if (game.storms.length < rules.storms && game.time >= game.nextStormAt) {
     const r = 32 + trafficRandom() * 14,
       north = trafficRandom() < 0.5,
-      off = north ? -(110 + trafficRandom() * 110) : RUNWAYS[RUNWAYS.length - 1].y - AIRPORT_Y + 110 + trafficRandom() * 90;
+      off = north ? -(110 + trafficRandom() * 110) : 110 + trafficRandom() * 90; // north or south of the main runway
     const v = -(rules.wind ? game.windDir : trafficRandom() < 0.5 ? 1 : -1) * 4.5,
       half = Math.sqrt(Math.max(0, (RADAR + r) ** 2 - off * off)); // blown downwind: from where the wind comes from
     game.storms.push({id: game.time, x: AIRPORT_X - Math.sign(v) * half, y: AIRPORT_Y + off, r, vx: v, vy: 0});
@@ -2191,7 +2193,7 @@ function options(words) {
       ...(game.hard || game.daily ? ['normal'] : []),
       ...(shopOpen() ? ['buy'] : []),
     ];
-  if (words[0] === 'buy') return words.length === 1 ? Object.keys(UPGRADES) : [];
+  if (words[0] === 'buy') return words.length === 1 ? Object.keys(shopUpgrades) : [];
   const p = planeNamed(words[0]);
   if (!p || game.over) return [];
   if (words.length === 1) return actions(p);
@@ -2293,7 +2295,7 @@ function executeOrder(words) {
   }
   if (w0 === 'buy') {
     if (!act)
-      return `!buy what? ${validOptions(['buy']).join(' · ') || (Object.keys(UPGRADES).some(k => !maxed(k)) ? 'nothing you can afford yet' : 'everything is bought')}`;
+      return `!buy what? ${validOptions(['buy']).join(' · ') || (Object.keys(shopUpgrades).some(k => !maxed(k)) ? 'nothing you can afford yet' : 'everything is bought')}`;
     if (maxed(act)) return `!${act} is complete`;
     const c = price(act);
     if (progress.tokens < c)
@@ -2301,7 +2303,7 @@ function executeOrder(words) {
     progress.tokens -= c;
     progress[act]++;
     saveProgress();
-    return `bought ${act}: ${UPGRADES[act].tiers[progress[act] - 1]}`;
+    return `bought ${act}: ${shopUpgrades[act].tiers[progress[act] - 1]}`;
   }
   const p = planeNamed(w0),
     n = p.name;
@@ -2509,7 +2511,7 @@ function hintFor(n) {
   if (p.state === 'taxi')
     return `${p.name} ${p.atGate ? 'waits at its gate for the apron to clear' : 'is taxiing to the holding point'}${p.turned ? '' : ` · you can already give it ${p.name} turn ${shortUpper(p.dest)}`}`;
   if (p.state === 'lineup')
-    return `${p.name} waits at the holding point until the runway is free and no arrival is cleared to land${p.runway.wake > 0 ? ' (wake turbulence behind a heavy)' : ''}`;
+    return `${p.name} waits at the holding point until ${rules.timing ? 'there is a gap before the next arrival' : 'the runway is free and no arrival is cleared to land'}${p.runway.wake > 0 ? ' (wake turbulence behind a heavy)' : ''}`;
   if (p.state === 'rollout') return `${p.name} is rolling out: the runway is busy until it turns off`;
   if (p.state === 'taxiin') return `${p.name} is taxiing in to the apron`;
   if (p.state === 'roll')
@@ -2584,7 +2586,7 @@ const TUTORIAL_STEPS = [
     done: P => P.a.cleared || P.a.state === 'final',
   },
   {
-    say: P => `${P.a.name} is landing. A plane scores 100, less a point for every second it takes beyond par.`,
+    say: P => `${P.a.name} is landing. A plane pays its fare, less 1% for every second it takes beyond par.`,
     done: P => P.a.finished,
   },
   {
@@ -2748,7 +2750,7 @@ function adminManual() {
   (<code>heron turn s</code>…), and these commands control the game. Types: <b>prop bizjet jet heavy cargo</b> (or <b>random</b>).
   Directions: <b>n ne e se s sw w nw</b>. Levels: <b>${LEVEL_NAMES.join(' ')}</b> (or 3 … 10).</p><table>
   <tr><td>help</td><td>this card · <b>results</b> shows the last sweep's table</td></tr>
-  <tr><td>exit</td><td>back to normal play (the level you were on)</td></tr>
+  <tr><td>exit</td><td>back to a normal shift</td></tr>
   <tr><td>clear</td><td>removes every plane and storm</td></tr>
   <tr><td>pause</td><td>stops or restarts time · <b>speed 3</b> runs time 3× (0.1 to 20)</td></tr>
   <tr><td>arrival jet w</td><td>an arrival entering from the west edge, heading in, at its usual level · <b>arrival heavy ne low</b> at a level</td></tr>
@@ -2756,7 +2758,7 @@ function adminManual() {
   <tr><td>overflight bizjet s high</td><td>an overflight entering from the south</td></tr>
   <tr><td>approach jet 45</td><td>a jet placed just outside an open landing circle, low, cleared to land, flying straight at the circle's centre and
     entering it 45° off the landing direction (0 = straight in from behind the circle, 180 = from the runway side, heading away from it; plus = from the north side, minus = from the south).
-    Optional: the circle (<b>west east west2 east2</b>) and a level: <b>approach heavy -90 east mid</b></td></tr>
+    Optional: the circle (<b>${Object.keys(CIRCLES).join(' ')}</b>) and a level: <b>approach heavy -90 east mid</b></td></tr>
   <tr><td>sweep</td><td>flies every type one by one into a landing circle from every 30°, waiting for each to land, go around or get lost, and
     logs each one; <b>results</b> shows the table. <b>sweep heavy</b> one type, <b>sweep all 15</b> every 15°, <b>sweep jet 30 mid</b> from mid.
     Use <b>speed</b> to watch faster. <b>sweep stop</b> ends it</td></tr>
@@ -2961,7 +2963,8 @@ function adminCommand(v) {
         .join(' · ');
     case 'set': {
       if (!(a in BASE_RULES)) return `!set <rule> <value>: ${Object.keys(BASE_RULES).join(' ')}`;
-      rules[a] = b === 'on' || b === 'true' ? (a === 'nav' ? 2 : true) : b === 'off' || b === 'false' ? false : +b;
+      if (a === 'levels') rules.levels = [...BASE_LEVELS, ...HEIGHT_ORDER.slice(0, +b || 0)].sort((x, y) => x - y); // set levels 2: two height steps
+      else rules[a] = b === 'on' || b === 'true' ? (a === 'nav' ? NAV_ARR : true) : b === 'off' || b === 'false' ? false : +b;
       return `${a} = ${rules[a]}`;
     }
   }
@@ -4144,7 +4147,7 @@ function shiftOverHtml() {
     return `${head}<br><small>today's best: ${loadJson('tower-daily-' + today(), [])
       .map(money)
       .join(' · ')}<br>Enter: play today's shift again</small>`;
-  const cards = Object.entries(UPGRADES)
+  const cards = Object.entries(shopUpgrades)
     .map(([k, u]) => {
       const own = progress[k],
         done = maxed(k),
