@@ -84,7 +84,7 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>heron descend</td><td>down to low · <b>heron descend mid</b> stops at mid</td></tr>
 <tr><td>heron ascend</td><td>up to high · <b>heron ascend mid</b> stops at mid</td></tr>
 <tr><td>heron hold</td><td>circle on the spot until you give it a turn, or <b>land</b> inside a landing circle · <b>heron hold kilo</b> flies to the fix KILO (also ALPHA, BRAVO, ZULU) and circles it, right turns, slowed down. Holds always stay inside your area</td></tr>
-<tr><td>heron land</td><td>only inside an open landing circle (also ends a hold). One turn, left or right, then straight into the runway end, arriving at most 15° off the runway heading, slowing to its approach speed and descending on the way. Too close to turn in (inside its forbidden circle), too high to get down in time, or the runway busy: it circles the circle's centre until it can (four times round at most, else it goes around).</td></tr>
+<tr><td>heron land</td><td>only inside an open landing circle (also ends a hold). It only starts its landing at <b>low</b>: higher up it circles the circle's centre for as long as it takes, until you <b>descend</b> it. At low it flies the shortest line-up that stays close to the landing area (one turn, or turn, straight, turn), arriving at most 15° off the runway heading at its approach speed. With the runway busy it circles until it is free (four times round at most, else it goes around).</td></tr>
 <tr><td>wren takeoff e</td><td>departures in the <b>ready</b> list: it taxis from the apron to that runway end, waits there until the runway is free, takes off <b>east</b> or <b>west</b>, climbs to mid and flies straight on until you turn it (you may turn it while it taxis).</td></tr>
 <tr><td>abort</td><td>cancel a hold (flies straight on) or a landing: it goes around, climbing to mid straight ahead</td></tr>
 </table>
@@ -608,8 +608,9 @@ function step(dt){
           // the ring's tangent tilted outward by how far inside it is. Both meet at the ring, so it joins it smoothly and stays on it
           p.orbitT+=dt;wd=circle(p,g.x,g.y,p.orbit);
           // the wind closed the circle under it: it keeps circling, without limit, until the wind turns back (or you send it off)
-          const waitWind=tailwind(p.inGate);if(waitWind)p.orbitT=0;
-          const c=!waitWind&&!pastThreshold(p,g)&&!inForbidden(p,g)&&S.t>=(p.planAt||0)&&(p.planAt=S.t+.25,lineUp(p,g));   // planning is costly: 4 tries a second
+          // it only starts its landing at low: higher up it laps the circle, without limit, until you bring it down (descend)
+          const waitWind=tailwind(p.inGate),waitLow=!lowNow(p);if(waitWind||waitLow)p.orbitT=0;
+          const c=!waitWind&&!waitLow&&!pastThreshold(p,g)&&!inForbidden(p,g)&&S.t>=(p.planAt||0)&&(p.planAt=S.t+.25,lineUp(p,g));   // planning is costly: 4 tries a second
           if(c){if(rwBusy(g.rw))p.blocked=true;else startFinal(p,p.inGate,c)}
           // a missed approach: climb straight ahead to mid
           else if(high||d>GATE_R+2.6*turnR(p)||pastThreshold(p,g)||p.orbitT>4*2*Math.PI/omega(p)||stormOver(p.inGate)){const was=p.inGate;SFX.goAround();p.cleared=false;p.inGate=null;p.orbit=0;p.tgt=p.hdg;setLevel(p,Math.max(1,p.tgtAlt));
@@ -739,7 +740,7 @@ function exec(words){
     if(p.state==='hold'||p.state==='tofix'){p.state='fly';p.tgt=p.hdg}
     p.cleared=true;const u=runwayUser();
     if(!k){p.navGate=nearestGate(p);if(p.tgtAlt>0)setLevel(p,0);return`${n}: cleared to land runway ${rwName(GATES[p.navGate].rw,GATES[p.navGate].dir)}, flying itself to the ${p.navGate} circle and descending`}
-    return`${n}: cleared to land runway ${rwName(GATES[k].rw,GATES[k].dir)}${p.alt>.05?' · not low yet: it circles down first':''}${u?` (careful: ${u.name} is still on the runway)`:''}`}
+    return`${n}: cleared to land runway ${rwName(GATES[k].rw,GATES[k].dir)}${p.tgtAlt>0||p.alt>.05?` · it is at ${LV[Math.round(p.alt)]}: it circles until it is down to low (${p.tgtAlt>0?`${n} descend`:'descending'})`:''}${u?` (careful: ${u.name} is still on the runway)`:''}`}
   if(act==='takeoff'){if(!arg)return`!${n} takeoff east or west? (${n} wants to leave ${U(p.dest)})`;
     const dir=arg==='east'?1:-1;
     if(CFG.wind&&dir!==S.rwdir)return`!the wind is from the ${windWord()}: take off ${windWord()}, into the wind`;
@@ -777,6 +778,7 @@ function hintFor(n){
     return`${p.name} is heading ${U(p.dest)}: handed off when it leaves the circle there`}
   if(p.tgtAlt>0&&!p.navGate)return`${fuel}${p.name} must come down → ${p.name} descend low`;
   if(p.cleared&&p.inGate&&tailwind(p.inGate))return`${fuel}${p.name} keeps circling in the ${p.inGate} circle until the wind turns back · ${p.name} abort sends it off`;
+  if(p.cleared&&p.inGate&&p.tgtAlt>0)return`${fuel}${p.name} is cleared but circles until it is low → ${p.name} descend`;
   if(p.cleared)return`${fuel}${p.name} is ${p.navGate?`flying itself to the ${p.navGate} circle`:`turning onto the runway in the ${p.inGate||inGate(p)} circle`}${p.alt>.05?`, still descending ${bar(p)}`:''}`;
   const k=inGate(p);if(k&&gateOpen(k))return`${fuel}${p.name} is in the ${k} landing circle → ${p.name} land`;
   const d=toGate(p);if(headingFor(p,d))return`${fuel}${p.name} is heading for the ${nearestGate(p)} circle: land once it is inside${p.alt>.05?` · descending ${bar(p)}`:''}`;
