@@ -110,8 +110,8 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>priority</td><td><b>VIP</b> private jets (gold star by the name) and <b>MEDEVAC</b> air ambulances (blue cross by the name) go first both ways: an arrival lands within 2 minutes, a departure is rolling within 50 s, not counting its taxi (the clock by its name), or it is a strike. While one waits, other planes of its kind may not land or take off (a MAYDAY may).</td></tr>
 </table>
 <table>
-<tr><td>strikes</td><td>Two planes closer than <b>3 NM</b> (5.6 km; 5 NM behind a heavy) and less than <b>1,000 ft</b> apart in height (red ring), as in real approach control: planes on different levels always pass safely, only while climbing or descending through each other's height can they meet. Also a departure leaving through the wrong slice, an arrival leaving your area, a flight cancelled or late, fuel run out, a storm flown into. Touching shapes collide: two strikes. Three strikes end the shift.</td></tr>
-<tr><td>time</td><td>Level changes take a while (bar under the label), turns are gradual (dashed line), the runway takes one plane at a time (amber while busy). Everything is to scale: your area is 48 km across, a runway 3 km; time runs 11× fast; every type flies its own real speeds and turn rate.</td></tr>
+<tr><td>strikes</td><td>Two planes closer than <b>3 NM</b> (5.6 km; 5 NM in a heavy's wake, behind it) and less than <b>1,000 ft</b> apart in height (red ring), as in real approach control: planes on different levels always pass safely, only while climbing or descending through each other's height can they meet. Also a departure leaving through the wrong slice, an arrival leaving your area, a flight cancelled or late, fuel run out, a storm flown into. Touching shapes collide: two strikes. Three strikes end the shift.</td></tr>
+<tr><td>time</td><td>Level changes take a while (bar under the label), turns are gradual (dashed line), the runway takes one plane at a time (amber while busy). Everything is to scale: your area is 31 km across, a runway 3 km; time runs 7× fast; every type flies its own real speeds and turn rate.</td></tr>
 <tr><td>fuel</td><td>Arrivals carry fuel (the jerrycan by the name, once below half): below 45 s they call MAYDAY, land them next. Departures have patience (the clock): when it runs out the flight is cancelled.</td></tr>
 <tr><td>wind · storms</td><td>The shift starts calm, then the wind comes and goes (top left). While it blows, planes take off and land into it: landing circles with the wind behind them close, a runway across the wind stays open. Helicopters ignore it, both ways. Storm cells drift with the wind and close the circles they cover.</td></tr>
 <tr><td>readback</td><td>A pilot sometimes mishears: the reply shows what it understood. Say it again.</td></tr>
@@ -157,7 +157,7 @@ main{flex:1;min-height:0;display:flex}
       § 15 THE SCREEN ........... the panels around the radar, the shift-over screen and shop, the frame loop
       § 16 START ................ what runs once the page has loaded
 
-   UNITS AND WORDS: distances on screen are px (1 px = METRES_PER_PIXEL, 62.5 m). Game time runs TIME_SCALE (11.25) times
+   UNITS AND WORDS: distances on screen are px (1 px = METRES_PER_PIXEL, 40 m). Game time runs TIME_SCALE (7.2) times
    faster than real time; the code counts game seconds. Speeds are px per game second. Headings are radians, 0 = east,
    growing clockwise (screen y grows downward). A level is a number: 0 = low (3,000 ft), each 1 more is 1,000 ft
    higher, fractions while climbing. A landing circle is the ring off a runway end where arrivals are cleared to land;
@@ -176,8 +176,8 @@ main{flex:1;min-height:0;display:flex}
          them to the units the simulation counts in. Each setting says what it does in its comment.
    ===================================================================================================================== */
 // scale
-const METRES_PER_PIXEL = 62.5; // 1 px on screen is 62.5 m: your area is an approach sector 24 km across each way
-const TIME_SCALE = 11.25; // game time runs 11.25x faster than real time
+const METRES_PER_PIXEL = 40; // 1 px on screen is 40 m: your area is an approach sector 31 km across
+const TIME_SCALE = 7.2; // game time runs 7.2x faster than real time (with METRES_PER_PIXEL, it keeps speeds on screen as they were tuned)
 // a real length in metres as px on screen: everything at the airport (runways, landing circles, taxiways, finals) is given
 // in metres and drawn true to scale; only pictograms, labels and markers are drawn bigger, to be seen
 const fromMetres = metres => metres / METRES_PER_PIXEL;
@@ -189,9 +189,10 @@ const CIRCLE_RADIUS = fromMetres(1250),
   CIRCLE_DISTANCE = fromMetres(3750); // landing circles: radius, and how far out from the runway end their centre is
 const NAUTICAL_MILE = 1852; // m
 // radar separation, as real approach control: planes less than VERTICAL_SEPARATION_FEET apart in height must stay 3 NM
-// apart, and 2 NM more around a heavy or freighter (its wake: 5 NM behind it)
+// apart, and 2 NM more behind a heavy or freighter (in its wake: within WAKE_CONE_DEGREES of straight behind it, 5 NM)
 const SEPARATION = fromMetres(3 * NAUTICAL_MILE),
-  WAKE_EXTRA = fromMetres(2 * NAUTICAL_MILE);
+  WAKE_EXTRA = fromMetres(2 * NAUTICAL_MILE),
+  WAKE_CONE_DEGREES = 30;
 const TAKEOFF_ROLL_BELOW_TRAFFIC = 0.5; // a departure is above 600 m (and can meet other planes) past this share of its takeoff run
 const VERTICAL_SEPARATION_FEET = 1000; // ft: planes this far apart in height or more pass each other safely: one level apart is enough, climbing through each other is not
 const LEVEL_FEET = [3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]; // the levels low lm mid mh high ht top peak
@@ -1839,7 +1840,12 @@ function followLine(plane, x, y, lineHeading, curvature) {
   return plane.speed * curvature + 1.6 * normaliseAngle(want - normaliseAngle(plane.heading - lineHeading));
 }
 // how far apart two planes must stay: SEPARATION, more when either is a heavy (its wake)
-const separationNeeded = (first, second) => SEPARATION + (first.type.heavyWake || second.type.heavyWake ? WAKE_EXTRA : 0);
+// is the other plane in a heavy's wake: behind it, within WAKE_CONE_DEGREES of its tail?
+const inWakeOf = (heavy, other) =>
+  !!heavy.type.heavyWake &&
+  Math.cos(Math.atan2(other.y - heavy.y, other.x - heavy.x) - heavy.heading) < -Math.cos(degreesToRadians(WAKE_CONE_DEGREES));
+const separationNeeded = (first, second) =>
+  SEPARATION + (inWakeOf(first, second) || inWakeOf(second, first) ? WAKE_EXTRA : 0);
 // the wind as a compass letter, E or W, for messages and labels
 const windWord = () => (game.windDir > 0 ? 'E' : 'W');
 // runway names as painted on them: the heading in tens of degrees, 09 heading east, 27 heading west; of two parallel ones the
@@ -2431,7 +2437,7 @@ function checkSeparation(airborne) {
       }
       if (!game.closePairs.has(pair))
         strike(
-          `${first.name} and ${second.name} too close${first.type.heavyWake || second.type.heavyWake ? ' (a heavy needs more room)' : ''}`,
+          `${first.name} and ${second.name} too close${inWakeOf(first, second) || inWakeOf(second, first) ? ' (5 NM behind a heavy: its wake)' : ''}`,
           x,
           y,
         );
@@ -4771,7 +4777,7 @@ function drawRadar() {
       ctx.fillStyle = 'rgba(255,107,94,.1)';
       ctx.strokeStyle = 'rgba(255,107,94,.6)';
       ctx.beginPath();
-      ctx.arc(plane.x, plane.y, (SEPARATION + (plane.type.heavyWake ? WAKE_EXTRA : 0)) / 2, 0, 7);
+      ctx.arc(plane.x, plane.y, SEPARATION / 2, 0, 7);
       ctx.fill();
       ctx.stroke();
     }

@@ -6,7 +6,7 @@ No install, no account: open the link, click into the prompt and type.
 
 [![Tower Power: a radar with arrivals, a departure taxiing out and a typed order](screenshot.png)](https://louisvandenbruwaene.github.io/tower/)
 
-Air traffic control, very realistic in spirit but highly simplified, played only by typing words. Your area is the radar circle. Arrivals (blue) come in high; bring them down low and fly them into one of the two landing circles off the runway ends, then land: they turn onto the runway by themselves. Departures (gold) each want to leave in one of 8 directions: take them off east or west down the runway, then turn them so they leave the circle through their own slice. Two planes closer than 3 NM (5 NM behind a heavy) and less than 1,000 ft apart in height, as in real approach control, a departure leaving through the wrong slice, or an arrival leaving your area: strike. Three strikes end the shift.
+Air traffic control, very realistic in spirit but highly simplified, played only by typing words. Your area is the radar circle. Arrivals (blue) come in high; bring them down low and fly them into one of the two landing circles off the runway ends, then land: they turn onto the runway by themselves. Departures (gold) each want to leave in one of 8 directions: take them off east or west down the runway, then turn them so they leave the circle through their own slice. Two planes closer than 3 NM (5 NM in a heavy's wake, behind it) and less than 1,000 ft apart in height, as in real approach control, a departure leaving through the wrong slice, or an arrival leaving your area: strike. Three strikes end the shift.
 
 Every command is `plane action [direction]`, in any capitals:
 
