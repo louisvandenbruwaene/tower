@@ -106,7 +106,7 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>gold planes</td><td><b>Departures.</b> Each wants to leave through one of 8 slices of your area (the gold one). Take it off the runway way closest to it, then turn it that way before it reaches the edge.</td></tr>
 <tr><td>purple planes</td><td><b>Overflights</b> from the neighbouring sector, after 10 planes. They cross in a straight line: keep them apart and let them leave through their slice.</td></tr>
 <tr><td>types</td><td><b>prop</b> slow, turns tight · <b>jet</b> · <b>bizjet</b> fast, climbs quickly · <b>heavy</b> and <b>cargo</b> big, turn wide, climb slowly, need more room, and the runway rests after them (wake) · <b>MIL</b> fighters (white star by the name), fast and tight-turning</td></tr>
-<tr><td>priority</td><td><b>VIP</b> private jets (gold star) and <b>MEDEVAC</b> air ambulances (blue cross by the name) go first both ways: an arrival lands within 2 minutes, a departure is rolling within 50 s, not counting its taxi (the clock by its name), or it is a strike. While one waits, other planes of its kind may not land or take off (a MAYDAY may).</td></tr>
+<tr><td>priority</td><td><b>VIP</b> private jets (gold star by the name) and <b>MEDEVAC</b> air ambulances (blue cross by the name) go first both ways: an arrival lands within 2 minutes, a departure is rolling within 50 s, not counting its taxi (the clock by its name), or it is a strike. While one waits, other planes of its kind may not land or take off (a MAYDAY may).</td></tr>
 </table>
 <table>
 <tr><td>strikes</td><td>Two planes too close and less than <b>400 ft apart in height</b> (red ring): planes on different levels always pass safely, only while climbing or descending through each other's height can they meet. Also a departure leaving through the wrong slice, an arrival leaving your area, a flight cancelled or late, fuel run out, a storm flown into. Touching shapes collide: two strikes. Three strikes end the shift.</td></tr>
@@ -3960,43 +3960,22 @@ const TYPE_SHAPES={
   bizjet:new Path2D('M0 -190 C 12 -190 18 -165 18 -135 L 18 -20 L 150 55 L 150 78 L 18 40 L 16 110 L 62 150 L 62 166 L 0 160 L -62 166 L -62 150 L -16 110 L -18 40 L -150 78 L -150 55 L -18 -20 L -18 -135 C -18 -165 -12 -190 0 -190 Z M22 55 L 46 55 L 46 110 L 22 110 Z M-46 55 L -22 55 L -22 110 L -46 110 Z'),
   // wide body, long swept wings, four engines
   heavy:new Path2D('M0 -190 C 30 -190 34 -160 34 -120 L 34 -40 L 230 50 L 230 80 L 34 30 L 28 110 L 100 145 L 100 165 L 16 155 L 0 175 L -16 155 L -100 165 L -100 145 L -28 110 L -34 30 L -230 80 L -230 50 L -34 -40 L -34 -120 C -34 -160 -30 -190 0 -190 Z M78 -12 L 100 -12 L 100 32 L 78 32 Z M-100 -12 L -78 -12 L -78 32 L -100 32 Z M152 24 L 174 24 L 174 64 L 152 64 Z M-174 24 L -152 24 L -152 64 L -174 64 Z')};
-// markings on top of the pictogram, in its own coordinates: a gold star for the private jet (the ambulance and the fighter
-// carry theirs in the label, NAME_EMBLEMS)
-const STAR_SHAPE = new Path2D(
-  [...Array(10)]
-    .map((_, i) => {
-      const angle = -Math.PI / 2 + (i * Math.PI) / 5,
-        pointRadius = i % 2 ? 26 : 62;
-      return `${i ? 'L' : 'M'}${(Math.cos(angle) * pointRadius).toFixed(1)} ${(Math.sin(angle) * pointRadius - 30).toFixed(1)}`;
-    })
-    .join(' ') + ' Z',
-);
-const TYPE_MARKINGS = {
-  vip() {
-    ctx.fillStyle = '#04140b';
-    ctx.beginPath();
-    ctx.arc(0, -30, 76, 0, 7);
-    ctx.fill();
-    ctx.fillStyle = '#f2c94c';
-    ctx.fill(STAR_SHAPE);
-  },
-};
-// an emblem right after the name in the label and the READY list: a blue cross for the ambulance (never red: the red
-// cross is a protected emblem), a white star for the fighter. In a 12 x 12 box; path: its outline as SVG path data
+// an emblem right after the name in the label and the READY list (the pictograms stay plain): a blue cross for the
+// ambulance (never red: the red cross is a protected emblem), a gold star for the private jet, a white star for the
+// fighter. In a 12 x 12 box; path: its outline as SVG path data
 const EMBLEM_SIZE = 12,
+  STAR_PATH =
+    [...Array(10)]
+      .map((_, i) => {
+        const angle = -Math.PI / 2 + (i * Math.PI) / 5,
+          pointRadius = i % 2 ? 2.4 : 6;
+        return `${i ? 'L' : 'M'}${(6 + Math.cos(angle) * pointRadius).toFixed(2)} ${(6.6 + Math.sin(angle) * pointRadius).toFixed(2)}`;
+      })
+      .join(' ') + ' Z',
   NAME_EMBLEMS = {
     medevac: {colour: '#5aa9ff', path: 'M4 0.5 H8 V4 H11.5 V8 H8 V11.5 H4 V8 H0.5 V4 H4 Z'},
-    military: {
-      colour: '#f4f7f2',
-      path:
-        [...Array(10)]
-          .map((_, i) => {
-            const angle = -Math.PI / 2 + (i * Math.PI) / 5,
-              pointRadius = i % 2 ? 2.4 : 6;
-            return `${i ? 'L' : 'M'}${(6 + Math.cos(angle) * pointRadius).toFixed(2)} ${(6.6 + Math.sin(angle) * pointRadius).toFixed(2)}`;
-          })
-          .join(' ') + ' Z',
-    },
+    vip: {colour: '#f2c94c', path: STAR_PATH},
+    military: {colour: '#f4f7f2', path: STAR_PATH},
   };
 for (const emblem of Object.values(NAME_EMBLEMS)) emblem.shape = new Path2D(emblem.path);
 // draws a plane's emblem with its box's left edge at x, centred on y (nothing for a type without one)
@@ -4579,7 +4558,6 @@ function drawRadar() {
     ctx.fillStyle = colour;
     ctx.fill(TYPE_SHAPES[plane.typeName]);
     setGlow('', 0);
-    TYPE_MARKINGS[plane.typeName]?.();
     ctx.restore();
     // data block on a leader line: name, level, type, fuel when short; a level change fills the bar under it
     const moving = Math.abs(plane.targetLevel - plane.level) > 0.01,
