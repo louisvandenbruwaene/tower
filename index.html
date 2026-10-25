@@ -111,7 +111,7 @@ main{flex:1;min-height:0;display:flex}
 <table>
 <tr><td>strikes</td><td>Two planes too close and less than <b>400 ft apart in height</b> (red ring): planes on different levels always pass safely, only while climbing or descending through each other's height can they meet. Also a departure leaving through the wrong slice, an arrival leaving your area, a flight cancelled or late, fuel run out, a storm flown into. Touching shapes collide: two strikes. Three strikes end the shift.</td></tr>
 <tr><td>time</td><td>Level changes take a while (bar under the label), turns are gradual (dashed line), the runway takes one plane at a time (amber while busy). 1 px is 25 m and time runs 4.5× fast; every type flies its own real speeds and turn rate.</td></tr>
-<tr><td>fuel</td><td>Arrivals carry fuel (the jerrycan by the name): below 45 s they call MAYDAY, land them next. Departures have patience (the clock): when it runs out the flight is cancelled.</td></tr>
+<tr><td>fuel</td><td>Arrivals carry fuel (the jerrycan by the name, once below half): below 45 s they call MAYDAY, land them next. Departures have patience (the clock): when it runs out the flight is cancelled.</td></tr>
 <tr><td>wind · storms</td><td>The shift starts calm, then the wind comes and goes (top left). While it blows, planes take off and land into it: landing circles with the wind behind them close, a runway across the wind stays open. Storm cells drift with the wind and close the circles they cover.</td></tr>
 <tr><td>readback</td><td>A pilot sometimes mishears: the reply shows what it understood. Say it again.</td></tr>
 </table></section>
@@ -3632,7 +3632,6 @@ function resize() {
 // each kind of plane's colour: arrivals blue, departures gold, overflights purple
 const KIND_COLOUR = {arr: '#8fd8ff', dep: '#f2c94c', ovf: '#c9a3ff'};
 // what a plane is doing, shown after its level and type (flying on, it shows nothing, or that it is cleared)
-const STATE_TAG = {hold: ' ⟳'};
 // one pictogram per type, seen from above, nose up, about 380 wide; drawn scaled down on the radar
 // each pictogram's outline as convex pieces (icon units, nose up), for the touching test
 const mirrored = piece => piece.map(([x, y]) => [-x, y]),
@@ -4564,24 +4563,28 @@ function drawRadar() {
     // 'landing' from being cleared until it has landed
     const moving = Math.abs(plane.targetLevel - plane.level) > 0.01,
       lvTxt = moving ? `${LEVEL_LABELS[level]}→${LEVEL_LABELS[plane.targetLevel]}` : LEVEL_LABELS[level];
-    let tag =
-      plane.kind !== 'arr' || plane.state === 'taxiin'
-        ? ''
-        : plane.state === 'tofix'
-          ? ` →${plane.holdFix.toUpperCase()}`
-          : STATE_TAG[plane.state] ||
-            (plane.state === 'final' || plane.state === 'rollout' || plane.cleared
-              ? plane.inCircle && hasTailwind(plane.inCircle)
-                ? ' · waits for wind'
-                : ' · landing'
-              : '');
-    if (game.hard) {
-      if (plane.kind === 'arr' && plane.state !== 'final' && manualLandingCircle(plane)[0] !== '!') tag += ' · can land';
-    } else if (plane.kind === 'arr' && plane.state !== 'final' && !plane.cleared && landableCircle(plane))
-      tag += runwayBusy(CIRCLES[landableCircle(plane)].runway) ? ' · wait' : ' · can land';
-    const rest = `${ground ? '' : ' ' + lvTxt}${tag}${plane.kind === 'dep' || (plane.kind !== 'arr' && !ground) ? ' → ' + shortWayUpper(plane.exitWay) : ''}`;
+    // Only what the radar does not show already: no hold mark (it circles at the fix), no fix name (the dashed line goes
+    // there), no 'wait' (the runway is amber), 'can land' only in hard mode (lined up by hand is hard to judge by eye)
+    const landing =
+        plane.kind === 'arr' &&
+        (plane.state === 'final' || plane.state === 'rollout' || plane.cleared) &&
+        !(plane.inCircle && hasTailwind(plane.inCircle)),
+      tag =
+        plane.kind !== 'arr' || plane.state === 'taxiin'
+          ? ''
+          : landing
+            ? ' · landing'
+            : plane.cleared
+              ? ' · waits for wind'
+              : game.hard && plane.state !== 'final' && manualLandingCircle(plane)[0] !== '!'
+                ? ' · can land'
+                : '';
+    // a landing plane low and level needs no level letter ('landing' says it)
+    const showLevel = !ground && !(landing && level === 0 && !moving);
+    const rest = `${showLevel ? ' ' + lvTxt : ''}${tag}${plane.kind === 'dep' || (plane.kind !== 'arr' && !ground) ? ' → ' + shortWayUpper(plane.exitWay) : ''}`;
     setFont(ground ? 11 : 12.5, typedNow ? 600 : 500);
-    // right after the name: a waiting departure's patience, a priority arrival's deadline, else an arrival's fuel
+    // right after the name: a waiting departure's patience, a priority arrival's deadline, else an arrival's fuel once
+    // below half
     const gauge = ground
       ? plane.kind === 'dep' && isFinite(plane.patienceFull)
         ? 'clock'
@@ -4590,7 +4593,7 @@ function drawRadar() {
         ? null
         : plane.type.priority && isFinite(plane.patience)
           ? 'clock'
-          : isFinite(plane.fuelFull)
+          : isFinite(plane.fuelFull) && (plane.mayday || plane.fuel < plane.fuelFull / 2)
             ? 'fuel'
             : null;
     const nameWidth = ctx.measureText(plane.name).width + (NAME_EMBLEMS[plane.typeName] ? EMBLEM_SIZE + 4 : 0),
