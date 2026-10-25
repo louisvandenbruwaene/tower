@@ -104,7 +104,7 @@ main{flex:1;min-height:0;display:flex}
 <section class="pg"><h2>Traffic</h2><table>
 <tr><td>blue planes</td><td><b>Arrivals.</b> They come in high: bring them down to low, into a landing circle, and clear them to land.</td></tr>
 <tr><td>gold planes</td><td><b>Departures.</b> Each wants to leave through one of 8 slices of your area (the gold one). Take it off the runway way closest to it, then turn it that way before it reaches the edge.</td></tr>
-<tr><td>helicopters</td><td>With the <b>helipad</b> upgrade. They fly at low only and use a helipad (H), never a runway: <b>owl land</b> sends one to the nearest free pad (<b>owl land india</b>: that one), where it hovers in and sets down; <b>kite takeoff</b> lifts one off its pad and out its own way. One per pad at a time (amber while taken).</td></tr>
+<tr><td>helicopters</td><td>With the <b>helipad</b> upgrade. They fly at low only and use a helipad (H), never a runway: <b>owl land</b> sends one to the nearest free pad (<b>owl land india</b>: that one), where it hovers in and sets down; <b>kite takeoff</b> lifts one straight up off its pad, where it hovers at low until you turn it (<b>kite turn ne</b>). One per pad at a time (amber while taken).</td></tr>
 <tr><td>purple planes</td><td><b>Overflights</b> from the neighbouring sector, after 10 planes. They cross in a straight line: keep them apart and let them leave through their slice.</td></tr>
 <tr><td>types</td><td>told apart by the pictogram: <b>prop</b> slow, turns tight · <b>jet</b> · <b>bizjet</b> fast, climbs quickly · <b>heavy</b> and <b>cargo</b> big, turn wide, climb slowly, need more room, and the runway rests after them (wake) · <b>MIL</b> fighters (white star by the name), fast and tight-turning</td></tr>
 <tr><td>priority</td><td><b>VIP</b> private jets (gold star by the name) and <b>MEDEVAC</b> air ambulances (blue cross by the name) go first both ways: an arrival lands within 2 minutes, a departure is rolling within 50 s, not counting its taxi (the clock by its name), or it is a strike. While one waits, other planes of its kind may not land or take off (a MAYDAY may).</td></tr>
@@ -2054,15 +2054,9 @@ function moveOnGround(plane, seconds) {
   }
   return false;
 }
-// the heading from a plane to the middle of a way's slice at the edge of your area (a helicopter leaving from a pad far
-// from the centre must aim there, not just fly that way)
-const headingToSlice = (plane, way) => {
-  const bearing = degreesToRadians(HEADINGS[way]);
-  return Math.atan2(AIRPORT_Y + Math.sin(bearing) * areaRadius - plane.y, AIRPORT_X + Math.cos(bearing) * areaRadius - plane.x);
-};
-// a helicopter at its pad: waiting on it, lifting off it straight up to low (turning on the spot, then speeding up toward
-// where it was sent), flying to it (hovering in, slower the closer it is and the more it still has to turn), setting down
-// on it (it pays then), parked on it. Elsewhere it flies like any plane. True when its tick ends here
+// a helicopter at its pad: waiting on it, lifting off it straight up to low, hovering there until it is given a direction
+// (a turn then speeds it up, see steerTo), flying to it (hovering in, slower the closer it is and the more it still has to
+// turn), setting down on it (it pays then), parked on it. Elsewhere it flies like any plane. True when its tick ends here
 function flyHelicopter(plane, seconds) {
   const pad = HELIPADS[plane.pad],
     rotorSpin =
@@ -2079,11 +2073,11 @@ function flyHelicopter(plane, seconds) {
     if ((plane.parkedLeft -= seconds) <= 0) removePlane(plane);
     return true;
   }
-  if (plane.state === 'liftoff') {
+  if (plane.state === 'liftoff' || plane.state === 'hover') {
     plane.level = Math.min(0, plane.level + seconds / HELI_LIFT_SECONDS);
     turnToward(plane, null, seconds);
-    plane.speed = levelSpeed(plane) * (plane.level + 1) ** 2;
-    if (plane.level >= 0) plane.state = 'fly';
+    plane.speed = 0;
+    if (plane.level >= 0) plane.state = plane.givenTurn ? 'fly' : 'hover';
   } else if (plane.state === 'topad') {
     const distance = Math.hypot(pad.x - plane.x, pad.y - plane.y);
     plane.targetHeading = Math.atan2(pad.y - plane.y, pad.x - plane.x);
@@ -2438,6 +2432,7 @@ function actionsFor(plane) {
 function helicopterActions(plane) {
   if (plane.state === 'onpad') return ['takeoff'];
   if (plane.state === 'liftoff') return ['turn'];
+  if (plane.state === 'hover') return ['turn', 'hold'];
   if (plane.state === 'padland' || plane.state === 'parked') return [];
   return [
     'turn',
@@ -2534,7 +2529,7 @@ function orderLevel(plane, level) {
   plane.targetLevel = level;
 }
 // turns a plane toward a compass word or by a relative turn (from where it is heading, or from its last order). A turn
-// ends a hold, and a helicopter's flight to its pad
+// ends a hold, a helicopter's flight to its pad and its hover
 function steerTo(plane, direction) {
   if (direction in HEADINGS) plane.targetHeading = degreesToRadians(HEADINGS[direction]);
   else
@@ -2542,7 +2537,7 @@ function steerTo(plane, direction) {
       (plane.state === 'hold' ? plane.heading : plane.targetHeading) + degreesToRadians(RELATIVE_TURNS[direction]),
     );
   plane.givenTurn = true;
-  if (plane.state === 'hold' || plane.state === 'tofix' || plane.state === 'topad') plane.state = 'fly';
+  if (['hold', 'tofix', 'topad', 'hover'].includes(plane.state)) plane.state = 'fly';
 }
 // now and then a pilot mishears: a compass turn 45° off, or the other level in the same direction. The readback shows it.
 const pilotMishears = () => rules.readback && !game.practice && trafficRandom() < rules.readback;
@@ -2662,12 +2657,12 @@ function executeOrder(words) {
   }
   if (plane.type.heli && action === 'takeoff') {
     if (plane.state !== 'onpad') return `!${name} is not waiting on a helipad`;
-    // straight up off its pad to low, then by itself toward where it wants to leave (a turn sends it elsewhere)
+    // straight up off its pad to low, where it hovers until you turn it (a turn given while it lifts off is flown at once)
     plane.state = 'liftoff';
     orderLevel(plane, 0);
-    plane.targetHeading = headingToSlice(plane, plane.exitWay);
-    plane.givenTurn = true;
-    return `${name}: lift off helipad ${plane.pad.toUpperCase()}, then ${shortWayUpper(plane.exitWay)} at low (${LEVEL_FEET[0]} ft)`;
+    plane.targetHeading = plane.heading;
+    plane.givenTurn = false;
+    return `${name}: lift off helipad ${plane.pad.toUpperCase()} straight up to low (${LEVEL_FEET[0]} ft), it hovers there · then ${name} turn ${shortWayUpper(plane.exitWay)}`;
   }
   if (plane.type.heli && action === 'abort' && plane.state === 'topad') {
     plane.state = 'fly';
@@ -2873,8 +2868,8 @@ function hintFor(name) {
     const pad = plane.pad && plane.pad.toUpperCase();
     if (plane.state === 'onpad')
       return `${plane.impatient ? `out of patience in ${Math.ceil(plane.patience)} s · ` : ''}${plane.name} waits on helipad ${pad}, wants to leave ${shortWayUpper(plane.exitWay)} → ${plane.name} takeoff`;
-    if (plane.state === 'liftoff')
-      return `${plane.name} is lifting off helipad ${pad}, then flies out ${shortWayUpper(plane.exitWay)} at low`;
+    if (plane.state === 'liftoff' || plane.state === 'hover')
+      return `${plane.name} ${plane.state === 'hover' ? 'hovers over' : 'is lifting off'} helipad ${pad}${plane.givenTurn ? '' : `, wants to leave ${shortWayUpper(plane.exitWay)} → ${plane.name} turn ${shortWayUpper(plane.exitWay)}`}`;
     if (plane.state === 'topad') return `${fuel}${plane.name} is flying to helipad ${pad} at low: keep low traffic clear of it`;
     if (plane.state === 'padland') return `${plane.name} is setting down on helipad ${pad}`;
     if (plane.state === 'parked') return `${plane.name} has landed`;

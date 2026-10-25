@@ -17,7 +17,7 @@ The game is deliberately simplified: named levels instead of real heights, eight
 - **Priority flights**: VIP private jets and MEDEVAC air ambulances go first both ways, with a deadline. Military fighters now and then.
 - **Tuning in one place**: every number sits in the TUNING block at the top of index.html.
 - **Roguelike shift**: three strikes end a shift and pay a token per $1,000. Tokens buy permanent upgrades in small steps: tanks, height (top, peak), nav, less wake rest, and runways (a parallel one, then crossing runways N-S, NE-SW, NW-SE at steep prices).
-- **Helicopters**: the helipad upgrade builds up to three helipads (HOTEL, INDIA, OSCAR) clear of every runway and final. Helicopters fly at low only, `land` sends one straight to a free pad where it hovers in and sets down, `takeoff` lifts one off its pad and out its own way. One per pad at a time; they pay $2,500 a flight.
+- **Helicopters**: the helipad upgrade builds up to three helipads (HOTEL, INDIA, OSCAR) clear of every runway and final. Helicopters fly at low only, `land` sends one straight to a free pad where it hovers in and sets down, `takeoff` lifts one straight up off its pad to hover at low until it is turned. One per pad at a time; they pay $2,500 a flight.
 - **Daily shift**: seeded by the date, so everyone gets the same traffic, with no upgrades. Today's five best scores are kept locally (no online leaderboard yet).
 
 ## Still to do
