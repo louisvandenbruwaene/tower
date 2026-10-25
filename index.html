@@ -455,6 +455,7 @@ const HARD_UPGRADES = {
 // --- sound and screen ---
 // the music: "electro" by Pro Sensory (CC0, opengameart.org/content/electro), looping under the sounds; the ♪ switch turns both off
 const MUSIC_VOL = 0.35;
+const VIEW_MARGIN = 8; // px of world around your area on screen: just enough for the exit slices on its rim
 // two taxi lanes on one wide taxiway: departures taxi out on the inner one (x AX±OUT_X, apron row OUT_Y) to a holding point
 // HOLD short of the runway, arrivals taxi in on the outer one, so the two never sit on top of each other
 const TAXI_OUT_LANE_X = RUNWAY_HALF_LENGTH + fromMetres(300),
@@ -530,12 +531,16 @@ function degreesToRadians(degrees) {
 function normaliseAngle(angle) {
   return Math.atan2(Math.sin(angle), Math.cos(angle));
 }
-// the view: the area and room for its compass letters; it zooms out when the area grows, text staying the same size (ZOOM)
-const viewLeft = () => AIRPORT_X - areaRadius - 40,
-  viewTop = () => AIRPORT_Y - areaRadius - 30,
-  viewWidth = () => 2 * (areaRadius + 40),
-  viewHeight = () => 2 * (areaRadius + 30),
+// the view: the area as big as the screen allows (VIEW_MARGIN around it, for the exit slices drawn on its rim; the compass
+// letters sit inside it); it zooms out when the area grows, text staying the same size (textZoom)
+const viewLeft = () => AIRPORT_X - areaRadius - VIEW_MARGIN,
+  viewTop = () => AIRPORT_Y - areaRadius - VIEW_MARGIN,
+  viewWidth = () => 2 * (areaRadius + VIEW_MARGIN),
+  viewHeight = () => 2 * (areaRadius + VIEW_MARGIN),
   textZoom = () => areaRadius / AREA_RADIUS;
+// the canvas's top-left corner in world units: the empty corner beside the round area, where the wind is written
+const screenCornerX = () => -viewX / viewScale,
+  screenCornerY = () => -viewY / viewScale;
 // the eight compass words and their headings in degrees, as drawn on screen: 0 = east, 90 = south (y grows downward)
 const HEADINGS = {north: -90, northeast: -45, east: 0, southeast: 45, south: 90, southwest: 135, west: 180, northwest: -135};
 // the compass word for a heading (radians)
@@ -4499,15 +4504,16 @@ function drawRadar() {
   ctx.stroke();
   setGlow('', 0);
   ctx.lineWidth = 1;
-  setFont(14, 600);
+  // the compass letters inside the rim, faded into the background so planes flying over them stay clear
+  setFont(16, 700);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#4f9a70';
+  ctx.fillStyle = 'rgba(79,154,112,.28)';
   for (const [name, degrees] of Object.entries(HEADINGS))
     ctx.fillText(
       shortWayUpper(name),
-      AIRPORT_X + Math.cos(degreesToRadians(degrees)) * (areaRadius + 20),
-      AIRPORT_Y + Math.sin(degreesToRadians(degrees)) * (areaRadius + 18),
+      AIRPORT_X + Math.cos(degreesToRadians(degrees)) * (areaRadius - 26 * textZoom()),
+      AIRPORT_Y + Math.sin(degreesToRadians(degrees)) * (areaRadius - 26 * textZoom()),
     );
   // storm cells: soft red blobs with a dashed edge
   for (const storm of game.storms) {
@@ -4751,11 +4757,19 @@ function drawRadar() {
     setFont(12, 600);
     ctx.textAlign = 'left';
     ctx.fillStyle = '#8fd8ff';
-    ctx.fillText(windBlowing() ? `wind from the ${windWord()}` : 'calm', viewLeft() + 14, viewTop() + 20 * textZoom());
+    ctx.fillText(
+      windBlowing() ? `wind from the ${windWord()}` : 'calm',
+      screenCornerX() + 14 * textZoom(),
+      screenCornerY() + 20 * textZoom(),
+    );
     setFont(11);
     ctx.fillStyle = '#5f7d69';
     if (windBlowing())
-      ctx.fillText(`planes take off and land heading ${windWord()}`, viewLeft() + 14, viewTop() + 38 * textZoom());
+      ctx.fillText(
+        `planes take off and land heading ${windWord()}`,
+        screenCornerX() + 14 * textZoom(),
+        screenCornerY() + 38 * textZoom(),
+      );
     ctx.textAlign = 'center';
   }
   if (game.showPaths) drawPaths();
