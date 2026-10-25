@@ -113,7 +113,7 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>strikes</td><td>Two planes too close and less than <b>400 ft apart in height</b> (red ring): planes on different levels always pass safely, only while climbing or descending through each other's height can they meet. Also a departure leaving through the wrong slice, an arrival leaving your area, a flight cancelled or late, fuel run out, a storm flown into. Touching shapes collide: two strikes. Three strikes end the shift.</td></tr>
 <tr><td>time</td><td>Level changes take a while (bar under the label), turns are gradual (dashed line), the runway takes one plane at a time (amber while busy). 1 px is 25 m and time runs 4.5× fast; every type flies its own real speeds and turn rate.</td></tr>
 <tr><td>fuel</td><td>Arrivals carry fuel (the jerrycan by the name, once below half): below 45 s they call MAYDAY, land them next. Departures have patience (the clock): when it runs out the flight is cancelled.</td></tr>
-<tr><td>wind · storms</td><td>The shift starts calm, then the wind comes and goes (top left). While it blows, planes take off and land into it: landing circles with the wind behind them close, a runway across the wind stays open. Storm cells drift with the wind and close the circles they cover.</td></tr>
+<tr><td>wind · storms</td><td>The shift starts calm, then the wind comes and goes (top left). While it blows, planes take off and land into it: landing circles with the wind behind them close, a runway across the wind stays open. Helicopters ignore it, both ways. Storm cells drift with the wind and close the circles they cover.</td></tr>
 <tr><td>readback</td><td>A pilot sometimes mishears: the reply shows what it understood. Say it again.</td></tr>
 </table></section>
 <section class="pg"><h2>Money</h2><table>
@@ -1882,7 +1882,7 @@ function weather(seconds) {
     } else {
       game.windDir = trafficRandom() < 0.5 ? 1 : -1;
       game.windChangesAt = game.time + WIND_BLOWS_FOR + trafficRandom() * WIND_BLOWS_SPREAD;
-      showReply(`!wind from the ${windWord()}: take off and land heading ${windWord()} now`);
+      showReply(`!wind from the ${windWord()}: planes take off and land heading ${windWord()} now`);
     }
   }
   if (game.storms.length < rules.storms && game.time >= game.nextStormAt) {
@@ -4761,7 +4761,7 @@ function drawRadar() {
     setFont(11);
     ctx.fillStyle = '#5f7d69';
     ctx.fillText(
-      windBlowing() ? `take off and land heading ${windWord()}` : 'take off and land either way',
+      windBlowing() ? `planes take off and land heading ${windWord()}` : 'planes take off and land either way',
       viewLeft() + 14,
       viewTop() + 38 * textZoom(),
     );
