@@ -49,8 +49,8 @@ function meets(a, b, altA = a.targetLevel, altB = b.targetLevel) {
     const [ax, ay, al, ar] = future(a, t, altA),
       [bx, by, bl, br] = future(b, t, altB);
     if (
-      Math.abs(al - bl) < VERTICAL_SEPARATION_LEVELS + 0.2 &&
-      Math.hypot(ax - bx, ay - by) < separationNeeded(a, b) + 16 + ar + br
+      Math.abs(al - bl) < COLLISION_HEIGHT_LEVELS + 0.2 &&
+      Math.hypot(ax - bx, ay - by) < COLLISION_WARNING_DISTANCE + 16 + ar + br
     )
       return true;
   }

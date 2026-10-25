@@ -114,14 +114,14 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>priority</td><td><b>VIP</b> private jets (gold star by the name) and <b>MEDEVAC</b> air ambulances (blue cross by the name) go first both ways: an arrival lands within 2 minutes, a departure is rolling within 50 s, not counting its taxi (the clock by its name), or it is a strike. While one waits, other planes of its kind may not land or take off (a MAYDAY may).</td></tr>
 </table>
 <table>
-<tr><td>strikes</td><td>Two planes closer than <b>3 NM</b> (5.6 km; 5 NM in a heavy's wake, behind it) and less than <b>1,000 ft</b> apart in height (red ring), as in real approach control (a helicopter only counts when it actually touches something less than 400 ft apart in height): planes on different levels always pass safely, only while climbing or descending through each other's height can they meet. Also a departure leaving through the wrong slice, an arrival leaving your area, a flight cancelled or late, fuel run out, a storm flown into. Touching shapes collide: two strikes. Three strikes end the shift.</td></tr>
+<tr><td>strikes</td><td>Two aircraft (planes or helicopters) whose icons touch less than <b>400 ft</b> apart in height <b>collide</b>: both are lost, two strikes. Close at such a height, both turn red as a warning. Planes on different levels always pass safely, only while climbing or descending through each other's height can they meet. Also a departure leaving through the wrong slice, an arrival leaving your area, a flight cancelled or late, fuel run out, a storm flown into. Three strikes end the shift.</td></tr>
 <tr><td>time</td><td>Level changes take a while (bar under the label), turns are gradual (dashed line), the runway takes one plane at a time (amber while busy). Everything is to scale: your area is 31 km across, a runway 3 km; time runs 7× fast; every type flies its own real speeds and turn rate.</td></tr>
 <tr><td>fuel</td><td>Arrivals carry fuel (the jerrycan by the name, once below half): below 45 s they call MAYDAY, land them next. Departures have patience (the clock): when it runs out the flight is cancelled.</td></tr>
 <tr><td>wind · storms</td><td>The shift starts calm, then the wind comes and goes (top left). While it blows, planes take off and land into it: landing circles with the wind behind them close, a runway across the wind stays open. Helicopters ignore it, both ways. Storm cells drift with the wind and close the circles they cover.</td></tr>
 <tr><td>readback</td><td>A pilot sometimes mishears: the reply shows what it understood. Say it again.</td></tr>
 </table></section>
 <section class="pg"><h2>Money</h2><table>
-<tr><td>money</td><td>Every plane pays its fare: prop $400, jet $1,000, heavy $1,600, fighter $1,500, private jet $4,000, air ambulance $3,500, helicopter $2,500. It loses 1% per second beyond par (down to 10%); late priority flights pay a quarter. A <b>streak</b> (planes in a row without a collision; other strikes leave it) adds 10% a plane, up to +50%.</td></tr>
+<tr><td>money</td><td>Every plane pays its fare: prop $400, jet $1,000, heavy $1,600, fighter $1,500, private jet $4,000, air ambulance $3,500, helicopter $2,500. It loses 1% per second beyond par (down to 10%); late priority flights pay a quarter. A <b>streak</b> (planes in a row without a strike) adds 10% a plane, up to +50%.</td></tr>
 <tr><td>shift</td><td>One shift that never ends: the first five planes in slow motion, the traffic growing for 15 minutes. It pays a token per $1,000 when it ends.</td></tr>
 <tr><td>buy</td><td>Upgrades for every later shift, one step at a time (10, 20, 50, 100, 200 tokens): <b>tanks</b> +20 s fuel a step · <b>patience</b> +20 s departure patience a step · <b>height</b> levels lm 4000, mh 6000, ht 8000, top 9000, peak 10000 · <b>nav</b> a wider area, holds NOVEMBER and SIERRA, then departures fly out alone and arrivals find a landing circle by themselves · <b>runway</b> tighter, then perfect timing (a departure rolls in the gap before an arrival, an arrival starts its final while the runway is still in use), then a parallel runway, then two crossing each other between the two, like an X (crossing runways share their tarmac: one in use makes both busy) · <b>helipad</b> helipads HOTEL, OSCAR, INDIA north of the airport: helicopters join the traffic, more with every pad.</td></tr>
 <tr><td>daily · hard</td><td><b>daily</b>: today's shift, the same for everyone, no upgrades. <b>hard</b> (after a $10,000 shift): a game of its own, with its own best, tokens and upgrades (<b>normal</b> goes back; the app opens in the one you played last); no autopilot and no runway timing (nav stops after SIERRA, runway is only the three runways, for 10, 20 and 50); <b>land</b> only once you have flown the plane onto the lit strip yourself, low and facing the runway, and <b>hold alpha</b> only at ALPHA.</td></tr>
@@ -136,7 +136,7 @@ main{flex:1;min-height:0;display:flex}
          "plane action [direction]" (heron turn s, heron descend, wren takeoff e). Arrivals come in high: bring them down
          to low, into a landing circle off a runway end, and clear them to land. Departures wait in the READY list: take
          them off and turn them to the slice of the edge they want to leave through. Overflights cross your area. Two
-         planes closer than 3 NM and less than 1,000 ft apart in height is a strike; three strikes end the shift. Every plane pays
+         two aircraft colliding (icons touching, less than 400 ft apart in height) is two strikes; three strikes end the shift. Every plane pays
          a fare, a shift pays tokens, tokens buy upgrades (more levels, more room, timing help, more runways, helipads).
    WHY   A game about calm planning under growing pressure: realistic distances, speeds and turns, simple orders.
    HOW   One file, no libraries. Every step of game time (advanceWorld) moves traffic, weather and planes; every screen
@@ -191,15 +191,12 @@ const AREA_RADIUS_WIDER = 464; // with the nav range upgrade (29 km)
 const RUNWAY_HALF_LENGTH = fromMetres(1500); // half the runway's length (a 3 km runway)
 const CIRCLE_RADIUS = fromMetres(1250),
   CIRCLE_DISTANCE = fromMetres(3750); // landing circles: radius, and how far out from the runway end their centre is
-const NAUTICAL_MILE = 1852; // m
-// radar separation, as real approach control: planes less than VERTICAL_SEPARATION_FEET apart in height must stay 3 NM
-// apart, and 2 NM more behind a heavy or freighter (in its wake: within WAKE_CONE_DEGREES of straight behind it, 5 NM)
-const SEPARATION = fromMetres(3 * NAUTICAL_MILE),
-  WAKE_EXTRA = fromMetres(2 * NAUTICAL_MILE),
-  WAKE_CONE_DEGREES = 30;
+// collisions, the same for planes and helicopters: two aircraft collide when their pictograms on the radar touch and they
+// are less than COLLISION_HEIGHT_FEET apart in height (both lost, two strikes). Closer than COLLISION_WARNING_DISTANCE at
+// such a height, both turn red as a warning (no strike)
+const COLLISION_HEIGHT_FEET = 400,
+  COLLISION_WARNING_DISTANCE = 30; // ft, px
 const TAKEOFF_ROLL_BELOW_TRAFFIC = 0.5; // a departure is above 600 m (and can meet other planes) past this share of its takeoff run
-const HELI_VERTICAL_SEPARATION_FEET = 400; // ft: a helicopter only collides with something less than this far apart in height (and only when they touch)
-const VERTICAL_SEPARATION_FEET = 1000; // ft: planes this far apart in height or more pass each other safely: one level apart is enough, climbing through each other is not
 const LEVEL_FEET = [3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]; // the levels low lm mid mh high ht top peak
 const BASE_LEVELS = [0, 2, 4]; // low, mid, high; the height upgrade adds lm, mh, ht, top, peak in that order
 // the levels the height upgrade adds, in buying order: lm, mh, ht, top, peak (indexes into LEVEL_FEET)
@@ -494,10 +491,9 @@ const AIR_ACCEL_PX = AIR_ACCEL * TIME_SCALE * PX_PER_KT,
   TAXI_SPEED = TAXI_KT * PX_PER_KT,
   TOUCHDOWN_ANGLE = degreesToRadians(TOUCHDOWN_ANGLE_DEGREES);
 const accelToGame = metresPerSecondSquared => (metresPerSecondSquared * TIME_SCALE * TIME_SCALE) / METRES_PER_PIXEL; // m/s² to px per game s²
-// one level is 1,000 ft; VERTICAL_SEPARATION_LEVELS is VERTICAL_SEPARATION_FEET counted in levels (0.4)
+// one level is 1,000 ft; COLLISION_HEIGHT_LEVELS is COLLISION_HEIGHT_FEET counted in levels (0.4)
 const FEET_PER_LEVEL = LEVEL_FEET[1] - LEVEL_FEET[0],
-  VERTICAL_SEPARATION_LEVELS = VERTICAL_SEPARATION_FEET / FEET_PER_LEVEL,
-  HELI_VERTICAL_SEPARATION_LEVELS = HELI_VERTICAL_SEPARATION_FEET / FEET_PER_LEVEL; // the same, counted in levels
+  COLLISION_HEIGHT_LEVELS = COLLISION_HEIGHT_FEET / FEET_PER_LEVEL;
 // a type's highest level (its top is an index into KT_FT) and its speed at a height (interpolated between the KT_FT heights)
 const typeTopLevel = type => LEVEL_FEET.indexOf(SPEED_TABLE_FEET[type.ceilingRow]);
 // a type's airspeed in knots at a height (a level number, fractions while climbing), read from its speed table between the
@@ -901,8 +897,7 @@ const saveProgress = () => {
 // daily: today's seeded shift; hard: hard mode with its own progress.
 //
 // The game state (game) holds: time (game seconds since the start), pace (1, slower in the tutorial, set in admin), planes,
-// effects (explosions and rings being drawn), handledCount, score, strikes, streak and bestStreak, over, paused, closePairs
-// (pairs too close last tick, so each encounter is one strike), windDir (+1: wind from the east, land heading east,
+// effects (explosions and rings being drawn), handledCount, score, strikes, streak and bestStreak, over, paused, windDir (+1: wind from the east, land heading east,
 // -1 from the west, 0 calm), windChangesAt, storms, nextStormAt, shake (seconds of screen shake left), overflightsOn, tokensEarned, and the mode flags
 // practice, daily, hard (and tutorial or admin when one of those is running).
 //
@@ -984,7 +979,6 @@ function startShift(practice = false, daily = false, hard = false) {
     adminSpawnIn: 1,
     over: false,
     paused: false,
-    closePairs: new Set(),
     practice,
     daily,
     hard,
@@ -1249,18 +1243,15 @@ function spawnRandomPlane() {
         : 'arr',
   );
 }
-// a strike: a red ring and the reason; the third ends the shift (in admin and the tutorial none count). Only a collision
-// (endsStreak) also ends a streak
-function strike(message, x, y, endsStreak = false) {
+// a strike: a red ring and the reason; it ends a streak, and the third ends the shift (in admin and the tutorial none count)
+function strike(message, x, y) {
   if (game.over) return;
   sound.strike();
   showReply('!' + message);
   game.effects.push({x, y, age: 0, colour: '#ff6b5e', radius: 40});
   const free = game.admin || game.tutorial;
-  if (endsStreak) {
-    if (game.streak > 1 && !free) popChips({x, y: y - 28, chips: [{kind: 'bad', text: 'streak lost'}], size: 14, life: 1.5});
-    game.streak = 0;
-  }
+  if (game.streak > 1 && !free) popChips({x, y: y - 28, chips: [{kind: 'bad', text: 'streak lost'}], size: 14, life: 1.5});
+  game.streak = 0;
   if (free) return;
   game.strikes++;
   if (game.strikes >= STRIKES_TO_END) endShift();
@@ -1855,13 +1846,6 @@ function followLine(plane, x, y, lineHeading, curvature) {
     want = -Math.max(-0.9, Math.min(0.9, offLine * 0.035));
   return plane.speed * curvature + 1.6 * normaliseAngle(want - normaliseAngle(plane.heading - lineHeading));
 }
-// how far apart two planes must stay: SEPARATION, more when either is a heavy (its wake)
-// is the other plane in a heavy's wake: behind it, within WAKE_CONE_DEGREES of its tail?
-const inWakeOf = (heavy, other) =>
-  !!heavy.type.heavyWake &&
-  Math.cos(Math.atan2(other.y - heavy.y, other.x - heavy.x) - heavy.heading) < -Math.cos(degreesToRadians(WAKE_CONE_DEGREES));
-const separationNeeded = (first, second) =>
-  SEPARATION + (inWakeOf(first, second) || inWakeOf(second, first) ? WAKE_EXTRA : 0);
 // the wind as a compass letter, E or W, for messages and labels
 const windWord = () => (game.windDir > 0 ? 'E' : 'W');
 // runway names as painted on them: the heading in tens of degrees, 09 heading east, 27 heading west; of two parallel ones the
@@ -2426,46 +2410,25 @@ const belowTraffic = plane =>
     plane.speed / approachSpeed(plane),
     distancePastEnd(CIRCLES[plane.takeoffEnd], plane) / (2 * RUNWAY_HALF_LENGTH),
   ) < TAKEOFF_ROLL_BELOW_TRAFFIC;
-// separation: less than VERTICAL_SEPARATION_FEET apart in height and too close = a strike once per encounter; outlines touching = both
-// lost, in an explosion (two strikes)
+// collisions, the same for every aircraft: less than COLLISION_HEIGHT_FEET apart in height and their pictograms touching =
+// both lost in an explosion, two strikes; within COLLISION_WARNING_DISTANCE at such a height both turn red, as a warning
 function checkSeparation(airborne) {
-  const close = new Set();
   for (let i = 0; i < airborne.length; i++)
     for (let j = i + 1; j < airborne.length; j++) {
       const first = airborne[i],
         second = airborne[j];
       if (belowTraffic(first) || belowTraffic(second)) continue;
-      // a helicopter has no radar separation: it only counts when it actually hits (outlines touching, less than
-      // HELI_VERTICAL_SEPARATION_FEET apart in height), and then it is a collision
-      const helicopter = first.type.heli || second.type.heli;
-      if (Math.abs(first.level - second.level) >= (helicopter ? HELI_VERTICAL_SEPARATION_LEVELS : VERTICAL_SEPARATION_LEVELS))
-        continue;
-      const apartEnough = helicopter
-        ? !touching(first, second)
-        : Math.hypot(first.x - second.x, first.y - second.y) >= separationNeeded(first, second);
-      if (apartEnough) continue;
-      const pair = [first.name, second.name].sort().join();
-      close.add(pair);
+      if (Math.abs(first.level - second.level) >= COLLISION_HEIGHT_LEVELS) continue;
+      if (Math.hypot(first.x - second.x, first.y - second.y) >= COLLISION_WARNING_DISTANCE) continue;
       first.tooClose = second.tooClose = 1;
-      const x = (first.x + second.x) / 2,
-        y = (first.y + second.y) / 2;
-      if (!first.destroyed && !second.destroyed && touching(first, second)) {
-        first.destroyed = second.destroyed = 1;
-        removePlane(first);
-        removePlane(second);
-        explode(first, second);
-        game.strikes++;
-        strike(`${first.name} and ${second.name} collided`, x, y, true);
-        continue;
-      }
-      if (!game.closePairs.has(pair))
-        strike(
-          `${first.name} and ${second.name} too close${inWakeOf(first, second) || inWakeOf(second, first) ? ' (5 NM behind a heavy: its wake)' : ''}`,
-          x,
-          y,
-        );
+      if (first.destroyed || second.destroyed || !touching(first, second)) continue;
+      first.destroyed = second.destroyed = 1;
+      removePlane(first);
+      removePlane(second);
+      explode(first, second);
+      game.strikes++;
+      strike(`${first.name} and ${second.name} collided`, (first.x + second.x) / 2, (first.y + second.y) / 2);
     }
-  game.closePairs = close;
 }
 // a storm cell: a plane that flies into one loses control and crash-lands (a strike)
 function crashIntoStorms(airborne) {
@@ -3273,7 +3236,7 @@ function aircraftSheet() {
     row('length', type => number(type.lengthMetres, 1) + ' m') +
     row('wake', type =>
       type.heavyWake
-        ? `heavy: +${number((WAKE_EXTRA * METRES_PER_PIXEL) / 1000, 1)} km separation, runway rests ${number(WAKE_REST * TIME_SCALE)} s`
+        ? `heavy: the runway rests ${number(WAKE_REST * TIME_SCALE)} s after it`
         : 'medium/light',
     ) +
     section('speed') +
@@ -3306,7 +3269,7 @@ function aircraftSheet() {
     row('tanks', type => number(type.tankKg) + ' kg') +
     row('burn', type => number(type.burnKgPerHour) + ' kg/h') +
     row('reserve on arrival', type => `${number((type.reserveSeconds * TIME_SCALE) / 60)} min`) +
-    `</table><p style="color:var(--dim);font-size:12.5px">1 px on the radar is ${METRES_PER_PIXEL} m, your area is ${number((AREA_RADIUS * METRES_PER_PIXEL) / 1000, 1)} km across the radius (${number((AREA_RADIUS_WIDER * METRES_PER_PIXEL) / 1000, 1)} with the range upgrade), and the game runs ${TIME_SCALE}× faster than real time. Separation: ${number((SEPARATION * METRES_PER_PIXEL) / 1000, 2)} km between planes less than ${VERTICAL_SEPARATION_FEET} ft apart in height. Touchdown at most ${TOUCHDOWN_ANGLE_DEGREES}° off the runway heading.</p>`
+    `</table><p style="color:var(--dim);font-size:12.5px">1 px on the radar is ${METRES_PER_PIXEL} m, your area is ${number((AREA_RADIUS * METRES_PER_PIXEL) / 1000, 1)} km across the radius (${number((AREA_RADIUS_WIDER * METRES_PER_PIXEL) / 1000, 1)} with the range upgrade), and the game runs ${TIME_SCALE}× faster than real time. Two aircraft collide when their icons touch less than ${COLLISION_HEIGHT_FEET} ft apart in height. Touchdown at most ${TOUCHDOWN_ANGLE_DEGREES}° off the runway heading.</p>`
   );
 }
 // the ♪ button: sound and music on or off (the label shows which)
@@ -4809,7 +4772,7 @@ function drawRadar() {
       ctx.fillStyle = 'rgba(255,107,94,.1)';
       ctx.strokeStyle = 'rgba(255,107,94,.6)';
       ctx.beginPath();
-      ctx.arc(plane.x, plane.y, SEPARATION / 2, 0, 7);
+      ctx.arc(plane.x, plane.y, COLLISION_WARNING_DISTANCE / 2, 0, 7);
       ctx.fill();
       ctx.stroke();
     }
