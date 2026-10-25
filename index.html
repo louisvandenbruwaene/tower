@@ -105,7 +105,7 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>blue planes</td><td><b>Arrivals.</b> They come in high: bring them down to low, into a landing circle, and clear them to land.</td></tr>
 <tr><td>gold planes</td><td><b>Departures.</b> Each wants to leave through one of 8 slices of your area (the gold one). Take it off the runway way closest to it, then turn it that way before it reaches the edge.</td></tr>
 <tr><td>purple planes</td><td><b>Overflights</b> from the neighbouring sector, after 10 planes. They cross in a straight line: keep them apart and let them leave through their slice.</td></tr>
-<tr><td>types</td><td><b>prop</b> slow, turns tight · <b>jet</b> · <b>bizjet</b> fast, climbs quickly · <b>heavy</b> and <b>cargo</b> big, turn wide, climb slowly, need more room, and the runway rests after them (wake) · <b>MIL</b> fighters (white star by the name), fast and tight-turning</td></tr>
+<tr><td>types</td><td>told apart by the pictogram: <b>prop</b> slow, turns tight · <b>jet</b> · <b>bizjet</b> fast, climbs quickly · <b>heavy</b> and <b>cargo</b> big, turn wide, climb slowly, need more room, and the runway rests after them (wake) · <b>MIL</b> fighters (white star by the name), fast and tight-turning</td></tr>
 <tr><td>priority</td><td><b>VIP</b> private jets (gold star by the name) and <b>MEDEVAC</b> air ambulances (blue cross by the name) go first both ways: an arrival lands within 2 minutes, a departure is rolling within 50 s, not counting its taxi (the clock by its name), or it is a strike. While one waits, other planes of its kind may not land or take off (a MAYDAY may).</td></tr>
 </table>
 <table>
@@ -186,6 +186,7 @@ const CIRCLE_RADIUS = 50,
   CIRCLE_DISTANCE = 150; // landing circles: radius, and how far out from the runway end their centre is
 const SEPARATION = 38,
   WAKE_EXTRA = 14; // minimum separation between planes less than VERTICAL_SEPARATION_FEET apart in height (0.95 km), and the extra room around a heavy or freighter
+const TAKEOFF_ROLL_BELOW_TRAFFIC = 0.5; // a departure is above 600 m (and can meet other planes) past this share of its takeoff run
 const VERTICAL_SEPARATION_FEET = 400; // ft: planes this far apart in height or more pass each other safely (levels are 1,000 ft apart)
 const LEVEL_FEET = [3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]; // the levels low lm mid mh high ht top peak
 const BASE_LEVELS = [0, 2, 4]; // low, mid, high; the height upgrade adds lm, mh, ht, top, peak in that order
@@ -2205,6 +2206,13 @@ function moveAhead(plane, seconds) {
     strike(why, plane.x, plane.y);
   }
 }
+// a departure in the first part of its takeoff run is still below 600 m, under even the low level: nothing can hit it
+const belowTraffic = plane =>
+  plane.state === 'roll' &&
+  Math.max(
+    plane.speed / approachSpeed(plane),
+    distancePastEnd(CIRCLES[plane.takeoffEnd], plane) / (2 * RUNWAY_HALF_LENGTH),
+  ) < TAKEOFF_ROLL_BELOW_TRAFFIC;
 // separation: less than VERTICAL_SEPARATION_FEET apart in height and too close = a strike once per encounter; outlines touching = both
 // lost, in an explosion (two strikes)
 function checkSeparation(airborne) {
@@ -2213,6 +2221,7 @@ function checkSeparation(airborne) {
     for (let j = i + 1; j < airborne.length; j++) {
       const first = airborne[i],
         second = airborne[j];
+      if (belowTraffic(first) || belowTraffic(second)) continue;
       if (Math.abs(first.level - second.level) >= VERTICAL_SEPARATION_LEVELS) continue;
       if (Math.hypot(first.x - second.x, first.y - second.y) >= separationNeeded(first, second)) continue;
       const pair = [first.name, second.name].sort().join();
@@ -3623,14 +3632,7 @@ function resize() {
 // each kind of plane's colour: arrivals blue, departures gold, overflights purple
 const KIND_COLOUR = {arr: '#8fd8ff', dep: '#f2c94c', ovf: '#c9a3ff'};
 // what a plane is doing, shown after its level and type (flying on, it shows nothing, or that it is cleared)
-const STATE_TAG = {
-  hold: ' ⟳',
-  final: ' landing',
-  roll: ' taking off',
-  lineup: ' waiting',
-  enter: ' lining up',
-  rollout: ' landed',
-};
+const STATE_TAG = {hold: ' ⟳'};
 // one pictogram per type, seen from above, nose up, about 380 wide; drawn scaled down on the radar
 // each pictogram's outline as convex pieces (icon units, nose up), for the touching test
 const mirrored = piece => piece.map(([x, y]) => [-x, y]),
@@ -4557,19 +4559,27 @@ function drawRadar() {
     ctx.fill(TYPE_SHAPES[plane.typeName]);
     setGlow('', 0);
     ctx.restore();
-    // data block on a leader line: name, level, type, fuel when short; a level change fills the bar under it
+    // data block on a leader line: name, level, what it is doing, a departure's direction; a level change fills the bar
+    // under it. The type is left out (the pictogram shows it): a departure shows only where it wants to go, an arrival
+    // 'landing' from being cleared until it has landed
     const moving = Math.abs(plane.targetLevel - plane.level) > 0.01,
       lvTxt = moving ? `${LEVEL_LABELS[level]}→${LEVEL_LABELS[plane.targetLevel]}` : LEVEL_LABELS[level];
     let tag =
-      plane.state === 'tofix'
-        ? ` →${plane.holdFix.toUpperCase()}`
-        : STATE_TAG[plane.state] ||
-          (plane.cleared ? (plane.inCircle && hasTailwind(plane.inCircle) ? ' · waits for wind' : ' · cleared') : '');
+      plane.kind !== 'arr' || plane.state === 'taxiin'
+        ? ''
+        : plane.state === 'tofix'
+          ? ` →${plane.holdFix.toUpperCase()}`
+          : STATE_TAG[plane.state] ||
+            (plane.state === 'final' || plane.state === 'rollout' || plane.cleared
+              ? plane.inCircle && hasTailwind(plane.inCircle)
+                ? ' · waits for wind'
+                : ' · landing'
+              : '');
     if (game.hard) {
       if (plane.kind === 'arr' && plane.state !== 'final' && manualLandingCircle(plane)[0] !== '!') tag += ' · can land';
     } else if (plane.kind === 'arr' && plane.state !== 'final' && !plane.cleared && landableCircle(plane))
       tag += runwayBusy(CIRCLES[landableCircle(plane)].runway) ? ' · wait' : ' · can land';
-    const rest = `${ground ? '' : ' ' + lvTxt}${plane.type.tag ? ' ' + plane.type.tag : ''}${tag}${plane.kind === 'dep' || (plane.kind !== 'arr' && !ground) ? ' → ' + shortWayUpper(plane.exitWay) : ''}`;
+    const rest = `${ground ? '' : ' ' + lvTxt}${tag}${plane.kind === 'dep' || (plane.kind !== 'arr' && !ground) ? ' → ' + shortWayUpper(plane.exitWay) : ''}`;
     setFont(ground ? 11 : 12.5, typedNow ? 600 : 500);
     // right after the name: a waiting departure's patience, a priority arrival's deadline, else an arrival's fuel
     const gauge = ground
@@ -4815,7 +4825,7 @@ function updatePanels() {
     ready
       .map(
         plane =>
-          `<b style="color:${plane.name === focus ? '#fff' : KIND_COLOUR.dep}">${plane.name}${emblemSVG(plane)}${clockSVG(plane)}${plane.type.tag ? ' ' + plane.type.tag : ''} → ${shortWayUpper(plane.exitWay)}</b>`,
+          `<b style="color:${plane.name === focus ? '#fff' : KIND_COLOUR.dep}">${plane.name}${emblemSVG(plane)}${clockSVG(plane)} → ${shortWayUpper(plane.exitWay)}</b>`,
       )
       .join(' ') + busy || '<span style="color:var(--dim)">none</span>';
   const show = (overScreenUp() && !game.practice) || game.paused;
