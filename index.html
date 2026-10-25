@@ -64,10 +64,14 @@ main{flex:1;min-height:0;display:flex}
 #sug{display:flex;gap:6px;flex-wrap:wrap;min-height:26px;padding-top:8px}
 #sug i{font-style:normal;font-size:13px;padding:2px 9px;border-radius:5px;background:var(--chip);color:var(--dim)} #sug i.on{background:var(--chipon);color:var(--fg)}
 /* help card over everything */
-#help{position:fixed;inset:0;display:grid;place-items:center;place-content:center;background:rgba(2,8,5,.75);backdrop-filter:blur(4px);overflow:hidden;z-index:5}
+#help{position:fixed;inset:0;display:grid;place-items:start center;place-content:start center;padding-top:5vh;box-sizing:border-box;background:rgba(2,8,5,.75);backdrop-filter:blur(4px);overflow:hidden;z-index:5}
 #help .card{width:min(1000px,calc(100vw - 24px));min-width:min-content;box-sizing:border-box;font-size:14px;margin:12px;padding:16px 26px;background:linear-gradient(#0a1912,#06100b);border:1px solid var(--chipon);border-radius:12px;line-height:1.5;box-shadow:0 20px 60px rgba(0,0,0,.5)}
 #help h2{margin:0 0 6px;color:var(--acc);letter-spacing:.2em;text-transform:uppercase;font-size:18px;text-shadow:0 0 14px rgba(126,224,168,.45)} #help p{margin:8px 0} #help table{border-collapse:collapse;margin:8px 0} #help td{padding:2px 14px 2px 0;vertical-align:top}
-#help td:first-child{color:var(--acc);white-space:nowrap} #help .ac td{font-size:12.5px;padding-right:10px} #help .ac th{text-align:left;color:var(--gold);font-size:12.5px;padding:2px 10px 2px 0} #help .ac tr.sec td{color:var(--dim);padding-top:8px;text-transform:uppercase;letter-spacing:.1em;font-size:11px} #help .go{color:var(--dim);margin-top:12px} #help .pg{display:none} #help .pg.on{display:block} #pnav span{cursor:pointer;padding:0 4px} #pnav span.on{color:var(--acc)} #help code{color:var(--gold)}
+#help td:first-child{color:var(--acc);white-space:nowrap} #help .ac td{font-size:12.5px;padding-right:10px} #help .ac th{text-align:left;color:var(--gold);font-size:12.5px;padding:2px 10px 2px 0} #help .ac tr.sec td{color:var(--dim);padding-top:8px;text-transform:uppercase;letter-spacing:.1em;font-size:11px} #help .pg{display:none} #help .pg.on{display:block}
+#helpcard,#admcard{position:relative;transform-origin:top center} #ptabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 40px 14px 0} #pclose{position:absolute;top:14px;right:16px}
+#ptabs button,#pnav button{font:500 13px var(--mono);color:var(--dim);background:var(--chip);border:1px solid var(--chipon);border-radius:99px;padding:4px 12px;cursor:pointer}
+#ptabs button:hover,#pnav button:hover{color:var(--fg);border-color:var(--acc)} #ptabs button.on{color:#04140b;background:var(--acc);border-color:var(--acc);font-weight:700}
+#ptabs button small{opacity:.6;margin-right:6px} #pnav{display:flex;align-items:center;gap:12px;margin-top:14px;color:var(--dim);font-size:12.5px} #pnav .keys{margin:0 auto} #help code{color:var(--gold)}
 @media (max-width:760px){main{flex-direction:column}#term{width:auto;height:50%;overflow:hidden}#brand{display:none}}   /* narrow: the corners keep the numbers and buttons */
 </style></head><body>
 <main>
@@ -89,8 +93,8 @@ main{flex:1;min-height:0;display:flex}
 <div id="sug"></div>
 </section>
 </main>
-<div id="help" style="display:none"><div class="card" id="admcard" style="display:none"></div><div class="card" id="helpcard">
-<section class="pg"><h2>Tower Power</h2>
+<div id="help" style="display:none"><div class="card" id="admcard" style="display:none"></div><div class="card" id="helpcard"><nav id="ptabs"></nav><button id="pclose" class="rb" title="close (Esc)">×</button>
+<section class="pg"><h2>Commands</h2>
 <p>You are the air traffic controller. Every command has the same shape:</p>
 <p><code>plane&nbsp;&nbsp;action&nbsp;&nbsp;[direction]</code> &nbsp; the direction is only needed for some actions.</p>
 <table>
@@ -112,8 +116,8 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>purple planes</td><td><b>Overflights</b> from the neighbouring sector, after 10 planes. They cross in a straight line: keep them apart and let them leave through their slice.</td></tr>
 <tr><td>types</td><td>told apart by the pictogram: <b>prop</b> slow, turns tight · <b>jet</b> · <b>bizjet</b> fast, climbs quickly · <b>heavy</b> and <b>cargo</b> big, turn wide, climb slowly, need more room, and the runway rests after them (wake) · <b>MIL</b> fighters (white star by the name), fast and tight-turning</td></tr>
 <tr><td>priority</td><td><b>VIP</b> private jets (gold star by the name) and <b>MEDEVAC</b> air ambulances (blue cross by the name) go first both ways: an arrival lands within 2 minutes, a departure is rolling within 50 s, not counting its taxi (the clock by its name), or it is a strike. While one waits, other planes of its kind may not land or take off (a MAYDAY may).</td></tr>
-</table>
-<table>
+</table></section>
+<section class="pg"><h2>Rules</h2><table>
 <tr><td>strikes</td><td>Two aircraft (planes or helicopters) whose icons touch less than <b>400 ft</b> apart in height <b>collide</b>: both are lost, two strikes. Close at such a height, both turn red as a warning. Planes on different levels always pass safely, only while climbing or descending through each other's height can they meet. Also a departure leaving through the wrong slice, an arrival leaving your area, a flight cancelled or late, fuel run out, a storm flown into. Three strikes end the shift.</td></tr>
 <tr><td>time</td><td>Level changes take a while (bar under the label), turns are gradual (dashed line), the runway takes one plane at a time (amber while busy). Everything is to scale: your area is 31 km across, a runway 3 km; time runs 7× fast; every type flies its own real speeds and turn rate.</td></tr>
 <tr><td>fuel</td><td>Arrivals carry fuel (the jerrycan by the name, once below half): below 45 s they call MAYDAY, land them next. Departures have patience (the clock): when it runs out the flight is cancelled.</td></tr>
@@ -127,7 +131,7 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>daily · hard</td><td><b>daily</b>: today's shift, the same for everyone, no upgrades. <b>hard</b> (after a $10,000 shift): a game of its own, with its own best, tokens and upgrades (<b>normal</b> goes back; the app opens in the one you played last); no autopilot and no runway timing (nav stops after SIERRA, runway is only the three runways, for 10, 20 and 50); <b>land</b> only once you have flown the plane onto the lit strip yourself, low and facing the runway, and <b>hold alpha</b> only at ALPHA.</td></tr>
 </table></section>
 <section class="pg"><h2 id="acdata">Aircraft</h2><div id="actable"></div></section>
-<p class="go" id="pnav"></p></div></div>
+<div id="pnav"></div></div></div>
 <script>
 /* =====================================================================================================================
    TOWER POWER
@@ -3008,23 +3012,29 @@ const hintEl = document.getElementById('hint'),
 const typing = {history: [], historyAt: 0, chosen: 0, suggestions: [], ghost: ''};
 // no scrolling anywhere: the help card comes in pages (← →), and every overlay shrinks to fit the window
 const HELP_PAGES = [...helpEl.querySelectorAll('.pg')],
-  helpNav = document.getElementById('pnav');
+  helpNav = document.getElementById('pnav'),
+  helpTabs = document.getElementById('ptabs');
 // shrinks an overlay (the help card, the shift-over screen) just enough to fit its container, never grows it; margin: room left around it
 function fitToWindow(element, margin = 24) {
   element.style.transform = '';
   const container = element.parentElement,
-    scale = Math.min(
-      1,
-      (container.clientWidth - margin) / element.offsetWidth,
-      (container.clientHeight - margin) / element.offsetHeight,
-    );
+    style = getComputedStyle(container),
+    roomX = container.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight),
+    roomY = container.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom),
+    scale = Math.min(1, (roomX - margin) / element.offsetWidth, (roomY - margin) / element.offsetHeight);
   if (scale < 1) element.style.transform = `scale(${scale})`;
 }
-// shows one page of the help card and the page names under it (← → or a click flips pages)
+// shows one page of the help card: tabs on top (a click or the page's number jumps there), previous and next under it
+// (or ← →); Esc, Enter, the × or a click outside the card closes it
 function showHelpPage(i) {
   typing.helpPage = (i + HELP_PAGES.length) % HELP_PAGES.length;
   HELP_PAGES.forEach((page, pageIndex) => page.classList.toggle('on', pageIndex === typing.helpPage));
-  helpNav.innerHTML = `← ${HELP_PAGES.map((page, pageIndex) => `<span class="${pageIndex === typing.helpPage ? 'on' : ''}" data-p="${pageIndex}">${page.querySelector('h2').textContent.toLowerCase()}</span>`).join('·')} → · Enter or Esc to close`;
+  const pageName = pageIndex => HELP_PAGES[(pageIndex + HELP_PAGES.length) % HELP_PAGES.length].querySelector('h2').textContent.toLowerCase();
+  helpTabs.innerHTML = HELP_PAGES.map(
+    (page, pageIndex) =>
+      `<button data-p="${pageIndex}" class="${pageIndex === typing.helpPage ? 'on' : ''}"><small>${pageIndex + 1}</small>${pageName(pageIndex)}</button>`,
+  ).join('');
+  helpNav.innerHTML = `<button data-p="${typing.helpPage - 1}">‹ ${pageName(typing.helpPage - 1)}</button><span class="keys">← → or 1–${HELP_PAGES.length} flip · Esc closes</span><button data-p="${typing.helpPage + 1}">${pageName(typing.helpPage + 1)} ›</button>`;
   fitToWindow(document.getElementById('helpcard'));
 }
 // the help card: is it open, and opening or closing it (on the given page)
@@ -3236,7 +3246,7 @@ function aircraftSheet() {
     row('length', type => number(type.lengthMetres, 1) + ' m') +
     row('wake', type =>
       type.heavyWake
-        ? `heavy: the runway rests ${number(WAKE_REST * TIME_SCALE)} s after it`
+        ? `heavy (runway rests ${number(WAKE_REST * TIME_SCALE)} s)`
         : 'medium/light',
     ) +
     section('speed') +
@@ -5194,9 +5204,15 @@ const tutorialButton = document.getElementById('tut');
    WHY   Everything above only defines; this is where the game is switched on, in one place.
    HOW   Listeners first, then the first shift (in the mode played last), then the frame loop.
    ===================================================================================================================== */
-helpNav.addEventListener('click', event => {
-  event.stopPropagation();
-  if (event.target.dataset.p) showHelpPage(+event.target.dataset.p);
+// the help card: tabs and previous/next flip pages, the × closes it, a click elsewhere inside it does nothing
+for (const pageButtons of [helpTabs, helpNav])
+  pageButtons.addEventListener('click', event => {
+    const button = event.target.closest('button');
+    if (button) showHelpPage(+button.dataset.p);
+  });
+document.getElementById('pclose').addEventListener('click', () => {
+  showHelp(false);
+  refreshSuggestions();
 });
 commandInput.addEventListener('input', () => {
   typing.chosen = 0;
@@ -5207,6 +5223,12 @@ commandInput.addEventListener('keydown', event => {
   if (helpShown() && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
     event.preventDefault();
     showHelpPage(typing.helpPage + (event.key === 'ArrowRight' ? 1 : -1));
+    return;
+  }
+  // the page's number jumps to it (while the prompt is empty, so typed levels like 'descend 4' still work)
+  if (helpShown() && !commandInput.value && /^[1-9]$/.test(event.key) && +event.key <= HELP_PAGES.length) {
+    event.preventDefault();
+    showHelpPage(+event.key - 1);
     return;
   }
   if (overScreenUp() && shopOpen() && !commandInput.value && event.key.startsWith('Arrow')) {
@@ -5269,13 +5291,14 @@ addEventListener('mousedown', event => {
   event.preventDefault();
   commandInput.focus();
 });
-// the help card only opens from the ? button (or typing help); any click closes it
+// the help card only opens from the ? button (or typing help); a click outside it closes it
 document.getElementById('qm').addEventListener('click', event => {
   event.stopPropagation();
   showHelp(!helpShown());
   refreshSuggestions();
 });
-helpEl.addEventListener('click', () => {
+helpEl.addEventListener('click', event => {
+  if (event.target !== helpEl) return; // only a click outside the card (on the dimmed background) closes it
   showHelp(false);
   refreshSuggestions();
 });
