@@ -104,7 +104,7 @@ main{flex:1;min-height:0;display:flex}
 <section class="pg"><h2>Traffic</h2><table>
 <tr><td>blue planes</td><td><b>Arrivals.</b> They come in high: bring them down to low, into a landing circle, and clear them to land.</td></tr>
 <tr><td>gold planes</td><td><b>Departures.</b> Each wants to leave through one of 8 slices of your area (the gold one). Take it off the runway way closest to it, then turn it that way before it reaches the edge.</td></tr>
-<tr><td>helicopters</td><td>With the <b>helipad</b> upgrade. They fly at low only and use a helipad (H), never a runway: <b>owl land</b> sends one to the nearest free pad (<b>owl land india</b>: that one), where it hovers in and sets down; <b>kite takeoff</b> lifts one straight up off its pad, where it hovers at low until you turn it (<b>kite turn ne</b>). One per pad at a time (amber while taken).</td></tr>
+<tr><td>helicopters</td><td>With the <b>helipad</b> upgrade. They fly at low only and use a helipad (H), never a runway: <b>owl land</b> sends one to the nearest free pad (<b>owl land india</b>: that one), where it hovers in and sets down; <b>kite takeoff</b> lifts one straight up off its pad, where it hovers at low until you turn it (<b>kite turn ne</b>). A helicopter keeps its pad: after landing it turns around there, then wants to leave again, so there are never more helicopters than pads (amber while taken).</td></tr>
 <tr><td>purple planes</td><td><b>Overflights</b> from the neighbouring sector, after 10 planes. They cross in a straight line: keep them apart and let them leave through their slice.</td></tr>
 <tr><td>types</td><td>told apart by the pictogram: <b>prop</b> slow, turns tight · <b>jet</b> · <b>bizjet</b> fast, climbs quickly · <b>heavy</b> and <b>cargo</b> big, turn wide, climb slowly, need more room, and the runway rests after them (wake) · <b>MIL</b> fighters (white star by the name), fast and tight-turning</td></tr>
 <tr><td>priority</td><td><b>VIP</b> private jets (gold star by the name) and <b>MEDEVAC</b> air ambulances (blue cross by the name) go first both ways: an arrival lands within 2 minutes, a departure is rolling within 50 s, not counting its taxi (the clock by its name), or it is a strike. While one waits, other planes of its kind may not land or take off (a MAYDAY may).</td></tr>
@@ -364,13 +364,14 @@ const ALL_HELIPADS = {
   oscar: [-70, 100],
 };
 const HELIPAD_RADIUS = 9; // px: a helipad's drawn size (225 m across, with its safety area)
-const HELI_SHARE_PER_PAD = 0.12; // each helipad makes this share of the new traffic helicopters (3 pads: 36%)
-const HELI_DEPARTURE_SHARE = 0.5; // of those, this share are departures waiting on a free pad
+const HELI_SHARE_PER_PAD = 0.12; // each helipad makes this share of the new traffic a helicopter arriving (3 pads: 36%), as
+// long as there are fewer helicopters than pads: each one keeps its pad from landing until it has left again
 const HELI_OVER_PAD = 8; // px: this close to its pad (200 m) it hovers onto the pad's centre and sets down; flying there it
 // slows down in time to arrive at walking pace, and slower still while it has much to turn
 const HELI_SET_DOWN_SECONDS = 6,
   HELI_LIFT_SECONDS = 6; // game s to set down on a pad from low, and to lift off it up to low
-const HELI_PARKED_SECONDS = 10; // game s a landed helicopter stays on its pad (the pad stays taken) before it is towed away
+const HELI_TURNAROUND_SECONDS = 40; // game s a landed helicopter stays parked on its pad, then it waits there to depart
+const HELI_ROTOR_STOP_SECONDS = 3; // game s its rotor takes to stop after it set down
 const HELI_ROTOR_TURNS = 3; // rotor turns per game s as drawn (still while waiting on a pad, slowing to a stop once parked)
 // the fare: each type pays its own (pay); it loses 1% for every second beyond par (from appearing to landing or hand-off), down to 10%.
 // Par is about what a plane takes flown well with the sky to itself (measured: arrivals 49-101 game s, departures 60-76)
@@ -1082,7 +1083,8 @@ function spawnArrival(bearing, typeName) {
   if (plane.type.priority) plane.patience = plane.patienceFull = PRIORITY_ARRIVAL_SECONDS;
   game.planes.push(plane);
 }
-// a new helicopter departure, waiting on a free helipad (none free: none comes), wanting to leave toward a random way
+// a helicopter departure waiting on a free helipad, wanting to leave toward a random way (admin only: in a shift every
+// helicopter arrives first, and departs after its turnaround, becomeHeliDeparture)
 function spawnHeliDeparture() {
   const padName = freeHelipads()[(trafficRandom() * freeHelipads().length) | 0],
     name = freeName();
@@ -1192,11 +1194,14 @@ function secondsToNextPlane() {
   return Math.max(TRAFFIC_EMPTY, Math.min(TRAFFIC_LONGEST_GAP, TRAFFIC_GAP * TRAFFIC_BUSY ** (active - expected)));
 }
 // a random new plane for the shift: an overflight (once they are on), a departure (unless three are already waiting) or an
-// arrival. With helipads, a share of them are helicopters instead: a departure on a free pad, or an arrival
+// arrival. With helipads, a share of them are arriving helicopters instead, while there are fewer helicopters than pads
 function spawnRandomPlane() {
   const roll = trafficRandom();
-  if (rules.helipads && trafficRandom() < HELI_SHARE_PER_PAD * rules.helipads) {
-    if (trafficRandom() < HELI_DEPARTURE_SHARE && spawnHeliDeparture()) return;
+  if (
+    rules.helipads &&
+    trafficRandom() < HELI_SHARE_PER_PAD * rules.helipads &&
+    game.planes.filter(plane => plane.type.heli).length < Object.keys(HELIPADS).length
+  ) {
     spawnPlane('arr', 'heli');
     return;
   }
@@ -2054,6 +2059,23 @@ function moveOnGround(plane, seconds) {
   }
   return false;
 }
+// a landed helicopter's turnaround is over: it is a departure now, on the same pad, wanting to leave toward a random way,
+// its patience starting
+function becomeHeliDeparture(plane) {
+  sound.contact();
+  Object.assign(plane, {
+    kind: 'dep',
+    state: 'onpad',
+    exitWay: COMPASS_WORDS[(trafficRandom() * 8) | 0],
+    bornAt: game.time,
+    finished: false,
+    mayday: false,
+    impatient: false,
+    trail: [],
+  });
+  plane.patience = plane.patienceFull = rules.fuel ? plane.type.reserveSeconds + rules.extraPatienceSeconds : Infinity;
+  showReply(`${plane.name} on helipad ${plane.pad.toUpperCase()} is ready to leave ${shortWayUpper(plane.exitWay)}`);
+}
 // a helicopter at its pad: waiting on it, lifting off it straight up to low, hovering there until it is given a direction
 // (a turn then speeds it up, see steerTo), flying to it (hovering in, slower the closer it is and the more it still has to
 // turn), setting down on it (it pays then), parked on it. Elsewhere it flies like any plane. True when its tick ends here
@@ -2063,14 +2085,14 @@ function flyHelicopter(plane, seconds) {
       plane.state === 'onpad'
         ? 0
         : plane.state === 'parked'
-          ? plane.parkedLeft / HELI_PARKED_SECONDS
+          ? Math.max(0, 1 - (HELI_TURNAROUND_SECONDS - plane.parkedLeft) / HELI_ROTOR_STOP_SECONDS)
           : plane.state === 'liftoff'
             ? Math.min(1, 0.3 + plane.level + 1)
             : 1;
   plane.rotorAngle = ((plane.rotorAngle || 0) + seconds * 2 * Math.PI * HELI_ROTOR_TURNS * rotorSpin) % (2 * Math.PI);
   if (plane.state === 'onpad') return true;
   if (plane.state === 'parked') {
-    if ((plane.parkedLeft -= seconds) <= 0) removePlane(plane);
+    if ((plane.parkedLeft -= seconds) <= 0) becomeHeliDeparture(plane);
     return true;
   }
   if (plane.state === 'liftoff' || plane.state === 'hover') {
@@ -2098,7 +2120,7 @@ function flyHelicopter(plane, seconds) {
     if (plane.level <= -1) {
       sound.touchdown();
       plane.state = 'parked';
-      plane.parkedLeft = HELI_PARKED_SECONDS;
+      plane.parkedLeft = HELI_TURNAROUND_SECONDS;
       payForPlane(plane, '#7ee0a8', `${plane.name} landed on helipad ${plane.pad.toUpperCase()}`, true);
       return true;
     }
@@ -2603,11 +2625,13 @@ function executeOrder(words) {
   const plane = planeNamed(first),
     name = plane.name;
   if (!action)
-    return plane.state === 'rollout' || plane.state === 'taxiin' || plane.state === 'parked'
-      ? `${name} has landed: nothing to do`
-      : `!${name} what? ${actionsFor(plane)
-          .filter(next => isValidOrder([name, next]))
-          .join(' · ')}`;
+    return plane.state === 'parked'
+      ? `${name} is turning around on helipad ${plane.pad.toUpperCase()}: nothing to do yet`
+      : plane.state === 'rollout' || plane.state === 'taxiin'
+        ? `${name} has landed: nothing to do`
+        : `!${name} what? ${actionsFor(plane)
+            .filter(next => isValidOrder([name, next]))
+            .join(' · ')}`;
   if (action === 'turn') {
     if (!argument) return `!${name} turn where? e.g. ${name} turn n, ${name} turn l`;
     const direction = argument in HEADINGS && pilotMishears() ? neighbourWay(argument) : argument;
@@ -2872,7 +2896,8 @@ function hintFor(name) {
       return `${plane.name} ${plane.state === 'hover' ? 'hovers over' : 'is lifting off'} helipad ${pad}${plane.givenTurn ? '' : `, wants to leave ${shortWayUpper(plane.exitWay)} → ${plane.name} turn ${shortWayUpper(plane.exitWay)}`}`;
     if (plane.state === 'topad') return `${fuel}${plane.name} is flying to helipad ${pad} at low: keep low traffic clear of it`;
     if (plane.state === 'padland') return `${plane.name} is setting down on helipad ${pad}`;
-    if (plane.state === 'parked') return `${plane.name} has landed`;
+    if (plane.state === 'parked')
+      return `${plane.name} is turning around on helipad ${pad}: ready to leave in ${Math.ceil(plane.parkedLeft)} s`;
     if (plane.kind === 'arr' && plane.state !== 'tofix')
       return freeHelipads().length
         ? `${fuel}${plane.name} is a helicopter: it lands on a helipad, not a runway → ${plane.name} land`
@@ -4780,9 +4805,7 @@ function drawRadar() {
       fade =
         plane.state === 'taxiin' && plane.path.length === 1
           ? Math.min(1, Math.hypot(plane.path[0][0] - plane.x, plane.path[0][1] - plane.y) / 20)
-          : plane.state === 'parked'
-            ? Math.min(1, plane.parkedLeft / 3)
-            : 1; // a landed plane fades as it reaches the apron, a landed helicopter at the end of its time on the pad
+          : 1; // a landed plane fades as it reaches the apron
     ctx.save();
     ctx.globalAlpha = fade;
     ctx.translate(plane.x, plane.y);
@@ -4794,10 +4817,6 @@ function drawRadar() {
     setGlow('', 0);
     if (plane.type.heli) drawRotor(plane.rotorAngle || 0, colour);
     ctx.restore();
-    if (plane.state === 'parked') {
-      plane.tooClose = 0;
-      continue; // a landed helicopter: no label
-    }
     // data block on a leader line: name, level, what it is doing, a departure's direction; a level change fills the bar
     // under it. The type is left out (the pictogram shows it): a departure shows only where it wants to go, an arrival
     // 'landing' from being cleared until it has landed
