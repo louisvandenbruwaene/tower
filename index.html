@@ -181,7 +181,6 @@ const TIME_SCALE = 4.5; // game time runs 4.5x faster than real time
 // your airspace (px)
 const AREA_RADIUS = 384; // radius of your area (9.6 km); the view zooms out when it grows
 const AREA_RADIUS_WIDER = 464; // with the nav range upgrade (11.6 km)
-const AREA_RADIUS_WITH_DIAGONAL_RUNWAYS = 420; // at least this with a diagonal runway, whose far landing circles lie further out
 const RUNWAY_HALF_LENGTH = 60; // half the runway's length (a 3 km runway)
 const CIRCLE_RADIUS = 50,
   CIRCLE_DISTANCE = 150; // landing circles: radius, and how far out from the runway end their centre is
@@ -316,6 +315,8 @@ const REPLAN_MIN_SAVING = 5; // px: a new line-up must cost at least this much l
 const LINE_UP_CUTOFF = 10; // px: closer than this before the runway end, a plane cannot line up any more
 const TRAIL_EVERY = 0.7,
   TRAIL_DOTS = 9; // game s between two dots of a plane's trail, and how many dots it keeps
+const LABEL_FONT_SIZES = [10.5, 12.5, 14.5],
+  LABEL_QUIET_ALPHA = 0.5; // plane labels: font size for one that needs nothing / an order / is urgent, and how faded the first is
 const DRAW_SIZE_GROUND = 0.045,
   DRAW_SIZE_LOW = 0.065,
   DRAW_SIZE_PER_LEVEL = 0.005; // pictogram scale on the ground, at low, more per level
@@ -330,15 +331,14 @@ const WORLD_W = 848,
   AIRPORT_Y = WORLD_H / 2; // the world's frame: the airport centre (AX,AY), where waiting planes circle
 // runways: a centre (x,y) and the heading a of its forward way (0 = east). The main one runs east-west through the airport
 // centre; EXTRA_RUNWAYS are the ones the runway upgrade adds, in buying order (centre from the airport, heading, and whether
-// it crosses the others marked so): a parallel one 160 south (4 km), then two diagonals crossing each other halfway between
-// the two, like an X. Crossing runways share their tarmac: one in use makes both busy
+// it crosses the others marked so): a parallel one 240 south (6 km), then two crossing each other halfway between the two,
+// like an X, 60° off east-west. Every landing circle stays inside AREA_RADIUS, so more runways never zoom the view out.
+// Crossing runways share their tarmac: one in use makes both busy
 const EXTRA_RUNWAYS = [
-  [0, 160, 0, false],
-  [0, 80, Math.PI / 4, true],
-  [0, 80, -Math.PI / 4, true],
+  [0, 240, 0, false],
+  [0, 120, Math.PI / 3, true],
+  [0, 120, -Math.PI / 3, true],
 ];
-const CROSSING_CIRCLE_DISTANCE = 190; // a crossing runway's landing circles lie this far out from its ends (further than
-// CIRCLE_DISTANCE), so they stay clear of the east-west runways' circles
 
 // --- call signs, par times ---
 // plane names (call signs): bird names, each with its own first letter, so typing one letter picks the plane
@@ -351,20 +351,20 @@ const NAMES =
 // final and landing circle there can be, and of the apron, at least 150 apart (layout searched once with every runway built:
 // alpha..zulu inside AREA_RADIUS, november and sierra, the nav upgrade's, inside AREA_RADIUS_WIDER). FIXES holds this shift's ones
 const ALL_FIXES = {
-  alpha: [-160, -255],
-  bravo: [160, -255],
-  kilo: [0, 305],
-  zulu: [0, -305],
-  november: [-370, -105],
-  sierra: [370, -105],
+  alpha: [-120, -280],
+  bravo: [120, -280],
+  kilo: [280, 115],
+  zulu: [-280, 115],
+  november: [-380, -60],
+  sierra: [380, -60],
 };
 // helipads, bought with the helipad upgrade in this order: a helicopter lands on one and departs from one, never using a
 // runway. They sit in the angles between the legs of the crossing runways (the X): east, west, and the one facing the
 // parallel runway, {name: [x, y] from the airport centre}
 const ALL_HELIPADS = {
-  hotel: [40, 80],
-  oscar: [-40, 80],
-  india: [0, 130],
+  hotel: [45, 120],
+  oscar: [-45, 120],
+  india: [0, 190],
 };
 const HELIPAD_RADIUS = 9; // px: a helipad's drawn size (225 m across, with its safety area)
 const HELI_SHARE_PER_PAD = 0.12; // each helipad makes this share of the new traffic a helicopter arriving (3 pads: 36%), as
@@ -461,7 +461,7 @@ const SHIFT_OVER_DELAY = 1;
    WHY   Settings stay readable in knots, feet and metres; the code below works in one consistent unit.
    HOW   Each value is computed once from § 1. The area radius (areaRadius) is set per shift by startShift.
    ===================================================================================================================== */
-let areaRadius = AREA_RADIUS; // this shift's area: RADAR0, more with the range upgrade or a diagonal runway
+let areaRadius = AREA_RADIUS; // this shift's area: AREA_RADIUS, or AREA_RADIUS_WIDER with the range upgrade
 const PX_PER_KT = (0.5144 * TIME_SCALE) / METRES_PER_PIXEL; // px per game s, per knot
 // the tuning numbers in game units: airspeed change in px per game second², taxi speed in px per game second, the touchdown cone's
 // half-angle in radians
@@ -913,10 +913,7 @@ function startShift(practice = false, daily = false, hard = false) {
   for (const runway of RUNWAYS)
     for (const direction of [1, -1]) {
       const landHeading = normaliseAngle(runway.forwardHeading + (direction > 0 ? 0 : Math.PI)),
-        circleCentre = runwayPoint(
-          runway,
-          -direction * (RUNWAY_HALF_LENGTH + (runway.crossing ? CROSSING_CIRCLE_DISTANCE : CIRCLE_DISTANCE)),
-        ),
+        circleCentre = runwayPoint(runway, -direction * (RUNWAY_HALF_LENGTH + CIRCLE_DISTANCE)),
         runwayEnd = runwayPoint(runway, -direction * RUNWAY_HALF_LENGTH),
         compassName = compassWordOf(landHeading + Math.PI);
       // named for where it lies; the parallel runway's circles lie where the main one's do: west 2, east 2
@@ -933,11 +930,8 @@ function startShift(practice = false, daily = false, hard = false) {
         way: compassWordOf(landHeading),
       };
     }
-  // the area: wider with the range upgrade, and wide enough for a diagonal runway's far circles; the view zooms out to fit
-  areaRadius = Math.max(
-    rules.nav >= 1 ? AREA_RADIUS_WIDER : AREA_RADIUS,
-    rules.runways >= 2 ? AREA_RADIUS_WITH_DIAGONAL_RUNWAYS : 0,
-  );
+  // the area: wider with the range upgrade (the view zooms out to fit; every runway fits the normal area)
+  areaRadius = rules.nav >= 1 ? AREA_RADIUS_WIDER : AREA_RADIUS;
   try {
     resize();
   } catch (error) {} // (the canvas is not there yet at the first shift)
@@ -4720,14 +4714,15 @@ function drawRadar() {
       }
     setGlow('', 0);
     ctx.restore();
-    // its status under it (not for the crossing runways: their legs and helipads leave no room, their lights say it), and
-    // on the main runway with wind: the end departures roll from, gold arrows pointing the way they take off
+    // under it, only while it has something to say: who is on it, or the wake rest (a free runway says nothing, its green
+    // lights do; not for the crossing runways: their legs and helipads leave no room, their lights say it), and on the main
+    // runway with wind: the end departures roll from, gold arrows pointing the way they take off
     setFont(11, 500);
-    ctx.fillStyle = busy ? '#f2a03c' : '#4f9a70';
+    ctx.fillStyle = '#f2a03c';
     const statusAt = runwayPoint(runway, 0, 22);
-    if (!runway.crossing)
+    if (!runway.crossing && busy)
       ctx.fillText(
-        `runway ${onRunway ? `busy · ${onRunway.name}` : runway.wakeRestLeft > 0 ? `wake ${Math.ceil(runway.wakeRestLeft)} s` : 'free'}`,
+        onRunway ? `busy · ${onRunway.name}` : `wake ${Math.ceil(runway.wakeRestLeft)} s`,
         statusAt.x,
         statusAt.y,
       );
@@ -4760,11 +4755,8 @@ function drawRadar() {
     ctx.fillText(windBlowing() ? `wind from the ${windWord()}` : 'calm', viewLeft() + 14, viewTop() + 20 * textZoom());
     setFont(11);
     ctx.fillStyle = '#5f7d69';
-    ctx.fillText(
-      windBlowing() ? `planes take off and land heading ${windWord()}` : 'planes take off and land either way',
-      viewLeft() + 14,
-      viewTop() + 38 * textZoom(),
-    );
+    if (windBlowing())
+      ctx.fillText(`planes take off and land heading ${windWord()}`, viewLeft() + 14, viewTop() + 38 * textZoom());
     ctx.textAlign = 'center';
   }
   if (game.showPaths) drawPaths();
@@ -4851,8 +4843,9 @@ function drawRadar() {
       ctx.stroke();
       ctx.setLineDash([]);
     }
-    // its type's pictogram, a little bigger the higher it flies, small on the ground; the plane being typed breathes softly
-    const size = plane.drawSize ?? drawSizeFor(plane),
+    // its type's pictogram, a little bigger the higher it flies, small on the ground, the same size on screen when the view
+    // zooms out (textZoom); the plane being typed breathes softly
+    const size = (plane.drawSize ?? drawSizeFor(plane)) * textZoom(),
       fade =
         plane.state === 'taxiin' && plane.path.length === 1
           ? Math.min(1, Math.hypot(plane.path[0][0] - plane.x, plane.path[0][1] - plane.y) / 20)
@@ -4891,11 +4884,21 @@ function drawRadar() {
                 : '';
     // a landing plane low and level needs no level letter ('landing' says it)
     const showLevel = !ground && !(landing && level === 0 && !moving) && !plane.type.heli; // a helicopter is always low
-    const rest = `${showLevel ? ' ' + lvTxt : ''}${tag}${plane.kind === 'dep' || (plane.kind !== 'arr' && !ground) ? ' → ' + shortWayUpper(plane.exitWay) : ''}`;
-    setFont(ground ? 11 : 12.5, typedNow ? 600 : 500);
+    // how loud the label is (labelWeight): a plane that needs nothing from you shows only its name, small and dim; an
+    // urgent one is big and bold. The plane being typed always shows everything
+    const weight = typedNow ? Math.max(1, labelWeight(plane)) : labelWeight(plane),
+      fontSize = LABEL_FONT_SIZES[weight],
+      rest =
+        weight === 0
+          ? ''
+          : `${showLevel ? ' ' + lvTxt : ''}${tag}${plane.kind === 'dep' || (plane.kind !== 'arr' && !ground) ? ' → ' + shortWayUpper(plane.exitWay) : ''}`;
+    setFont(fontSize, typedNow || weight === 2 ? 700 : weight ? 500 : 400);
+    ctx.globalAlpha = weight === 0 ? LABEL_QUIET_ALPHA * fade : fade;
     // right after the name: a waiting departure's patience, a priority arrival's deadline, else an arrival's fuel once
     // below half
-    const gauge = ground
+    const gauge = !weight
+      ? null
+      : ground
       ? plane.kind === 'dep' && isFinite(plane.patienceFull)
         ? 'clock'
         : null
@@ -4908,19 +4911,22 @@ function drawRadar() {
             : null;
     const nameWidth = ctx.measureText(plane.name).width + (NAME_EMBLEMS[plane.typeName] ? EMBLEM_SIZE + 4 : 0),
       gaugeWidth = gauge ? 15 : 0;
-    const labelX = plane.x + 18,
-      labelY = plane.y - 20,
+    const labelAlpha = ctx.globalAlpha,
+      zoom = textZoom(),
+      labelX = plane.x + 18 * zoom,
+      labelY = plane.y - 20 * zoom,
+      boxHalf = ((fontSize + 6.5) / 2) * zoom,
       labelWidth = nameWidth + gaugeWidth + ctx.measureText(rest).width;
     ctx.strokeStyle = colour;
-    ctx.globalAlpha = 0.5;
+    ctx.globalAlpha = 0.5 * labelAlpha;
     ctx.beginPath();
-    ctx.moveTo(plane.x + 6, plane.y - 6);
-    ctx.lineTo(labelX - 4, labelY + 6);
+    ctx.moveTo(plane.x + 6 * zoom, plane.y - 6 * zoom);
+    ctx.lineTo(labelX - 4 * zoom, labelY + 6 * zoom);
     ctx.stroke();
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha = labelAlpha;
     ctx.fillStyle = plane.mayday && game.time % 1 < 0.5 ? 'rgba(80,14,10,.85)' : 'rgba(4,11,8,.72)';
     ctx.beginPath();
-    ctx.roundRect(labelX - 5, labelY - 9, labelWidth + 10, 19, 4);
+    ctx.roundRect(labelX - 5, labelY - boxHalf, labelWidth + 10, 2 * boxHalf, 4);
     ctx.fill();
     ctx.textAlign = 'left';
     ctx.fillStyle = typedNow ? '#fff' : plane.mayday ? '#ff8a7e' : colour;
@@ -4930,19 +4936,32 @@ function drawRadar() {
     ctx.textAlign = 'center';
     if (gauge === 'fuel') fuelGauge(labelX + nameWidth + 5, labelY, plane);
     else if (gauge === 'clock') clockGauge(labelX + nameWidth + 5, labelY, plane);
-    if (moving && !ground) {
+    if (moving && !ground && weight) {
       const climbed =
         1 - Math.abs(plane.targetLevel - plane.level) / Math.max(0.01, Math.abs(plane.targetLevel - plane.levelFrom));
       ctx.fillStyle = 'rgba(211,234,217,.15)';
-      ctx.fillRect(labelX - 5, labelY + 9, labelWidth + 10, 2);
+      ctx.fillRect(labelX - 5, labelY + boxHalf, labelWidth + 10, 2);
       ctx.fillStyle = colour;
-      ctx.fillRect(labelX - 5, labelY + 9, (labelWidth + 10) * climbed, 2);
+      ctx.fillRect(labelX - 5, labelY + boxHalf, (labelWidth + 10) * climbed, 2);
     }
+    ctx.globalAlpha = 1;
     plane.tooClose = 0;
   }
   for (const effect of game.effects) drawEffect(effect);
   drawPops();
   setGlow('', 0);
+}
+// how much a plane's label matters now: 2 urgent (MAYDAY, out of patience, too close, a priority flight not yet landing or
+// gone), 0 nothing to do for you (landing, cleared, rolling out, taxiing in, parked, a helicopter on its way to its pad or
+// lifting off with a way, a departure or overflight already heading out its way), 1 the rest: it needs an order
+function labelWeight(plane) {
+  if (plane.mayday || plane.impatient || plane.tooClose) return 2;
+  if (plane.type.priority && !['final', 'rollout', 'taxiin'].includes(plane.state) && !plane.cleared) return 2;
+  if (plane.cleared || ['final', 'rollout', 'taxiin', 'parked', 'padland', 'topad'].includes(plane.state)) return 0;
+  if (plane.kind !== 'arr' && plane.state !== 'onpad' && plane.state !== 'hover' && plane.state !== 'ready') {
+    if (plane.state === 'liftoff' ? plane.givenTurn : isHeading(plane, plane.exitWay)) return 0;
+  }
+  return 1;
 }
 // a helicopter's main rotor, in its pictogram's units (already placed, turned and scaled): two blades across the hub at
 // angle, over a faint disc
