@@ -109,10 +109,10 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>priority</td><td><b>VIP</b> private jets (gold star) and <b>MEDEVAC</b> air ambulances (red cross) go first both ways: an arrival lands within 2 minutes, a departure is rolling within 50 s, not counting its taxi (the clock by its name), or it is a strike. While one waits, other planes of its kind may not land or take off (a MAYDAY may).</td></tr>
 </table>
 <table>
-<tr><td>strikes</td><td>Two planes too close and less than <b>400 m apart in height</b> (red ring): one level (1,000 ft) apart is too close, two levels pass safely. Also a departure leaving through the wrong slice, an arrival leaving your area, a flight cancelled or late, fuel run out, a storm flown into. Touching shapes collide: two strikes. Three strikes end the shift.</td></tr>
+<tr><td>strikes</td><td>Two planes too close and less than <b>400 ft apart in height</b> (red ring): planes on different levels always pass safely, only while climbing or descending through each other's height can they meet. Also a departure leaving through the wrong slice, an arrival leaving your area, a flight cancelled or late, fuel run out, a storm flown into. Touching shapes collide: two strikes. Three strikes end the shift.</td></tr>
 <tr><td>time</td><td>Level changes take a while (bar under the label), turns are gradual (dashed line), the runway takes one plane at a time (amber while busy). 1 px is 25 m and time runs 4.5× fast; every type flies its own real speeds and turn rate.</td></tr>
 <tr><td>fuel</td><td>Arrivals carry fuel (the jerrycan by the name): below 45 s they call MAYDAY, land them next. Departures have patience (the clock): when it runs out the flight is cancelled.</td></tr>
-<tr><td>wind · storms</td><td>Planes take off and land into the wind (top left): landing circles with the wind behind them close, a runway across the wind stays open. Storm cells drift with the wind and close the circles they cover.</td></tr>
+<tr><td>wind · storms</td><td>The shift starts calm, then the wind comes and goes (top left). While it blows, planes take off and land into it: landing circles with the wind behind them close, a runway across the wind stays open. Storm cells drift with the wind and close the circles they cover.</td></tr>
 <tr><td>readback</td><td>A pilot sometimes mishears: the reply shows what it understood. Say it again.</td></tr>
 </table></section>
 <section class="pg"><h2>Money</h2><table>
@@ -131,7 +131,7 @@ main{flex:1;min-height:0;display:flex}
          "plane action [direction]" (heron turn s, heron descend, wren takeoff e). Arrivals come in high: bring them down
          to low, into a landing circle off a runway end, and clear them to land. Departures wait in the READY list: take
          them off and turn them to the slice of the edge they want to leave through. Overflights cross your area. Two
-         planes less than 400 m apart in height and too close is a strike; three strikes end the shift. Every plane pays
+         planes less than 400 ft apart in height and too close is a strike; three strikes end the shift. Every plane pays
          a fare, a shift pays tokens, tokens buy upgrades (more levels, more room, timing help, more runways).
    WHY   A game about calm planning under growing pressure: realistic distances, speeds and turns, simple orders.
    HOW   One file, no libraries. Every step of game time (advanceWorld) moves traffic, weather and planes; every screen
@@ -185,8 +185,8 @@ const RUNWAY_HALF_LENGTH = 60; // half the runway's length (a 3 km runway)
 const CIRCLE_RADIUS = 50,
   CIRCLE_DISTANCE = 150; // landing circles: radius, and how far out from the runway end their centre is
 const SEPARATION = 38,
-  WAKE_EXTRA = 14; // minimum separation between planes less than VERT_SEP_M apart in height (0.95 km), and the extra room around a heavy or freighter
-const VERTICAL_SEPARATION_METRES = 400; // m: planes this far apart in height or more pass each other safely (1,000 ft levels are closer: 305 m)
+  WAKE_EXTRA = 14; // minimum separation between planes less than VERTICAL_SEPARATION_FEET apart in height (0.95 km), and the extra room around a heavy or freighter
+const VERTICAL_SEPARATION_FEET = 400; // ft: planes this far apart in height or more pass each other safely (levels are 1,000 ft apart)
 const LEVEL_FEET = [3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]; // the levels low lm mid mh high ht top peak
 const BASE_LEVELS = [0, 2, 4]; // low, mid, high; the height upgrade adds lm, mh, ht, top, peak in that order
 // the levels the height upgrade adds, in buying order: lm, mh, ht, top, peak (indexes into LEVEL_FEET)
@@ -280,10 +280,12 @@ const LATE_PRIORITY_SHARE = 0.25; // a priority flight that was late pays only t
 const PAR_EXTRA_KT = 220; // with a wider area, par grows by the extra distance flown at this speed (knots)
 const DAILY_BEST_KEPT = 5; // the daily shift keeps this many best scores
 // --- weather ---
-const WIND_FIRST_TURN = 160,
-  WIND_FIRST_TURN_SPREAD = 90; // game s: the wind first turns after 160 to 250 game s
-const WIND_TURN_EVERY = 170,
-  WIND_TURN_SPREAD = 100; // game s: then every 170 to 270 game s
+const WIND_FIRST_COMES = 120,
+  WIND_FIRST_COMES_SPREAD = 60; // game s: a shift starts calm, the wind first comes after 120 to 180 game s
+const WIND_BLOWS_FOR = 150,
+  WIND_BLOWS_SPREAD = 90; // game s: then it blows from the east or the west for 150 to 240 game s
+const WIND_CALM_FOR = 60,
+  WIND_CALM_SPREAD = 60; // game s: then it is calm again for 60 to 120 game s, and so on
 const FIRST_STORM_AT = 25; // game s: the first storm cell may come this early
 const STORM_GAP = 30; // game s: after a storm cell leaves, the next comes no sooner than this
 const STORM_RADIUS = 32,
@@ -380,7 +382,7 @@ const NORMAL_UPGRADES = {
   tanks: {tiers: ['+20 s fuel', '+40 s fuel', '+60 s fuel', '+80 s fuel', '+100 s fuel'], what: 'arrivals carry more fuel'},
   height: {
     tiers: ['level lm 4000', 'level mh 6000', 'level ht 8000', 'level top 9000', 'level peak 10000'],
-    what: 'more levels; 1,000 ft apart is closer than safe (400 m), 2,000 ft is safe',
+    what: 'more levels, 1,000 ft apart: planes on different levels pass safely',
   },
   nav: {
     tiers: ['wider area', 'hold november', 'hold sierra', 'departures fly out alone', 'arrivals find a circle'],
@@ -430,9 +432,9 @@ const AIR_ACCEL_PX = AIR_ACCEL * TIME_SCALE * PX_PER_KT,
   TAXI_SPEED = TAXI_KT * PX_PER_KT,
   TOUCHDOWN_ANGLE = degreesToRadians(TOUCHDOWN_ANGLE_DEGREES);
 const accelToGame = metresPerSecondSquared => (metresPerSecondSquared * TIME_SCALE * TIME_SCALE) / METRES_PER_PIXEL; // m/s² to px per game s²
-// one level is 1,000 ft; VERTICAL_SEPARATION_LEVELS is VERTICAL_SEPARATION_METRES counted in levels (about 1.3)
+// one level is 1,000 ft; VERTICAL_SEPARATION_LEVELS is VERTICAL_SEPARATION_FEET counted in levels (0.4)
 const FEET_PER_LEVEL = LEVEL_FEET[1] - LEVEL_FEET[0],
-  VERTICAL_SEPARATION_LEVELS = VERTICAL_SEPARATION_METRES / 0.3048 / FEET_PER_LEVEL; // VSEP in levels
+  VERTICAL_SEPARATION_LEVELS = VERTICAL_SEPARATION_FEET / FEET_PER_LEVEL; // VSEP in levels
 // a type's highest level (its top is an index into KT_FT) and its speed at a height (interpolated between the KT_FT heights)
 const typeTopLevel = type => LEVEL_FEET.indexOf(SPEED_TABLE_FEET[type.ceilingRow]);
 // a type's airspeed in knots at a height (a level number, fractions while climbing), read from its speed table between the
@@ -823,8 +825,8 @@ const saveProgress = () => {
 //
 // The game state (game) holds: time (game seconds since the start), pace (1, slower in the tutorial, set in admin), planes,
 // effects (explosions and rings being drawn), handledCount, score, strikes, streak and bestStreak, over, paused, closePairs
-// (pairs too close last tick, so each encounter is one strike), windDir (+1: wind from the east, land heading east),
-// windTurnsAt, storms, nextStormAt, shake (seconds of screen shake left), overflightsOn, tokensEarned, and the mode flags
+// (pairs too close last tick, so each encounter is one strike), windDir (+1: wind from the east, land heading east,
+// -1 from the west, 0 calm), windChangesAt, storms, nextStormAt, shake (seconds of screen shake left), overflightsOn, tokensEarned, and the mode flags
 // practice, daily, hard (and tutorial or admin when one of those is running).
 //
 // A landing circle (CIRCLES[name], named for where it lies: west, east, north…) holds x, y (its centre), runway (the runway it
@@ -906,8 +908,8 @@ function startShift(practice = false, daily = false, hard = false) {
     practice,
     daily,
     hard,
-    windDir: trafficRandom() < 0.5 ? 1 : -1,
-    windTurnsAt: WIND_FIRST_TURN + trafficRandom() * WIND_FIRST_TURN_SPREAD,
+    windDir: 0,
+    windChangesAt: WIND_FIRST_COMES + trafficRandom() * WIND_FIRST_COMES_SPREAD,
     storms: [],
     nextStormAt: FIRST_STORM_AT,
     shake: 0,
@@ -1352,9 +1354,11 @@ const arrivalClearedFor = runway =>
     const circleName = plane.inCircle || plane.autoCircle;
     return !circleName || CIRCLES[circleName].runway === runway;
   });
-// which way down the runway suits a departure: the wind decides, else the end that points closest to where it wants to go
-const windHeading = () => (game.windDir > 0 ? 0 : Math.PI),
-  tailwindFor = heading => rules.wind && Math.cos(heading - windHeading()) < -0.01;
+// which way down the runway suits a departure: the wind decides while it blows, else the end that points closest to where
+// it wants to go
+const windBlowing = () => rules.wind && game.windDir !== 0,
+  windHeading = () => (game.windDir > 0 ? 0 : Math.PI),
+  tailwindFor = heading => windBlowing() && Math.cos(heading - windHeading()) < -0.01;
 // every way your runways take off toward (compass words), and the best one for a departure: into the wind, else the one
 // closest to where it wants to go
 const takeoffWays = () => [...new Set(Object.values(CIRCLES).map(circle => circle.way))];
@@ -1749,12 +1753,19 @@ function startRoll(plane) {
   plane.turnRate = 0;
   orderLevel(plane, DEPART_LEVEL);
 }
-// wind turns now and then (the runway direction flips); storm cells drift with it, north or south of the runways
+// the wind comes and goes: calm at the start, then it blows from the east or the west for a while, then calm again;
+// storm cells drift with it (either way while calm), north or south of the runways
 function weather(seconds) {
-  if (rules.wind && game.time >= game.windTurnsAt) {
-    game.windDir *= -1;
-    game.windTurnsAt = game.time + WIND_TURN_EVERY + trafficRandom() * WIND_TURN_SPREAD;
-    showReply(`!the wind turned: take off and land heading ${windWord()} now`);
+  if (rules.wind && game.time >= game.windChangesAt) {
+    if (game.windDir) {
+      game.windDir = 0;
+      game.windChangesAt = game.time + WIND_CALM_FOR + trafficRandom() * WIND_CALM_SPREAD;
+      showReply('!the wind died down: take off and land either way');
+    } else {
+      game.windDir = trafficRandom() < 0.5 ? 1 : -1;
+      game.windChangesAt = game.time + WIND_BLOWS_FOR + trafficRandom() * WIND_BLOWS_SPREAD;
+      showReply(`!wind from the ${windWord()}: take off and land heading ${windWord()} now`);
+    }
   }
   if (game.storms.length < rules.storms && game.time >= game.nextStormAt) {
     const radius = STORM_RADIUS + trafficRandom() * STORM_RADIUS_SPREAD,
@@ -1762,7 +1773,7 @@ function weather(seconds) {
       offset = north
         ? -(STORM_NORTH_OFFSET + trafficRandom() * STORM_NORTH_SPREAD)
         : STORM_SOUTH_OFFSET + trafficRandom() * STORM_SOUTH_SPREAD; // north or south of the main runway
-    const drift = -(rules.wind ? game.windDir : trafficRandom() < 0.5 ? 1 : -1) * STORM_DRIFT,
+    const drift = -(windBlowing() ? game.windDir : trafficRandom() < 0.5 ? 1 : -1) * STORM_DRIFT,
       half = Math.sqrt(Math.max(0, (areaRadius + radius) ** 2 - offset * offset)); // blown downwind: from where the wind comes from
     game.storms.push({
       id: game.time,
@@ -2058,7 +2069,7 @@ function circleToLand(plane, seconds) {
   }
   plane.orbitTime += seconds;
   const wantedTurn = flyCircle(plane, circle.x, circle.y, plane.orbitSide);
-  // the wind closed the circle under it: it keeps circling, without limit, until the wind turns back (or you send it off).
+  // the wind closed the circle under it: it keeps circling, without limit, until the wind dies down or turns (or you send it off).
   // It only starts its landing at low: higher up it laps the circle, without limit, until you bring it down (descend)
   const waitWind = hasTailwind(plane.inCircle),
     waitLow = !isLow(plane);
@@ -2186,7 +2197,7 @@ function moveAhead(plane, seconds) {
     strike(why, plane.x, plane.y);
   }
 }
-// separation: less than VERT_SEP_M apart in height and too close = a strike once per encounter; outlines touching = both
+// separation: less than VERTICAL_SEPARATION_FEET apart in height and too close = a strike once per encounter; outlines touching = both
 // lost, in an explosion (two strikes)
 function checkSeparation(airborne) {
   const close = new Set();
@@ -2659,7 +2670,7 @@ function hintFor(name) {
   const onRunway = runwayUser(),
     fuel = plane.mayday ? `MAYDAY ${Math.ceil(plane.fuel)} s of fuel · ` : '';
   if (plane.state === 'ready')
-    return `${plane.impatient ? `out of patience in ${Math.ceil(plane.patience)} s · ` : ''}${plane.name} wants to leave ${shortWayUpper(plane.exitWay)} → ${plane.name} takeoff ${shortWayUpper(bestTakeoffWay(plane.exitWay))} (${rules.wind ? 'into the wind' : `the runway direction closest to ${shortWayUpper(plane.exitWay)}`})${onRunway ? ` · it waits at the runway end while ${onRunway.name} uses it` : ''}`;
+    return `${plane.impatient ? `out of patience in ${Math.ceil(plane.patience)} s · ` : ''}${plane.name} wants to leave ${shortWayUpper(plane.exitWay)} → ${plane.name} takeoff ${shortWayUpper(bestTakeoffWay(plane.exitWay))} (${windBlowing() ? 'into the wind' : `the runway direction closest to ${shortWayUpper(plane.exitWay)}`})${onRunway ? ` · it waits at the runway end while ${onRunway.name} uses it` : ''}`;
   if (plane.state === 'taxi')
     return `${plane.name} ${plane.atGate ? 'waits at its gate for the apron to clear' : 'is taxiing to the holding point'}${plane.givenTurn ? '' : ` · you can already give it ${plane.name} turn ${shortWayUpper(plane.exitWay)}`}`;
   if (plane.state === 'lineup')
@@ -2685,7 +2696,7 @@ function hintFor(name) {
       : `${fuel}fly ${plane.name} onto a dashed line, low and facing the runway, then land · now: ${landing.slice(1)}`;
   }
   if (plane.cleared && plane.inCircle && hasTailwind(plane.inCircle))
-    return `${fuel}${plane.name} keeps circling in the ${plane.inCircle} circle until the wind turns back · ${plane.name} abort sends it off`;
+    return `${fuel}${plane.name} keeps circling in the ${plane.inCircle} circle until the wind dies down or turns · ${plane.name} abort sends it off`;
   if (plane.cleared && plane.inCircle && plane.targetLevel > 0)
     return `${fuel}${plane.name} is cleared but circles until it is low → ${plane.name} descend`;
   if (plane.cleared)
@@ -2992,7 +3003,7 @@ function aircraftSheet() {
     row('tanks', type => number(type.tankKg) + ' kg') +
     row('burn', type => number(type.burnKgPerHour) + ' kg/h') +
     row('reserve on arrival', type => `${number((type.reserveSeconds * TIME_SCALE) / 60)} min`) +
-    `</table><p style="color:var(--dim);font-size:12.5px">1 px on the radar is ${METRES_PER_PIXEL} m, your area is ${number((AREA_RADIUS * METRES_PER_PIXEL) / 1000, 1)} km across the radius (${number((AREA_RADIUS_WIDER * METRES_PER_PIXEL) / 1000, 1)} with the range upgrade), and the game runs ${TIME_SCALE}× faster than real time. Separation: ${number((SEPARATION * METRES_PER_PIXEL) / 1000, 2)} km between planes less than ${VERTICAL_SEPARATION_METRES} m apart in height. Touchdown at most ${TOUCHDOWN_ANGLE_DEGREES}° off the runway heading.</p>`
+    `</table><p style="color:var(--dim);font-size:12.5px">1 px on the radar is ${METRES_PER_PIXEL} m, your area is ${number((AREA_RADIUS * METRES_PER_PIXEL) / 1000, 1)} km across the radius (${number((AREA_RADIUS_WIDER * METRES_PER_PIXEL) / 1000, 1)} with the range upgrade), and the game runs ${TIME_SCALE}× faster than real time. Separation: ${number((SEPARATION * METRES_PER_PIXEL) / 1000, 2)} km between planes less than ${VERTICAL_SEPARATION_FEET} ft apart in height. Touchdown at most ${TOUCHDOWN_ANGLE_DEGREES}° off the runway heading.</p>`
   );
 }
 // the ♪ button: sound and music on or off (the label shows which)
@@ -3249,7 +3260,7 @@ function adminManual() {
   <tr><td>arc 0.5</td><td>sets LANDING_ARC live: 0 = the tightest line-up turn (shortest path), 1 = the widest arc that still lines up</td></tr>
   <tr><td>paths on</td><td>draws the line-up (the cord) of every arrival near a landing circle: solid = the path it flies (or would fly if cleared
     now), dashed = what it would be for LANDING_ARC 0, 0.25, 0.5, 0.75, 1 (cyan → pink). <b>paths off</b> hides them</td></tr>
-  <tr><td>wind e</td><td>fixes the wind (planes land and take off heading E) · <b>wind w</b> · <b>wind auto</b> turns now and then · <b>wind off</b> no wind rule</td></tr>
+  <tr><td>wind e</td><td>fixes the wind (planes land and take off heading E) · <b>wind w</b> · <b>wind auto</b> comes and goes · <b>wind off</b> no wind rule</td></tr>
   <tr><td>storm n</td><td>a storm cell coming in from the north edge, drifting across · <b>storms off</b> clears them and stops new ones · <b>storms on</b> lets them come by themselves</td></tr>
   <tr><td>fuel off</td><td>planes carry no fuel limit · <b>fuel on</b></td></tr>
   <tr><td>traffic on</td><td>normal traffic arrives by itself · <b>traffic off</b></td></tr>
@@ -3274,7 +3285,7 @@ function enterAdmin() {
   game.admin = true;
   game.adminSpawnIn = Infinity;
   game.showPaths = true;
-  game.windTurnsAt = Infinity; // the wind stays put until 'wind auto'
+  game.windChangesAt = Infinity; // the wind stays put until 'wind auto'
 
   showAdmin(adminManual());
   return 'admin: sandbox open, nothing arrives by itself · help for the manual';
@@ -3410,12 +3421,13 @@ function adminCommand(typed) {
       }
       rules.wind = true;
       if (second === 'auto') {
-        game.windTurnsAt = game.time + 170;
-        return 'wind turns now and then';
+        game.windDir = 0;
+        game.windChangesAt = game.time + WIND_CALM_FOR;
+        return 'calm now, then the wind comes and goes';
       }
       if (second === 'e' || second === 'w') {
         game.windDir = second === 'e' ? 1 : -1;
-        game.windTurnsAt = Infinity;
+        game.windChangesAt = Infinity;
         return `wind from the ${second.toUpperCase()}: land and take off heading ${second.toUpperCase()}`;
       }
       return '!wind e | w | auto | off';
@@ -4420,7 +4432,7 @@ function drawRadar() {
       statusAt.x,
       statusAt.y,
     );
-    if (rules.wind && runway.index === 0) {
+    if (windBlowing() && runway.index === 0) {
       const upwind = -game.windDir,
         arrowsX = AIRPORT_X + upwind * (RUNWAY_HALF_LENGTH + 44);
       setGlow('#f2c94c', 6);
@@ -4446,10 +4458,14 @@ function drawRadar() {
     setFont(12, 600);
     ctx.textAlign = 'left';
     ctx.fillStyle = '#8fd8ff';
-    ctx.fillText(`wind from the ${windWord()}`, viewLeft() + 14, viewTop() + 20 * textZoom());
+    ctx.fillText(windBlowing() ? `wind from the ${windWord()}` : 'calm', viewLeft() + 14, viewTop() + 20 * textZoom());
     setFont(11);
     ctx.fillStyle = '#5f7d69';
-    ctx.fillText(`take off and land heading ${windWord()}`, viewLeft() + 14, viewTop() + 38 * textZoom());
+    ctx.fillText(
+      windBlowing() ? `take off and land heading ${windWord()}` : 'take off and land either way',
+      viewLeft() + 14,
+      viewTop() + 38 * textZoom(),
+    );
     ctx.textAlign = 'center';
   }
   if (game.showPaths) drawPaths();

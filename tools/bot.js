@@ -270,7 +270,7 @@ function decide() {
     )
       return [
         [plane.name, 'takeoff', way],
-        `The runway is free. ${plane.name} wants to leave ${shortWayUpper(plane.exitWay)}: take off ${shortWayUpper(way)}, ${rules.wind ? 'into the wind' : 'the runway direction closest to it'}.`,
+        `The runway is free. ${plane.name} wants to leave ${shortWayUpper(plane.exitWay)}: take off ${shortWayUpper(way)}, ${windBlowing() ? 'into the wind' : 'the runway direction closest to it'}.`,
       ];
     if (
       (free(plane) || plane.state === 'roll') &&

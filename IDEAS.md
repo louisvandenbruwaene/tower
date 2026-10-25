@@ -6,7 +6,7 @@ The game is deliberately simplified: named levels instead of real heights, eight
 
 - **Aircraft types**: prop, jet, bizjet, heavy, each with its own speed, turn rate, climb rate and pictogram. Wake turbulence: more room around a heavy, and its runway rests a few seconds after it.
 - **Slow, realistic turns**: turn rates of 20 to 40°/s, so a cleared plane may swing a little outside its landing circle while it lines up.
-- **Wind**: decides the runway direction (land and take off into the wind, the other landing circles close) and turns now and then.
+- **Wind**: decides the runway direction (land and take off into the wind, the other landing circles close) and comes and goes: calm for the first couple of minutes, then blowing from the east or west, then calm again.
 - **Weather**: storm cells drift with the wind, north or south of the runways. Flying into one is a strike.
 - **Emergencies**: fuel on arrivals, MAYDAY below 45 s, a strike when it runs out.
 - **Holding fixes**: ALPHA, BRAVO, KILO, ZULU (`heron hold kilo`).
