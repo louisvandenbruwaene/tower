@@ -3627,11 +3627,9 @@ const STATE_TAG = {
   hold: ' ⟳',
   final: ' landing',
   roll: ' taking off',
-  taxi: ' taxi',
   lineup: ' waiting',
   enter: ' lining up',
   rollout: ' landed',
-  taxiin: ' taxi in',
 };
 // one pictogram per type, seen from above, nose up, about 380 wide; drawn scaled down on the radar
 // each pictogram's outline as convex pieces (icon units, nose up), for the touching test
@@ -4571,7 +4569,7 @@ function drawRadar() {
       if (plane.kind === 'arr' && plane.state !== 'final' && manualLandingCircle(plane)[0] !== '!') tag += ' · can land';
     } else if (plane.kind === 'arr' && plane.state !== 'final' && !plane.cleared && landableCircle(plane))
       tag += runwayBusy(CIRCLES[landableCircle(plane)].runway) ? ' · wait' : ' · can land';
-    const rest = `${ground ? '' : ' ' + lvTxt}${plane.type.tag ? ' ' + plane.type.tag : ''}${tag}${plane.kind !== 'arr' && !ground ? ' → ' + shortWayUpper(plane.exitWay) : ''}`;
+    const rest = `${ground ? '' : ' ' + lvTxt}${plane.type.tag ? ' ' + plane.type.tag : ''}${tag}${plane.kind === 'dep' || (plane.kind !== 'arr' && !ground) ? ' → ' + shortWayUpper(plane.exitWay) : ''}`;
     setFont(ground ? 11 : 12.5, typedNow ? 600 : 500);
     // right after the name: a waiting departure's patience, a priority arrival's deadline, else an arrival's fuel
     const gauge = ground
