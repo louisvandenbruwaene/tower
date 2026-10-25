@@ -21,7 +21,7 @@ heron hold kilo           # fly to a holding fix (alpha bravo kilo zulu; novembe
 heron land                # only inside an open landing circle: it turns onto the runway there
 wren takeoff e             # e or w (left out when the wind allows one way only); it taxis out, waits for a free runway, climbs to mid and flies straight on
 owl land                  # a helicopter: flies itself to the nearest free helipad at low and sets down (owl land india: that pad)
-kite takeoff              # a helicopter on its pad: lifts straight up to low and hovers there until you turn it (kite turn ne)
+kite takeoff              # a helicopter on its pad: lifts straight up to low and hovers there until you turn it (kite turn ne); kite takeoff ne flies that way once up, wind or not
 buy nav                   # after a shift: spend tokens on upgrades (tanks patience height nav runway helipad), or use the arrow keys
 daily                     # today's seeded shift, the same for everyone
 speed                     # time runs 1×, 2×, 4×, 8× and back (or the 1× button)

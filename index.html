@@ -104,7 +104,7 @@ main{flex:1;min-height:0;display:flex}
 <section class="pg"><h2>Traffic</h2><table>
 <tr><td>blue planes</td><td><b>Arrivals.</b> They come in high: bring them down to low, into a landing circle, and clear them to land.</td></tr>
 <tr><td>gold planes</td><td><b>Departures.</b> Each wants to leave through one of 8 slices of your area (the gold one). Take it off the runway way closest to it, then turn it that way before it reaches the edge.</td></tr>
-<tr><td>helicopters</td><td>With the <b>helipad</b> upgrade. They fly at low only and use a helipad (H), never a runway: <b>owl land</b> sends one to the nearest free pad (<b>owl land india</b>: that one), where it hovers in and sets down; <b>kite takeoff</b> lifts one straight up off its pad, where it hovers at low until you turn it (<b>kite turn ne</b>). A helicopter keeps its pad: after landing it turns around there, then wants to leave again, so there are never more helicopters than pads (amber while taken).</td></tr>
+<tr><td>helicopters</td><td>With the <b>helipad</b> upgrade. They fly at low only and use a helipad (H), never a runway: <b>owl land</b> sends one to the nearest free pad (<b>owl land india</b>: that one), where it hovers in and sets down; <b>kite takeoff</b> lifts one straight up off its pad, where it hovers at low until you turn it (<b>kite turn ne</b>); <b>kite takeoff ne</b> flies that way once up. The wind does not matter to a helicopter. A helicopter keeps its pad: after landing it turns around there, then wants to leave again, so there are never more helicopters than pads (amber while taken).</td></tr>
 <tr><td>purple planes</td><td><b>Overflights</b> from the neighbouring sector, after 10 planes. They cross in a straight line: keep them apart and let them leave through their slice.</td></tr>
 <tr><td>types</td><td>told apart by the pictogram: <b>prop</b> slow, turns tight · <b>jet</b> · <b>bizjet</b> fast, climbs quickly · <b>heavy</b> and <b>cargo</b> big, turn wide, climb slowly, need more room, and the runway rests after them (wake) · <b>MIL</b> fighters (white star by the name), fast and tight-turning</td></tr>
 <tr><td>priority</td><td><b>VIP</b> private jets (gold star by the name) and <b>MEDEVAC</b> air ambulances (blue cross by the name) go first both ways: an arrival lands within 2 minutes, a departure is rolling within 50 s, not counting its taxi (the clock by its name), or it is a strike. While one waits, other planes of its kind may not land or take off (a MAYDAY may).</td></tr>
@@ -2488,7 +2488,7 @@ function helicopterActions(plane) {
 }
 // what can follow an action: where to take off or turn, the levels it can climb or descend to, the fixes it can hold at
 function argumentsFor(plane, action) {
-  if (plane.type.heli && action === 'takeoff') return [];
+  if (plane.type.heli && action === 'takeoff') return COMPASS_WORDS; // any way: a helicopter does not need to take off into the wind
   if (plane.type.heli && action === 'land') return Object.keys(HELIPADS);
   if (action === 'takeoff') return takeoffWays();
   if (action === 'turn') return TURN_WORDS;
@@ -2545,7 +2545,7 @@ function isValidOrder(words) {
     return circleName ? circleOpen(circleName) : rules.nav >= NAV_STEP_ARRIVALS_FIND_CIRCLE;
   }
   if (action === 'ascend' || action === 'descend') return argumentsFor(plane, action).length > 0;
-  if (action === 'takeoff') return !argument || !tailwindFor(degreesToRadians(HEADINGS[argument]));
+  if (action === 'takeoff') return !argument || plane.type.heli || !tailwindFor(degreesToRadians(HEADINGS[argument]));
   return true;
 }
 // the priority flight that must go before p, if any: a waiting priority departure before other departures, a priority arrival
@@ -2704,11 +2704,16 @@ function executeOrder(words) {
   }
   if (plane.type.heli && action === 'takeoff') {
     if (plane.state !== 'onpad') return `!${name} is not waiting on a helipad`;
-    // straight up off its pad to low, where it hovers until you turn it (a turn given while it lifts off is flown at once)
+    // straight up off its pad to low, wind or not, where it hovers until you turn it (a turn given while it lifts off, or a
+    // way given with the takeoff, is flown as soon as it is up)
     plane.state = 'liftoff';
     orderLevel(plane, 0);
     plane.targetHeading = plane.heading;
     plane.givenTurn = false;
+    if (argument) {
+      steerTo(plane, argument);
+      return `${name}: lift off helipad ${plane.pad.toUpperCase()} straight up to low (${LEVEL_FEET[0]} ft), then heading ${headingNumber(plane.targetHeading)}`;
+    }
     return `${name}: lift off helipad ${plane.pad.toUpperCase()} straight up to low (${LEVEL_FEET[0]} ft), it hovers there · then ${name} turn ${shortWayUpper(plane.exitWay)}`;
   }
   if (plane.type.heli && action === 'abort' && plane.state === 'topad') {
