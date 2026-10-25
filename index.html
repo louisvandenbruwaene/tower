@@ -123,7 +123,7 @@ main{flex:1;min-height:0;display:flex}
 <section class="pg"><h2>Money</h2><table>
 <tr><td>money</td><td>Every plane pays its fare: prop $400, jet $1,000, heavy $1,600, fighter $1,500, private jet $4,000, air ambulance $3,500, helicopter $2,500. It loses 1% per second beyond par (down to 10%); late priority flights pay a quarter. A <b>streak</b> (planes in a row without a strike) adds 10% a plane, up to +50%.</td></tr>
 <tr><td>shift</td><td>One shift that never ends: the first five planes in slow motion, the traffic growing for 15 minutes. It pays a token per $1,000 when it ends.</td></tr>
-<tr><td>buy</td><td>Upgrades for every later shift, one step at a time (10, 20, 50, 100, 200 tokens): <b>tanks</b> +20 s fuel a step · <b>patience</b> +20 s departure patience a step · <b>height</b> levels lm 4000, mh 6000, ht 8000, top 9000, peak 10000 · <b>nav</b> a wider area, holds NOVEMBER and SIERRA, then departures fly out alone and arrivals find a landing circle by themselves · <b>runway</b> tighter, then perfect timing (a departure rolls in the gap before an arrival, an arrival starts its final while the runway is still in use), then a parallel runway, then two crossing each other between the two, like an X (crossing runways share their tarmac: one in use makes both busy) · <b>helipad</b> helipads HOTEL, OSCAR, INDIA in the angles of the X: helicopters join the traffic, more with every pad.</td></tr>
+<tr><td>buy</td><td>Upgrades for every later shift, one step at a time (10, 20, 50, 100, 200 tokens): <b>tanks</b> +20 s fuel a step · <b>patience</b> +20 s departure patience a step · <b>height</b> levels lm 4000, mh 6000, ht 8000, top 9000, peak 10000 · <b>nav</b> a wider area, holds NOVEMBER and SIERRA, then departures fly out alone and arrivals find a landing circle by themselves · <b>runway</b> tighter, then perfect timing (a departure rolls in the gap before an arrival, an arrival starts its final while the runway is still in use), then a parallel runway, then two crossing each other between the two, like an X (crossing runways share their tarmac: one in use makes both busy) · <b>helipad</b> helipads HOTEL, OSCAR, INDIA north of the airport: helicopters join the traffic, more with every pad.</td></tr>
 <tr><td>daily · hard</td><td><b>daily</b>: today's shift, the same for everyone, no upgrades. <b>hard</b> (after a $10,000 shift): a game of its own, with its own best, tokens and upgrades (<b>normal</b> goes back; the app opens in the one you played last); no autopilot and no runway timing (nav stops after SIERRA, runway is only the three runways, for 10, 20 and 50); <b>land</b> only once you have flown the plane onto the lit strip yourself, low and facing the runway, and <b>hold alpha</b> only at ALPHA.</td></tr>
 </table></section>
 <section class="pg"><h2 id="acdata">Aircraft</h2><div id="actable"></div></section>
@@ -377,12 +377,12 @@ const ALL_FIXES = {
   sierra: [380, -60],
 };
 // helipads, bought with the helipad upgrade in this order: a helicopter lands on one and departs from one, never using a
-// runway. They sit in the angles between the legs of the crossing runways (the X): east, west, and the one facing the
-// parallel runway, {name: [x, y] from the airport centre}
+// runway. They sit north of the airport, mirroring the crossing runways south of it so the airport is balanced around its
+// centre, clear of the apron and the northern landing circles, {name: [x, y] from the airport centre}
 const ALL_HELIPADS = {
-  hotel: [fromMetres(1250), fromMetres(3000)],
-  oscar: [-fromMetres(1250), fromMetres(3000)],
-  india: [0, fromMetres(4700)],
+  hotel: [fromMetres(1250), -fromMetres(4000)],
+  oscar: [-fromMetres(1250), -fromMetres(4000)],
+  india: [0, -fromMetres(5700)],
 };
 const HELIPAD_RADIUS = 5; // px: a helipad's drawn size (bigger than its real 100 m, to be seen)
 const HELI_SHARE_PER_PAD = 0.12; // each helipad makes this share of the new traffic a helicopter arriving (3 pads: 36%), as
@@ -4579,7 +4579,7 @@ function drawRadar() {
     setFont(7, 700);
     ctx.fillStyle = colour;
     ctx.fillText('H', pad.x, pad.y + 0.5);
-    // its name on its outer side, clear of the runway legs around it (below it when it sits on the airport's centre line)
+    // its name on its outer side, away from the airport (below it when it sits on the airport's centre line)
     setFont(9, 500);
     ctx.fillStyle = 'rgba(211,234,217,.45)';
     const side = Math.sign(pad.x - AIRPORT_X);
