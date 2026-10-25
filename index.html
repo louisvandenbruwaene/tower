@@ -110,8 +110,8 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>priority</td><td><b>VIP</b> private jets (gold star by the name) and <b>MEDEVAC</b> air ambulances (blue cross by the name) go first both ways: an arrival lands within 2 minutes, a departure is rolling within 50 s, not counting its taxi (the clock by its name), or it is a strike. While one waits, other planes of its kind may not land or take off (a MAYDAY may).</td></tr>
 </table>
 <table>
-<tr><td>strikes</td><td>Two planes too close and less than <b>400 ft apart in height</b> (red ring): planes on different levels always pass safely, only while climbing or descending through each other's height can they meet. Also a departure leaving through the wrong slice, an arrival leaving your area, a flight cancelled or late, fuel run out, a storm flown into. Touching shapes collide: two strikes. Three strikes end the shift.</td></tr>
-<tr><td>time</td><td>Level changes take a while (bar under the label), turns are gradual (dashed line), the runway takes one plane at a time (amber while busy). 1 px is 25 m and time runs 4.5× fast; every type flies its own real speeds and turn rate.</td></tr>
+<tr><td>strikes</td><td>Two planes closer than <b>3 NM</b> (5.6 km; 5 NM behind a heavy) and less than <b>1,000 ft</b> apart in height (red ring), as in real approach control: planes on different levels always pass safely, only while climbing or descending through each other's height can they meet. Also a departure leaving through the wrong slice, an arrival leaving your area, a flight cancelled or late, fuel run out, a storm flown into. Touching shapes collide: two strikes. Three strikes end the shift.</td></tr>
+<tr><td>time</td><td>Level changes take a while (bar under the label), turns are gradual (dashed line), the runway takes one plane at a time (amber while busy). Everything is to scale: your area is 48 km across, a runway 3 km; time runs 11× fast; every type flies its own real speeds and turn rate.</td></tr>
 <tr><td>fuel</td><td>Arrivals carry fuel (the jerrycan by the name, once below half): below 45 s they call MAYDAY, land them next. Departures have patience (the clock): when it runs out the flight is cancelled.</td></tr>
 <tr><td>wind · storms</td><td>The shift starts calm, then the wind comes and goes (top left). While it blows, planes take off and land into it: landing circles with the wind behind them close, a runway across the wind stays open. Helicopters ignore it, both ways. Storm cells drift with the wind and close the circles they cover.</td></tr>
 <tr><td>readback</td><td>A pilot sometimes mishears: the reply shows what it understood. Say it again.</td></tr>
@@ -132,7 +132,7 @@ main{flex:1;min-height:0;display:flex}
          "plane action [direction]" (heron turn s, heron descend, wren takeoff e). Arrivals come in high: bring them down
          to low, into a landing circle off a runway end, and clear them to land. Departures wait in the READY list: take
          them off and turn them to the slice of the edge they want to leave through. Overflights cross your area. Two
-         planes less than 400 ft apart in height and too close is a strike; three strikes end the shift. Every plane pays
+         planes closer than 3 NM and less than 1,000 ft apart in height is a strike; three strikes end the shift. Every plane pays
          a fare, a shift pays tokens, tokens buy upgrades (more levels, more room, timing help, more runways, helipads).
    WHY   A game about calm planning under growing pressure: realistic distances, speeds and turns, simple orders.
    HOW   One file, no libraries. Every step of game time (advanceWorld) moves traffic, weather and planes; every screen
@@ -157,7 +157,7 @@ main{flex:1;min-height:0;display:flex}
       § 15 THE SCREEN ........... the panels around the radar, the shift-over screen and shop, the frame loop
       § 16 START ................ what runs once the page has loaded
 
-   UNITS AND WORDS: distances on screen are px (1 px = METRES_PER_PIXEL, 25 m). Game time runs TIME_SCALE (4.5) times
+   UNITS AND WORDS: distances on screen are px (1 px = METRES_PER_PIXEL, 62.5 m). Game time runs TIME_SCALE (11.25) times
    faster than real time; the code counts game seconds. Speeds are px per game second. Headings are radians, 0 = east,
    growing clockwise (screen y grows downward). A level is a number: 0 = low (3,000 ft), each 1 more is 1,000 ft
    higher, fractions while climbing. A landing circle is the ring off a runway end where arrivals are cleared to land;
@@ -176,18 +176,24 @@ main{flex:1;min-height:0;display:flex}
          them to the units the simulation counts in. Each setting says what it does in its comment.
    ===================================================================================================================== */
 // scale
-const METRES_PER_PIXEL = 25; // 1 px on screen is 25 m
-const TIME_SCALE = 4.5; // game time runs 4.5x faster than real time
+const METRES_PER_PIXEL = 62.5; // 1 px on screen is 62.5 m: your area is an approach sector 24 km across each way
+const TIME_SCALE = 11.25; // game time runs 11.25x faster than real time
+// a real length in metres as px on screen: everything at the airport (runways, landing circles, taxiways, finals) is given
+// in metres and drawn true to scale; only pictograms, labels and markers are drawn bigger, to be seen
+const fromMetres = metres => metres / METRES_PER_PIXEL;
 // your airspace (px)
-const AREA_RADIUS = 384; // radius of your area (9.6 km); the view zooms out when it grows
-const AREA_RADIUS_WIDER = 464; // with the nav range upgrade (11.6 km)
-const RUNWAY_HALF_LENGTH = 60; // half the runway's length (a 3 km runway)
-const CIRCLE_RADIUS = 50,
-  CIRCLE_DISTANCE = 150; // landing circles: radius, and how far out from the runway end their centre is
-const SEPARATION = 38,
-  WAKE_EXTRA = 14; // minimum separation between planes less than VERTICAL_SEPARATION_FEET apart in height (0.95 km), and the extra room around a heavy or freighter
+const AREA_RADIUS = 384; // radius of your area (24 km); the view zooms out when it grows
+const AREA_RADIUS_WIDER = 464; // with the nav range upgrade (29 km)
+const RUNWAY_HALF_LENGTH = fromMetres(1500); // half the runway's length (a 3 km runway)
+const CIRCLE_RADIUS = fromMetres(1250),
+  CIRCLE_DISTANCE = fromMetres(3750); // landing circles: radius, and how far out from the runway end their centre is
+const NAUTICAL_MILE = 1852; // m
+// radar separation, as real approach control: planes less than VERTICAL_SEPARATION_FEET apart in height must stay 3 NM
+// apart, and 2 NM more around a heavy or freighter (its wake: 5 NM behind it)
+const SEPARATION = fromMetres(3 * NAUTICAL_MILE),
+  WAKE_EXTRA = fromMetres(2 * NAUTICAL_MILE);
 const TAKEOFF_ROLL_BELOW_TRAFFIC = 0.5; // a departure is above 600 m (and can meet other planes) past this share of its takeoff run
-const VERTICAL_SEPARATION_FEET = 400; // ft: planes this far apart in height or more pass each other safely (levels are 1,000 ft apart)
+const VERTICAL_SEPARATION_FEET = 1000; // ft: planes this far apart in height or more pass each other safely: one level apart is enough, climbing through each other is not
 const LEVEL_FEET = [3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]; // the levels low lm mid mh high ht top peak
 const BASE_LEVELS = [0, 2, 4]; // low, mid, high; the height upgrade adds lm, mh, ht, top, peak in that order
 // the levels the height upgrade adds, in buying order: lm, mh, ht, top, peak (indexes into LEVEL_FEET)
@@ -206,7 +212,7 @@ const RUNWAY_MARGIN = 4; // game s spare, with the timing upgrade, between one p
 const TIMING_FACTOR = [0, 2, 1]; // per timing step: how many times that (time to be done + margin) the next plane must still be away (0: wait until it is all clear)
 // landing
 const TOUCHDOWN_ANGLE_DEGREES = 15; // touchdown at most this many degrees off the runway heading
-const SHORTEST_FINAL = 35; // px: the shortest straight final (875 m), on top of the distance needed to slow to approach speed
+const SHORTEST_FINAL = fromMetres(875); // the shortest straight final, on top of the distance needed to slow to approach speed
 let LANDING_ARC = 0.5; // the line-up turn: 0 = tightest (shortest path), 1 = widest arc that still lines up, in between = in between
 const LONGEST_LINE_UP_TURN = degreesToRadians(290); // the longest single turn in a line-up: turning back is fine, a full loop is not
 const ZONE_PULL = 1; // how strongly a line-up keeps close to the landing area: every px flown outside it costs ZONE_PULL x (how far out / circle radius) px of extra length
@@ -234,8 +240,8 @@ const TRAFFIC_CAP_MIN = 15; // after this many minutes the expected number stops
 // hard mode (a shift without autopilot, unlocked by a shift earning HARD_UNLOCK): land works only for a plane you have
 // already flown onto the runway's line yourself, and a plane holds at a fix only once you have flown it there
 const HARD_UNLOCK = 10000; // best shift earnings that unlocks hard mode
-const HARD_MAX_OFF_CENTRELINE = 18; // px: at most this far off the extended centreline (450 m) to be cleared; the heading at most THETA_DEG off
-const HARD_FIX_DISTANCE = 60; // px: this close to a fix (1.5 km) before it may hold there
+const HARD_MAX_OFF_CENTRELINE = fromMetres(450); // at most this far off the extended centreline to be cleared; the heading at most TOUCHDOWN_ANGLE off
+const HARD_FIX_DISTANCE = fromMetres(1500); // this close to a fix before it may hold there
 // aircraft types, each modelled on a real one. Flown in the game: airspeed in knots at each level (low, mid, high, top, peak;
 // slower low down) and on the approach (app, also its rotation speed), the highest level it goes to (top: a small plane stays
 // low, a freighter does not pay to climb high), turn rate (°/s; the turn radius is speed / turn rate), climb and descent rate
@@ -302,7 +308,7 @@ const STORM_SOUTH_OFFSET = 110,
 const STORM_DRIFT = 4.5; // px per game s: how fast storm cells drift with the wind
 // --- flying, taxiing and landing behaviour ---
 const GROUND_TURN_RATE = 2.5; // rad per game s: how fast a plane turns on the ground (taxiing, lining up)
-const TAXI_GAP_PER_SIZE = 8; // px: on the ground a plane keeps this far behind another, per unit of their two drawn sizes
+const TAXI_GAP_PER_SIZE = 3.5; // px: on the ground a plane keeps this far behind another, per unit of their two drawn sizes
 const ROLL_IN_RATE = 1.4; // how fast the turn rate builds up, in turn rates per game s (full bank in about 0.7 s)
 const CORRECTION_BANK = 1.15; // following a path a plane may turn this much faster than its turn rate, to correct onto it
 const HOLD_CAPTURE_RADII = 1.5; // a plane flying to a fix starts holding once within this many turn radii of it
@@ -310,15 +316,22 @@ const WANDER_OFF_RADII = 2.6; // a cleared plane circling a landing circle goes 
 const ORBIT_LAPS_BEFORE_GO_AROUND = 4; // ... or after this many laps without a line-up (unless it is waiting for wind or height)
 const PLAN_EVERY = 0.25; // game s: how often a circling cleared plane looks for a line-up (planning is costly)
 const REPLAN_EVERY = 0.5; // game s: how often a plane on final looks for a better line-up
-const REPLAN_MIN_LEFT = 40; // px: no new line-up once less than SHORTEST_FINAL plus this is left
-const REPLAN_MIN_SAVING = 5; // px: a new line-up must cost at least this much less than the rest of the old one
-const LINE_UP_CUTOFF = 10; // px: closer than this before the runway end, a plane cannot line up any more
+const REPLAN_MIN_LEFT = fromMetres(1000); // no new line-up once less than SHORTEST_FINAL plus this is left
+const REPLAN_MIN_SAVING = fromMetres(125); // a new line-up must cost at least this much less than the rest of the old one
+const LINE_UP_CUTOFF = fromMetres(250); // closer than this before the runway end, a plane cannot line up any more
+const OVERRUN = fromMetres(750); // a line-up path runs on this far past the runway end (it touches down at the end)
+const LINE_UP_SEARCH_BEYOND = fromMetres(2000); // line-ups may join the final up to this far beyond the landing circle
+const LINE_UP_SEARCH_STEP = fromMetres(125); // ... trying join points this far apart
+const BEHIND_RUNWAY_END = fromMetres(125); // a line-up turn may not pass more than this beyond the runway end
+const PATH_CHECK_STEP = fromMetres(80); // a line-up is checked (inside your area, cost) at points this far apart
 const TRAIL_EVERY = 0.7,
   TRAIL_DOTS = 9; // game s between two dots of a plane's trail, and how many dots it keeps
 const LABEL_FONT_SIZES = [10.5, 12.5, 14.5],
   LABEL_QUIET_ALPHA = 0.5; // plane labels: font size for one that needs nothing / an order / is urgent, and how faded the first is
-const DRAW_SIZE_GROUND = 0.045,
-  DRAW_SIZE_LOW = 0.065,
+const RUNWAY_DRAW_WIDTH = 5,
+  TAXIWAY_DRAW_WIDTH = 4; // px: runways and taxiways drawn this wide (wider than real, to be seen)
+const DRAW_SIZE_GROUND = 0.022,
+  DRAW_SIZE_LOW = 0.055,
   DRAW_SIZE_PER_LEVEL = 0.005; // pictogram scale on the ground, at low, more per level
 // --- the tutorial ---
 const TUTORIAL_PACE = 0.7; // the tutorial runs at this share of normal speed
@@ -331,13 +344,13 @@ const WORLD_W = 848,
   AIRPORT_Y = WORLD_H / 2; // the world's frame: the airport centre (AX,AY), where waiting planes circle
 // runways: a centre (x,y) and the heading a of its forward way (0 = east). The main one runs east-west through the airport
 // centre; EXTRA_RUNWAYS are the ones the runway upgrade adds, in buying order (centre from the airport, heading, and whether
-// it crosses the others marked so): a parallel one 240 south (6 km), then two crossing each other halfway between the two,
+// it crosses the others marked so): a parallel one 6 km south, then two crossing each other halfway between the two,
 // like an X, 60° off east-west. Every landing circle stays inside AREA_RADIUS, so more runways never zoom the view out.
 // Crossing runways share their tarmac: one in use makes both busy
 const EXTRA_RUNWAYS = [
-  [0, 240, 0, false],
-  [0, 120, Math.PI / 3, true],
-  [0, 120, -Math.PI / 3, true],
+  [0, fromMetres(6000), 0, false],
+  [0, fromMetres(3000), Math.PI / 3, true],
+  [0, fromMetres(3000), -Math.PI / 3, true],
 ];
 
 // --- call signs, par times ---
@@ -362,14 +375,14 @@ const ALL_FIXES = {
 // runway. They sit in the angles between the legs of the crossing runways (the X): east, west, and the one facing the
 // parallel runway, {name: [x, y] from the airport centre}
 const ALL_HELIPADS = {
-  hotel: [45, 120],
-  oscar: [-45, 120],
-  india: [0, 190],
+  hotel: [fromMetres(1250), fromMetres(3000)],
+  oscar: [-fromMetres(1250), fromMetres(3000)],
+  india: [0, fromMetres(4700)],
 };
-const HELIPAD_RADIUS = 9; // px: a helipad's drawn size (225 m across, with its safety area)
+const HELIPAD_RADIUS = 5; // px: a helipad's drawn size (bigger than its real 100 m, to be seen)
 const HELI_SHARE_PER_PAD = 0.12; // each helipad makes this share of the new traffic a helicopter arriving (3 pads: 36%), as
 // long as there are fewer helicopters than pads: each one keeps its pad from landing until it has left again
-const HELI_OVER_PAD = 8; // px: this close to its pad (200 m) it hovers onto the pad's centre and sets down; flying there it
+const HELI_OVER_PAD = fromMetres(200); // this close to its pad it hovers onto the pad's centre and sets down; flying there it
 // slows down in time to arrive at walking pace, and slower still while it has much to turn
 const HELI_SET_DOWN_SECONDS = 6,
   HELI_LIFT_SECONDS = 6; // game s to set down on a pad from low, and to lift off it up to low
@@ -443,11 +456,16 @@ const HARD_UPGRADES = {
 const MUSIC_VOL = 0.35;
 // two taxi lanes on one wide taxiway: departures taxi out on the inner one (x AX±OUT_X, apron row OUT_Y) to a holding point
 // HOLD short of the runway, arrivals taxi in on the outer one, so the two never sit on top of each other
-const TAXI_OUT_LANE_X = RUNWAY_HALF_LENGTH + 12,
-  TAXI_IN_LANE_X = RUNWAY_HALF_LENGTH + 20,
-  TAXI_OUT_LANE_Y = AIRPORT_Y - 26,
-  TAXI_IN_LANE_Y = AIRPORT_Y - 34,
-  HOLD_SHORT = 12;
+const TAXI_OUT_LANE_X = RUNWAY_HALF_LENGTH + fromMetres(300),
+  TAXI_IN_LANE_X = RUNWAY_HALF_LENGTH + fromMetres(500),
+  TAXI_OUT_LANE_Y = AIRPORT_Y - fromMetres(650),
+  TAXI_IN_LANE_Y = AIRPORT_Y - fromMetres(850),
+  HOLD_SHORT = fromMetres(300);
+// where a departure holds short of a runway end it does not reach by the lanes, measured back from the end; how far out a
+// landed plane leaves such a runway, and where taxiing in ends on the apron, from its centre
+const HOLDING_POINT_BACK = fromMetres(400),
+  RUNWAY_EXIT_BEYOND = fromMetres(450),
+  APRON_STOP = fromMetres(750);
 // on the ground a plane stops while another is just ahead of it, unless that one gives way to it. Who goes first: a landed
 // plane rolling out, then one taxiing in, then a departure entering the runway, then the others in the order they started (gt: a ticket number)
 const TAXI_RIGHT_OF_WAY = {rollout: 3, taxiin: 2, enter: 1.5, taxi: 1, lineup: 1};
@@ -1377,7 +1395,7 @@ const RUNWAY_STATES = ['final', 'enter', 'roll', 'rollout'];
 // TIMING_K x (its run + RW_MARGIN) away; an arrival starts its final only if the planes on the runway will be done
 // TIMING_K x (their done time + RW_MARGIN) before it touches down. Arrivals not yet on final wait for a lined-up departure,
 // so neither waits for the other forever. Only traffic the same way: one landing towards a departure blocks it outright
-const LINE_UP_TIME = (HOLD_SHORT + 16) / TAXI_SPEED + 1.5,
+const LINE_UP_TIME = (HOLD_SHORT + HOLDING_POINT_BACK) / TAXI_SPEED + 1.5,
   ROLLOUT_TIME = (2 * RUNWAY_HALF_LENGTH) / ((PX_PER_KT * 140 + TAXI_SPEED) / 2),
   takeoffRunTime = plane => approachSpeed(plane) / takeoffAccel(plane);
 const timeToTouchdown = plane => {
@@ -1651,15 +1669,15 @@ function oneTurnLineUp(plane, circle, radius, turnSide, free) {
     length = arcLength + straightLength;
   const path = [
     {x: plane.x, y: plane.y, heading: plane.heading, turnSide: turnSide, radius: radius, length: arcLength},
-    {x: leaveX, y: leaveY, heading: straightHeading, turnSide: 0, length: straightLength + 30},
-  ].filter(point => point.length > 0.01); // +30: on over the runway end
+    {x: leaveX, y: leaveY, heading: straightHeading, turnSide: 0, length: straightLength + OVERRUN},
+  ].filter(point => point.length > 0.01); // + OVERRUN: on over the runway end
   if (!free) {
     const slow = Math.max(0, plane.speed * plane.speed - approachSpeed(plane) ** 2) / (2 * AIR_ACCEL_PX);
     if (straightLength < SHORTEST_FINAL + slow || length < (plane.level / climbRateOf(plane)) * approachSpeed(plane)) return null;
     // inside your area, and the turn on the approach side of the runway end
-    for (let distance = 0; distance <= length; distance += 3) {
+    for (let distance = 0; distance <= length; distance += PATH_CHECK_STEP) {
       const point = pointOnPath(path, distance);
-      if (distanceFromAirport(point) > areaRadius - 15 || (distance < arcLength && distancePastEnd(circle, point) > -5))
+      if (distanceFromAirport(point) > areaRadius - 15 || (distance < arcLength && distancePastEnd(circle, point) > -BEHIND_RUNWAY_END))
         return null;
     }
   }
@@ -1683,10 +1701,10 @@ function distanceOutsideZone(point, circle) {
 }
 // what a line-up costs: its length from s0 on, plus ZONE_PULL for every px flown outside the landing area, weighed by how far out
 function lineUpCost(path, circle, from = 0) {
-  const length = pathLength(path) - 30;
+  const length = pathLength(path) - OVERRUN;
   let outside = 0;
-  for (let distance = from; distance <= length; distance += 4)
-    outside += distanceOutsideZone(pointOnPath(path, distance), circle) * 4;
+  for (let distance = from; distance <= length; distance += PATH_CHECK_STEP)
+    outside += distanceOutsideZone(pointOnPath(path, distance), circle) * PATH_CHECK_STEP;
   return length - from + (ZONE_PULL * outside) / CIRCLE_RADIUS;
 }
 // a line-up with two turns: turn, straight, turn (radius r each, none longer than MAX_TURN) onto the extended centreline at distance a out from
@@ -1698,7 +1716,7 @@ function twoTurnLineUp(plane, circle, free) {
     slow = Math.max(0, plane.speed * plane.speed - approachSpeed(plane) ** 2) / (2 * AIR_ACCEL_PX),
     need = (plane.level / climbRateOf(plane)) * approachSpeed(plane);
   let cheapest = null;
-  for (let joinDistance = SHORTEST_FINAL + slow; joinDistance <= CIRCLE_DISTANCE + CIRCLE_RADIUS + 80; joinDistance += 5) {
+  for (let joinDistance = SHORTEST_FINAL + slow; joinDistance <= CIRCLE_DISTANCE + CIRCLE_RADIUS + LINE_UP_SEARCH_BEYOND; joinDistance += LINE_UP_SEARCH_STEP) {
     const joinX = circle.endX - circle.dirX * joinDistance,
       joinY = circle.endY - circle.dirY * joinDistance;
     for (const turns of turnStraightTurnPaths(
@@ -1715,12 +1733,12 @@ function twoTurnLineUp(plane, circle, free) {
       const length = turns.length + joinDistance;
       if (cheapest && length >= cheapest.cost) continue;
       if (!free && length < need) continue; // the cost is never below the length
-      const path = [...turns.P, {x: joinX, y: joinY, heading: runwayHeading, turnSide: 0, length: joinDistance + 30}];
+      const path = [...turns.P, {x: joinX, y: joinY, heading: runwayHeading, turnSide: 0, length: joinDistance + OVERRUN}];
       let inside = true;
       if (!free)
-        for (let distance = 0; distance <= length && inside; distance += 3) {
+        for (let distance = 0; distance <= length && inside; distance += PATH_CHECK_STEP) {
           const point = pointOnPath(path, distance);
-          if (distanceFromAirport(point) > areaRadius - 15 || (distance < turns.length && distancePastEnd(circle, point) > -5))
+          if (distanceFromAirport(point) > areaRadius - 15 || (distance < turns.length && distancePastEnd(circle, point) > -BEHIND_RUNWAY_END))
             inside = false;
         }
       if (!inside) continue;
@@ -2163,7 +2181,7 @@ function landingRun(plane, seconds) {
     Math.max(0.5, (plane.speed * plane.speed - TAXI_SPEED * TAXI_SPEED) / (2 * left)),
   );
   plane.speed = Math.max(TAXI_SPEED, plane.speed - braking * seconds);
-  const turnNeeded = normaliseAngle(end.landHeading + Math.atan2(-distanceRightOfCentreline(end, plane), 20) - plane.heading);
+  const turnNeeded = normaliseAngle(end.landHeading + Math.atan2(-distanceRightOfCentreline(end, plane), fromMetres(500)) - plane.heading);
   plane.heading = normaliseAngle(
     plane.heading + Math.sign(turnNeeded) * Math.min(Math.abs(turnNeeded), turnRateOf(plane) * seconds),
   );
@@ -2179,17 +2197,17 @@ function landingRun(plane, seconds) {
     plane.path = [
       [x, plane.runway.y],
       [x, TAXI_IN_LANE_Y],
-      [AIRPORT_X + plane.runwayDir * 30, TAXI_IN_LANE_Y],
+      [AIRPORT_X + plane.runwayDir * APRON_STOP, TAXI_IN_LANE_Y],
     ];
   } else {
     // another runway: straight to the apron
-    const x = end.endX + end.dirX * (2 * RUNWAY_HALF_LENGTH + 18),
-      y = end.endY + end.dirY * (2 * RUNWAY_HALF_LENGTH + 18),
+    const x = end.endX + end.dirX * (2 * RUNWAY_HALF_LENGTH + RUNWAY_EXIT_BEYOND),
+      y = end.endY + end.dirY * (2 * RUNWAY_HALF_LENGTH + RUNWAY_EXIT_BEYOND),
       side = x < AIRPORT_X ? -1 : 1;
     plane.path = [
       [x, y],
       [AIRPORT_X + side * TAXI_IN_LANE_X, TAXI_IN_LANE_Y],
-      [AIRPORT_X + side * 30, TAXI_IN_LANE_Y],
+      [AIRPORT_X + side * APRON_STOP, TAXI_IN_LANE_Y],
     ];
   }
   return true;
@@ -2785,7 +2803,7 @@ function executeOrder(words) {
     plane.givenTurn = false;
     if (plane.runway.forwardHeading === 0) {
       // the main runway: the inner lane to the holding point beside the runway end
-      const laneX = circle.endX - circle.dirX * 12;
+      const laneX = circle.endX - circle.dirX * HOLD_SHORT;
       plane.holdX = laneX;
       plane.path = [
         [laneX, TAXI_OUT_LANE_Y],
@@ -2793,8 +2811,8 @@ function executeOrder(words) {
       ];
     } else {
       // another runway: from the apron's corner straight to a holding point behind its end
-      const holdX = circle.endX - circle.dirX * 16,
-        holdY = circle.endY - circle.dirY * 16;
+      const holdX = circle.endX - circle.dirX * HOLDING_POINT_BACK,
+        holdY = circle.endY - circle.dirY * HOLDING_POINT_BACK;
       plane.path = [
         [AIRPORT_X + Math.sign(holdX - AIRPORT_X) * TAXI_OUT_LANE_X, TAXI_OUT_LANE_Y],
         [holdX, holdY],
@@ -4540,20 +4558,20 @@ function drawRadar() {
     ctx.lineWidth = 1.5;
     ctx.stroke();
     ctx.lineWidth = 1;
-    setFont(10, 700);
+    setFont(7, 700);
     ctx.fillStyle = colour;
     ctx.fillText('H', pad.x, pad.y + 0.5);
     // its name on its outer side, clear of the runway legs around it (below it when it sits on the airport's centre line)
-    setFont(10.5, 500);
-    ctx.fillStyle = 'rgba(211,234,217,.55)';
+    setFont(9, 500);
+    ctx.fillStyle = 'rgba(211,234,217,.45)';
     const side = Math.sign(pad.x - AIRPORT_X);
     ctx.textAlign = side > 0 ? 'left' : side < 0 ? 'right' : 'center';
-    ctx.fillText(name.toUpperCase(), pad.x + side * (HELIPAD_RADIUS + 5), pad.y + (side ? 0.5 : HELIPAD_RADIUS + 10));
+    ctx.fillText(name.toUpperCase(), pad.x + side * (HELIPAD_RADIUS + 3), pad.y + (side ? 0.5 : HELIPAD_RADIUS + 8));
     ctx.textAlign = 'center';
   }
   // extended centrelines and the landing circles: bright while an arrival is inside, chevrons for the way to face, dim while a storm closes them
   for (const runway of RUNWAYS) {
-    const reach = RUNWAY_HALF_LENGTH + CIRCLE_DISTANCE + 90,
+    const reach = RUNWAY_HALF_LENGTH + CIRCLE_DISTANCE + fromMetres(2250),
       lineStart = runwayPoint(runway, -reach),
       lineEnd = runwayPoint(runway, reach);
     ctx.setLineDash([3, 7]);
@@ -4599,14 +4617,14 @@ function drawRadar() {
       ctx.save();
       ctx.translate(circle.x, circle.y);
       ctx.rotate(circle.landHeading);
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1.5;
       ctx.strokeStyle = colour;
-      for (const offset of [-12, 0, 12]) {
-        ctx.globalAlpha = ready ? 0.5 + 0.5 * ((game.time * 2 + offset / 12) % 1.5 > 0.75) : 0.8;
+      for (const offset of [-6, 0, 6]) {
+        ctx.globalAlpha = ready ? 0.5 + 0.5 * ((game.time * 2 + offset / 6) % 1.5 > 0.75) : 0.8;
         ctx.beginPath();
-        ctx.moveTo(offset - 5, -8);
-        ctx.lineTo(offset + 5, 0);
-        ctx.lineTo(offset - 5, 8);
+        ctx.moveTo(offset - 2.5, -4.5);
+        ctx.lineTo(offset + 2.5, 0);
+        ctx.lineTo(offset - 2.5, 4.5);
         ctx.stroke();
       }
       ctx.restore();
@@ -4614,9 +4632,9 @@ function drawRadar() {
     ctx.globalAlpha = 1;
     ctx.lineWidth = 1;
     ctx.fillStyle = open ? colour : '#66706b';
-    setFont(10, 500);
-    ctx.fillText(name, circle.x, circle.y - 27); // labels inside the circle, so no label ever meets another circle
-    if (!open) ctx.fillText(`closed · ${stormOverCircle(name) ? 'storm' : 'wind'}`, circle.x, circle.y + 31);
+    // only an open circle is named (a closed one is grey; the hint line says why it is closed)
+    setFont(9, 500);
+    if (open) ctx.fillText(name, circle.x, circle.y - CIRCLE_RADIUS - 5);
     setFont(11);
   }
   // apron and taxiways: from the apron north of the field along to both ends, down to every runway
@@ -4634,21 +4652,21 @@ function drawRadar() {
       ctx.stroke();
     };
   ctx.strokeStyle = 'rgba(120,140,130,.16)';
-  ctx.lineWidth = 14;
+  ctx.lineWidth = TAXIWAY_DRAW_WIDTH;
   ctx.lineJoin = 'round';
   lane(laneX, laneY);
   for (const runway of eastWest)
     for (const side of [-1, 1]) {
       ctx.beginPath();
-      ctx.moveTo(AIRPORT_X + side * (TAXI_IN_LANE_X + 3), runway.y);
+      ctx.moveTo(AIRPORT_X + side * TAXI_IN_LANE_X, runway.y);
       ctx.lineTo(AIRPORT_X + side * RUNWAY_HALF_LENGTH, runway.y);
       ctx.stroke();
     }
-  ctx.lineWidth = 7;
+  ctx.lineWidth = TAXIWAY_DRAW_WIDTH / 2;
   for (const circle of Object.values(CIRCLES))
     if (circle.runway.forwardHeading !== 0) {
-      const holdX = circle.endX - circle.dirX * 16,
-        holdY = circle.endY - circle.dirY * 16;
+      const holdX = circle.endX - circle.dirX * HOLDING_POINT_BACK,
+        holdY = circle.endY - circle.dirY * HOLDING_POINT_BACK;
       ctx.beginPath();
       ctx.moveTo(AIRPORT_X + Math.sign(holdX - AIRPORT_X) * TAXI_OUT_LANE_X, TAXI_OUT_LANE_Y);
       ctx.lineTo(holdX, holdY);
@@ -4656,26 +4674,23 @@ function drawRadar() {
       ctx.stroke();
     }
   ctx.strokeStyle = 'rgba(120,140,130,.4)';
-  ctx.lineWidth = 1.2;
+  ctx.lineWidth = 0.6;
   lane(TAXI_OUT_LANE_X, TAXI_OUT_LANE_Y);
   lane(TAXI_IN_LANE_X, TAXI_IN_LANE_Y);
   ctx.lineJoin = 'miter';
   ctx.strokeStyle = 'rgba(242,160,60,.7)';
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 1;
   for (const runway of eastWest)
     for (const side of [-1, 1]) {
       ctx.beginPath();
-      ctx.moveTo(AIRPORT_X + side * (TAXI_OUT_LANE_X - 4), runway.y - HOLD_SHORT + 7);
-      ctx.lineTo(AIRPORT_X + side * (TAXI_OUT_LANE_X + 4), runway.y - HOLD_SHORT + 7);
+      ctx.moveTo(AIRPORT_X + side * (TAXI_OUT_LANE_X - 1.5), runway.y - HOLD_SHORT / 2);
+      ctx.lineTo(AIRPORT_X + side * (TAXI_OUT_LANE_X + 1.5), runway.y - HOLD_SHORT / 2);
       ctx.stroke();
     }
   ctx.lineWidth = 1;
   ctx.fillStyle = '#1c2a24';
-  ctx.fillRect(AIRPORT_X - 34, TAXI_IN_LANE_Y - 17, 68, 10);
-  setFont(9);
-  ctx.fillStyle = '#5f7d69';
-  ctx.fillText('apron', AIRPORT_X, TAXI_IN_LANE_Y - 12);
-  // runways: asphalt, threshold bars, centre stripes, edge lights (amber while a plane uses it)
+  ctx.fillRect(AIRPORT_X - APRON_STOP, TAXI_IN_LANE_Y - fromMetres(600), 2 * APRON_STOP, fromMetres(450)); // the apron
+  // runways: asphalt (drawn wider than its real 45 m, to be seen), centre stripes, edge lights (amber while a plane uses it)
   for (const runway of [...RUNWAYS].sort((first, second) => (first.forwardHeading === 0) - (second.forwardHeading === 0))) {
     const onRunway = runwayUser(runway),
       busy = onRunway || runwayBusy(runway),
@@ -4683,68 +4698,46 @@ function drawRadar() {
     ctx.save();
     ctx.translate(runway.x, runway.y);
     ctx.rotate(runway.forwardHeading);
+    const halfWidth = RUNWAY_DRAW_WIDTH / 2;
     ctx.fillStyle = '#16201c';
-    ctx.fillRect(-RUNWAY_HALF_LENGTH - 4, -7, RUNWAY_HALF_LENGTH * 2 + 8, 14);
-    ctx.fillStyle = 'rgba(230,240,235,.7)';
-    for (const side of [-1, 1])
-      for (let i = 0; i < 4; i++) ctx.fillRect(side * (RUNWAY_HALF_LENGTH - 3) - (side > 0 ? 7 : 0), -5.2 + i * 3, 7, 1.6);
-    setFont(7, 600);
-    ctx.fillStyle = 'rgba(230,240,235,.6)';
-    for (const side of [-1, 1]) {
-      ctx.save();
-      ctx.translate(side * (RUNWAY_HALF_LENGTH - 17), 0);
-      ctx.rotate(side < 0 ? Math.PI / 2 : -Math.PI / 2);
-      ctx.fillText(runwayName(runway, -side), 0, 0);
-      ctx.restore();
-    }
-    ctx.setLineDash([6, 5]);
+    ctx.fillRect(-RUNWAY_HALF_LENGTH - 1, -halfWidth, RUNWAY_HALF_LENGTH * 2 + 2, RUNWAY_DRAW_WIDTH);
+    ctx.setLineDash([2, 2]);
     ctx.strokeStyle = 'rgba(230,240,235,.45)';
+    ctx.lineWidth = 0.6;
     ctx.beginPath();
-    ctx.moveTo(-RUNWAY_HALF_LENGTH + 22, 0);
-    ctx.lineTo(RUNWAY_HALF_LENGTH - 22, 0);
+    ctx.moveTo(-RUNWAY_HALF_LENGTH + 3, 0);
+    ctx.lineTo(RUNWAY_HALF_LENGTH - 3, 0);
     ctx.stroke();
     ctx.setLineDash([]);
-    setGlow(lightColour, 6);
+    ctx.lineWidth = 1;
+    setGlow(lightColour, 4);
     ctx.fillStyle = lightColour;
-    for (let x = -RUNWAY_HALF_LENGTH; x <= RUNWAY_HALF_LENGTH; x += 12)
-      for (const y of [-8, 8]) {
+    for (let x = -RUNWAY_HALF_LENGTH; x <= RUNWAY_HALF_LENGTH + 0.01; x += RUNWAY_HALF_LENGTH / 6)
+      for (const y of [-halfWidth - 0.8, halfWidth + 0.8]) {
         ctx.beginPath();
-        ctx.arc(x, y, 1.1, 0, 7);
+        ctx.arc(x, y, 0.6, 0, 7);
         ctx.fill();
       }
     setGlow('', 0);
     ctx.restore();
-    // under it, only while it has something to say: who is on it, or the wake rest (a free runway says nothing, its green
-    // lights do; not for the crossing runways: their legs and helipads leave no room, their lights say it), and on the main
+    // no text: amber lights say it is busy (a plane on it or the rest after a heavy; the hint line says which). On the main
     // runway with wind: the end departures roll from, gold arrows pointing the way they take off
-    setFont(11, 500);
-    ctx.fillStyle = '#f2a03c';
-    const statusAt = runwayPoint(runway, 0, 22);
-    if (!runway.crossing && busy)
-      ctx.fillText(
-        onRunway ? `busy · ${onRunway.name}` : `wake ${Math.ceil(runway.wakeRestLeft)} s`,
-        statusAt.x,
-        statusAt.y,
-      );
     if (windBlowing() && runway.index === 0) {
       const upwind = -game.windDir,
-        arrowsX = AIRPORT_X + upwind * (RUNWAY_HALF_LENGTH + 44);
+        arrowsX = AIRPORT_X + upwind * (TAXI_IN_LANE_X + 8);
       setGlow('#f2c94c', 6);
       ctx.strokeStyle = '#f2c94c';
-      ctx.lineWidth = 2;
-      for (const offset of [-8, 4]) {
+      ctx.lineWidth = 1.5;
+      for (const offset of [-4, 2]) {
         const x = arrowsX + offset * -upwind;
         ctx.beginPath();
-        ctx.moveTo(x - game.windDir * 4, runway.y - 6);
-        ctx.lineTo(x + game.windDir * 4, runway.y);
-        ctx.lineTo(x - game.windDir * 4, runway.y + 6);
+        ctx.moveTo(x - game.windDir * 2.5, runway.y - 4);
+        ctx.lineTo(x + game.windDir * 2.5, runway.y);
+        ctx.lineTo(x - game.windDir * 2.5, runway.y + 4);
         ctx.stroke();
       }
       setGlow('', 0);
       ctx.lineWidth = 1;
-      setFont(10, 600);
-      ctx.fillStyle = '#f2c94c';
-      ctx.fillText('takeoff', arrowsX, runway.y - 14);
     }
   }
   // wind: which way planes take off
