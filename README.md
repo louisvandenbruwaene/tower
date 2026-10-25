@@ -19,7 +19,7 @@ heron ascend              # up as high as it goes (ascend mid stops at mid)
 heron hold                # circle on the spot until a turn (or land, inside a landing circle)
 heron hold kilo           # fly to a holding fix (alpha bravo kilo zulu; november sierra with nav) and circle there
 heron land                # only inside an open landing circle: it turns onto the runway there
-wren takeoff e             # e or w; it taxis out, waits for a free runway, climbs to mid and flies straight on
+wren takeoff e             # e or w (left out when the wind allows one way only); it taxis out, waits for a free runway, climbs to mid and flies straight on
 buy nav                   # after a shift: spend tokens on upgrades (tanks height nav runway), or use the arrow keys
 daily                     # today's seeded shift, the same for everyone
 speed                     # time runs 1×, 2×, 4×, 8× and back (or the 1× button)

@@ -96,7 +96,7 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>heron ascend</td><td>up as high as it goes · <b>heron ascend mid</b> stops at mid</td></tr>
 <tr><td>heron hold</td><td>circle on the spot until you give it a turn, or <b>land</b> inside a landing circle · <b>heron hold kilo</b> flies to the fix KILO (also ALPHA, BRAVO, ZULU; NOVEMBER and SIERRA with nav) and circles it, right turns, slowed down. Holds always stay inside your area</td></tr>
 <tr><td>heron land</td><td>only inside an open landing circle (also ends a hold). Above <b>low</b> it circles there until you <b>descend</b> it; at low it lines up by itself and lands, arriving at most 15° off the runway heading. With the runway busy it circles until it is free (four times round at most, then it goes around)</td></tr>
-<tr><td>wren takeoff e</td><td>a departure in the <b>ready</b> list taxis to that runway end, waits until the runway is free, takes off that way, climbs to mid and flies straight on until you turn it (you may turn it while it taxis). The guide on the right lists the ways your runways take off</td></tr>
+<tr><td>wren takeoff e</td><td>a departure in the <b>ready</b> list taxis to that runway end, waits until the runway is free, takes off that way, climbs to mid and flies straight on until you turn it (you may turn it while it taxis). The guide on the right lists the ways your runways take off. When the wind leaves one way only, <b>wren takeoff</b> is enough</td></tr>
 <tr><td>heron abort</td><td>ends a hold (straight on) or a landing: it goes around, climbing to mid</td></tr>
 <tr><td>tutorial · speed</td><td>a guided first landing, departure and hold (<b>skip</b> leaves it) · time 1×, 2×, 4×, 8× (both also buttons top right)</td></tr>
 </table>
@@ -2366,7 +2366,8 @@ const COMPASS_WORDS = Object.keys(HEADINGS),
 // carries out an order (words already read by readWords) and returns the reply; a reply starting with '!' is an error.
 // Game commands first (restart, pause, speed, sound, help, tutorial, modes, buy), then orders to a plane
 function executeOrder(words) {
-  const [first, action, argument] = words;
+  const [first, action] = words;
+  let argument = words[2];
   if (first === 'restart' && game.tutorial) return startTutorial() || 'the tutorial from the start';
   if (first === 'restart') {
     startShift(false, game.daily, game.hard);
@@ -2503,8 +2504,11 @@ function executeOrder(words) {
     return `${name}: cleared to land runway ${runwayName(CIRCLES[circleName].runway, CIRCLES[circleName].runwayDir)}${plane.targetLevel > 0 || plane.level > 0.05 ? ` · it is at ${LEVEL_NAMES[Math.round(plane.level)]}: it circles until it is down to low (${plane.targetLevel > 0 ? `${name} descend` : 'descending'})` : ''}${onRunway ? ` (careful: ${onRunway.name} is still on the runway)` : ''}`;
   }
   if (action === 'takeoff') {
+    // no way given: fine when the wind leaves only one, else ask
+    const possibleWays = takeoffWays().filter(way => !tailwindFor(degreesToRadians(HEADINGS[way])));
+    if (!argument && possibleWays.length === 1) argument = possibleWays[0];
     if (!argument)
-      return `!${name} takeoff which way? ${takeoffWays().map(shortWayUpper).join(' · ')} (${name} wants to leave ${shortWayUpper(plane.exitWay)})`;
+      return `!${name} takeoff which way? ${possibleWays.map(shortWayUpper).join(' · ')} (${name} wants to leave ${shortWayUpper(plane.exitWay)})`;
     if (tailwindFor(degreesToRadians(HEADINGS[argument])))
       return `!the wind is from the ${windWord()}: take off into it or across it, not ${shortWayUpper(argument)}`;
     // taxis to the runway end, waits there until the runway is free, rolls, then flies straight on, climbing to mid, until you turn it
