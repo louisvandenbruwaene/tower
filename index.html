@@ -3441,6 +3441,7 @@ const ADMIN_WORDS = [
   'traffic',
   'rules',
   'set',
+  'unlock',
 ];
 // what admin suggests after each command word (first and second argument)
 const TYPE_NAMES = ['prop', 'bizjet', 'jet', 'heavy', 'cargo', 'vip', 'medevac', 'mil']; // as typed in admin
@@ -3448,7 +3449,7 @@ const TYPE_NAMES = ['prop', 'bizjet', 'jet', 'heavy', 'cargo', 'vip', 'medevac',
 const ADMIN_ARGS={arrival:[[...TYPE_NAMES,'heli','random'],['n','ne','e','se','s','sw','w','nw']],departure:null,overflight:null,
   approach:[TYPE_NAMES,['0','45','90','135','180','-45','-90','-135']],sweep:[['all',...TYPE_NAMES,'stop'],['30','15','45']],
   arc:[['0','0.25','0.5','0.75','1']],paths:[['on','off']],fuel:[['on','off']],traffic:[['on','off']],wind:[['e','w','auto','off']],storms:[['on','off']],
-  storm:[['n','ne','e','se','s','sw','w','nw']],speed:[['1','2','3','5','10','0.5']],set:[['levels','runways','nav','fuel','types','readback','wind','storms','ovf','tank','helipads']]};
+  storm:[['n','ne','e','se','s','sw','w','nw']],speed:[['1','2','3','5','10','0.5']],set:[['levels','runways','nav','fuel','types','readback','wind','storms','ovf','tank','helipads']],unlock:[['all']]};
 ADMIN_ARGS.departure = ADMIN_ARGS.overflight = ADMIN_ARGS.arrival;
 // type words admin understands, and the type each means
 const TYPE_WORDS = {
@@ -3499,7 +3500,8 @@ function adminManual() {
   <tr><td>storm n</td><td>a storm cell coming in from the north edge, drifting across · <b>storms off</b> clears them and stops new ones · <b>storms on</b> lets them come by themselves</td></tr>
   <tr><td>fuel off</td><td>planes carry no fuel limit · <b>fuel on</b></td></tr>
   <tr><td>traffic on</td><td>normal traffic arrives by itself · <b>traffic off</b></td></tr>
-  <tr><td>rules</td><td>lists the rule switches · <b>set readback 0.2</b> changes one (levels runways nav fuel types readback wind storms ovf tank)</td></tr>
+  <tr><td>rules</td><td>lists the rule switches · <b>set readback 0.2</b> changes one (levels runways nav fuel types readback wind storms ovf tank helipads)</td></tr>
+  <tr><td>unlock all</td><td>buys every upgrade step in your real saves, normal and hard, and unlocks hard mode: <b>exit</b> to play with them</td></tr>
   </table><p class="go">Enter or Esc to close · help shows this again</p>`;
 }
 // admin's own card in the help overlay, and showing a page of it
@@ -3709,6 +3711,19 @@ function adminCommand(typed) {
       return Object.entries(rules)
         .map(([rule, value]) => `${rule} ${value}`)
         .join(' · ');
+    case 'unlock': {
+      // your real saves: every step of every upgrade bought, in normal and hard mode, and hard mode unlocked
+      if (second !== 'all') return '!unlock all';
+      for (const [mode, upgrades] of [
+        ['normal', NORMAL_UPGRADES],
+        ['hard', HARD_UPGRADES],
+      ])
+        for (const [upgrade, upgradeInfo] of Object.entries(upgrades)) PROGRESS[mode][upgrade] = upgradeInfo.tiers.length;
+      saveProgress();
+      bestScore = Math.max(bestScore, HARD_UNLOCK);
+      storage('tower-best-score', bestScore);
+      return 'everything unlocked: every upgrade bought, normal and hard, and hard mode open · exit to play with them';
+    }
     case 'set': {
       if (!(second in BASE_RULES)) return `!set <rule> <value>: ${Object.keys(BASE_RULES).join(' ')}`;
       if (second === 'levels')
