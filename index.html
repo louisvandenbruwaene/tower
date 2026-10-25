@@ -3501,7 +3501,7 @@ function adminManual() {
   <tr><td>fuel off</td><td>planes carry no fuel limit · <b>fuel on</b></td></tr>
   <tr><td>traffic on</td><td>normal traffic arrives by itself · <b>traffic off</b></td></tr>
   <tr><td>rules</td><td>lists the rule switches · <b>set readback 0.2</b> changes one (levels runways nav fuel types readback wind storms ovf tank helipads)</td></tr>
-  <tr><td>unlock all</td><td>buys every upgrade step in your real saves, normal and hard, and unlocks hard mode: <b>exit</b> to play with them</td></tr>
+  <tr><td>unlock all</td><td>buys every upgrade step in your real saves, normal and hard, and unlocks hard mode, then leaves admin for a shift with all of it (the sandbox always plays with the base rules)</td></tr>
   </table><p class="go">Enter or Esc to close · help shows this again</p>`;
 }
 // admin's own card in the help overlay, and showing a page of it
@@ -3712,7 +3712,8 @@ function adminCommand(typed) {
         .map(([rule, value]) => `${rule} ${value}`)
         .join(' · ');
     case 'unlock': {
-      // your real saves: every step of every upgrade bought, in normal and hard mode, and hard mode unlocked
+      // your real saves: every step of every upgrade bought, in normal and hard mode, and hard mode unlocked; then a normal
+      // shift with all of it (the sandbox itself always plays with the base rules)
       if (second !== 'all') return '!unlock all';
       for (const [mode, upgrades] of [
         ['normal', NORMAL_UPGRADES],
@@ -3722,7 +3723,8 @@ function adminCommand(typed) {
       saveProgress();
       bestScore = Math.max(bestScore, HARD_UNLOCK);
       storage('tower-best-score', bestScore);
-      return 'everything unlocked: every upgrade bought, normal and hard, and hard mode open · exit to play with them';
+      startShift();
+      return 'everything unlocked (normal and hard, hard mode open): a new shift with every upgrade';
     }
     case 'set': {
       if (!(second in BASE_RULES)) return `!set <rule> <value>: ${Object.keys(BASE_RULES).join(' ')}`;
