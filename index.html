@@ -105,8 +105,8 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>blue planes</td><td><b>Arrivals.</b> They come in high: bring them down to low, into a landing circle, and clear them to land.</td></tr>
 <tr><td>gold planes</td><td><b>Departures.</b> Each wants to leave through one of 8 slices of your area (the gold one). Take it off the runway way closest to it, then turn it that way before it reaches the edge.</td></tr>
 <tr><td>purple planes</td><td><b>Overflights</b> from the neighbouring sector, after 10 planes. They cross in a straight line: keep them apart and let them leave through their slice.</td></tr>
-<tr><td>types</td><td><b>prop</b> slow, turns tight · <b>jet</b> · <b>bizjet</b> fast, climbs quickly · <b>heavy</b> and <b>cargo</b> big, turn wide, climb slowly, need more room, and the runway rests after them (wake) · <b>MIL</b> fighters, fast and tight-turning</td></tr>
-<tr><td>priority</td><td><b>VIP</b> private jets (gold star) and <b>MEDEVAC</b> air ambulances (red cross) go first both ways: an arrival lands within 2 minutes, a departure is rolling within 50 s, not counting its taxi (the clock by its name), or it is a strike. While one waits, other planes of its kind may not land or take off (a MAYDAY may).</td></tr>
+<tr><td>types</td><td><b>prop</b> slow, turns tight · <b>jet</b> · <b>bizjet</b> fast, climbs quickly · <b>heavy</b> and <b>cargo</b> big, turn wide, climb slowly, need more room, and the runway rests after them (wake) · <b>MIL</b> fighters (white star by the name), fast and tight-turning</td></tr>
+<tr><td>priority</td><td><b>VIP</b> private jets (gold star) and <b>MEDEVAC</b> air ambulances (blue cross by the name) go first both ways: an arrival lands within 2 minutes, a departure is rolling within 50 s, not counting its taxi (the clock by its name), or it is a strike. While one waits, other planes of its kind may not land or take off (a MAYDAY may).</td></tr>
 </table>
 <table>
 <tr><td>strikes</td><td>Two planes too close and less than <b>400 ft apart in height</b> (red ring): planes on different levels always pass safely, only while climbing or descending through each other's height can they meet. Also a departure leaving through the wrong slice, an arrival leaving your area, a flight cancelled or late, fuel run out, a storm flown into. Touching shapes collide: two strikes. Three strikes end the shift.</td></tr>
@@ -3947,7 +3947,7 @@ function drawEffect(effect) {
 // prettier-ignore
 const TYPE_SHAPES={
   get cargo(){return this.heavy},   // a freighter is drawn like a wide-body
-  get medevac(){return this.bizjet},   // an air ambulance is a business jet with a red cross (MARKS)
+  get medevac(){return this.bizjet},   // an air ambulance is a business jet (its blue cross is in the label, NAME_EMBLEMS)
   // a long-range private jet: long slim body, winglets, engines at the tail, T-tail
   vip:new Path2D('M0 -205 C 14 -205 20 -178 20 -140 L 20 -10 L 165 62 L 178 46 L 180 80 L 20 38 L 18 122 L 72 160 L 72 178 L 0 170 L -72 178 L -72 160 L -18 122 L -20 38 L -180 80 L -178 46 L -165 62 L -20 -10 L -20 -140 C -20 -178 -14 -205 0 -205 Z M24 70 L 52 62 L 52 124 L 24 120 Z M-24 70 L -52 62 L -52 124 L -24 120 Z'),
   // a fighter: needle nose, canards, a big delta wing, two nozzles
@@ -3960,8 +3960,8 @@ const TYPE_SHAPES={
   bizjet:new Path2D('M0 -190 C 12 -190 18 -165 18 -135 L 18 -20 L 150 55 L 150 78 L 18 40 L 16 110 L 62 150 L 62 166 L 0 160 L -62 166 L -62 150 L -16 110 L -18 40 L -150 78 L -150 55 L -18 -20 L -18 -135 C -18 -165 -12 -190 0 -190 Z M22 55 L 46 55 L 46 110 L 22 110 Z M-46 55 L -22 55 L -22 110 L -46 110 Z'),
   // wide body, long swept wings, four engines
   heavy:new Path2D('M0 -190 C 30 -190 34 -160 34 -120 L 34 -40 L 230 50 L 230 80 L 34 30 L 28 110 L 100 145 L 100 165 L 16 155 L 0 175 L -16 155 L -100 165 L -100 145 L -28 110 L -34 30 L -230 80 L -230 50 L -34 -40 L -34 -120 C -34 -160 -30 -190 0 -190 Z M78 -12 L 100 -12 L 100 32 L 78 32 Z M-100 -12 L -78 -12 L -78 32 L -100 32 Z M152 24 L 174 24 L 174 64 L 152 64 Z M-174 24 L -152 24 L -152 64 L -174 64 Z')};
-// markings on top of the pictogram, in its own coordinates: a red cross for the ambulance, a gold star for the private jet,
-// roundels on the fighter's wings
+// markings on top of the pictogram, in its own coordinates: a gold star for the private jet (the ambulance and the fighter
+// carry theirs in the label, NAME_EMBLEMS)
 const STAR_SHAPE = new Path2D(
   [...Array(10)]
     .map((_, i) => {
@@ -3972,15 +3972,6 @@ const STAR_SHAPE = new Path2D(
     .join(' ') + ' Z',
 );
 const TYPE_MARKINGS = {
-  medevac() {
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(0, -30, 70, 0, 7);
-    ctx.fill();
-    ctx.fillStyle = '#ff3b30';
-    ctx.fillRect(-16, -80, 32, 100);
-    ctx.fillRect(-50, -46, 100, 32);
-  },
   vip() {
     ctx.fillStyle = '#04140b';
     ctx.beginPath();
@@ -3989,18 +3980,41 @@ const TYPE_MARKINGS = {
     ctx.fillStyle = '#f2c94c';
     ctx.fill(STAR_SHAPE);
   },
-  military() {
-    for (const x of [-105, 105]) {
-      ctx.fillStyle = '#04140b';
-      ctx.beginPath();
-      ctx.arc(x, 95, 30, 0, 7);
-      ctx.fill();
-      ctx.fillStyle = '#ff5a4e';
-      ctx.beginPath();
-      ctx.arc(x, 95, 13, 0, 7);
-      ctx.fill();
-    }
-  },
+};
+// an emblem right after the name in the label and the READY list: a blue cross for the ambulance (never red: the red
+// cross is a protected emblem), a white star for the fighter. In a 12 x 12 box; path: its outline as SVG path data
+const EMBLEM_SIZE = 12,
+  NAME_EMBLEMS = {
+    medevac: {colour: '#5aa9ff', path: 'M4 0.5 H8 V4 H11.5 V8 H8 V11.5 H4 V8 H0.5 V4 H4 Z'},
+    military: {
+      colour: '#f4f7f2',
+      path:
+        [...Array(10)]
+          .map((_, i) => {
+            const angle = -Math.PI / 2 + (i * Math.PI) / 5,
+              pointRadius = i % 2 ? 2.4 : 6;
+            return `${i ? 'L' : 'M'}${(6 + Math.cos(angle) * pointRadius).toFixed(2)} ${(6.6 + Math.sin(angle) * pointRadius).toFixed(2)}`;
+          })
+          .join(' ') + ' Z',
+    },
+  };
+for (const emblem of Object.values(NAME_EMBLEMS)) emblem.shape = new Path2D(emblem.path);
+// draws a plane's emblem with its box's left edge at x, centred on y (nothing for a type without one)
+function drawNameEmblem(plane, x, y) {
+  const emblem = NAME_EMBLEMS[plane.typeName];
+  if (!emblem) return;
+  ctx.save();
+  ctx.translate(x, y - EMBLEM_SIZE / 2);
+  ctx.fillStyle = emblem.colour;
+  ctx.fill(emblem.shape);
+  ctx.restore();
+}
+// the same emblem for the READY list, as a small inline SVG
+const emblemSVG = plane => {
+  const emblem = NAME_EMBLEMS[plane.typeName];
+  return emblem
+    ? `<svg width="${EMBLEM_SIZE}" height="${EMBLEM_SIZE}" viewBox="0 0 ${EMBLEM_SIZE} ${EMBLEM_SIZE}" style="vertical-align:-1px;margin-left:3px"><path d="${emblem.path}" fill="${emblem.colour}"/></svg>`
+    : '';
 };
 const MONO_FONT = "'JetBrains Mono',ui-monospace,Menlo,monospace",
   setFont = (pixels, weight = '') => (ctx.font = `${weight} ${pixels * textZoom()}px ${MONO_FONT}`);
@@ -4593,7 +4607,7 @@ function drawRadar() {
           : isFinite(plane.fuelFull)
             ? 'fuel'
             : null;
-    const nameWidth = ctx.measureText(plane.name).width,
+    const nameWidth = ctx.measureText(plane.name).width + (NAME_EMBLEMS[plane.typeName] ? EMBLEM_SIZE + 4 : 0),
       gaugeWidth = gauge ? 15 : 0;
     const labelX = plane.x + 18,
       labelY = plane.y - 20,
@@ -4612,6 +4626,7 @@ function drawRadar() {
     ctx.textAlign = 'left';
     ctx.fillStyle = typedNow ? '#fff' : plane.mayday ? '#ff8a7e' : colour;
     ctx.fillText(plane.name, labelX, labelY + 0.5);
+    drawNameEmblem(plane, labelX + ctx.measureText(plane.name).width + 3, labelY);
     ctx.fillText(rest, labelX + nameWidth + gaugeWidth, labelY + 0.5);
     ctx.textAlign = 'center';
     if (gauge === 'fuel') fuelGauge(labelX + nameWidth + 5, labelY, plane);
@@ -4824,7 +4839,7 @@ function updatePanels() {
     ready
       .map(
         plane =>
-          `<b style="color:${plane.name === focus ? '#fff' : KIND_COLOUR.dep}">${plane.name}${clockSVG(plane)}${plane.type.tag ? ' ' + plane.type.tag : ''} → ${shortWayUpper(plane.exitWay)}</b>`,
+          `<b style="color:${plane.name === focus ? '#fff' : KIND_COLOUR.dep}">${plane.name}${emblemSVG(plane)}${clockSVG(plane)}${plane.type.tag ? ' ' + plane.type.tag : ''} → ${shortWayUpper(plane.exitWay)}</b>`,
       )
       .join(' ') + busy || '<span style="color:var(--dim)">none</span>';
   const show = (overScreenUp() && !game.practice) || game.paused;
