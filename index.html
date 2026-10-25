@@ -7,14 +7,16 @@
   --mono:'JetBrains Mono',ui-monospace,Menlo,monospace}
 html,body{margin:0;height:100%;color:var(--fg);font:15px var(--mono);overflow:hidden}
 body{display:flex;flex-direction:column;background:radial-gradient(ellipse 70% 80% at 38% 50%,#0b2016 0%,var(--bg) 75%)}
-#bar{display:flex;gap:16px;align-items:center;padding:10px 20px;border-bottom:1px solid var(--line);background:linear-gradient(#0a1912,#06100b)}
+/* the corners of the radar, beside the round area: the game's name and mode top left, the buttons top right, money and tokens bottom right */
+.corner{position:absolute;z-index:1;display:flex;gap:12px;align-items:center;pointer-events:none} .corner button{pointer-events:auto}
+#tl{top:14px;left:16px} #tr{top:12px;right:16px;gap:6px} #br{bottom:12px;right:16px}
 #brand{font-weight:700;font-size:13px;letter-spacing:.3em;color:var(--acc);text-shadow:0 0 14px rgba(126,224,168,.5)}
 #brand::before{content:'';display:inline-block;width:8px;height:8px;margin-right:11px;border-radius:50%;background:var(--acc);box-shadow:0 0 10px var(--acc);vertical-align:1px;animation:blink 2s infinite}
 @keyframes blink{50%{opacity:.35}}
 #lvl{font-weight:500;font-size:13px;padding:3px 12px;border:1px solid var(--chipon);border-radius:99px;background:var(--chip)}
-#todo{margin-left:auto;color:var(--dim);font-size:13px} #todo .tok{color:var(--fg)} #todo .tok small{color:var(--dim);font-size:11.5px} #todo b{font-weight:600;color:var(--fg);border-radius:3px;padding:0 3px}
+#todo{color:var(--dim);font-size:13px} #todo .tok{color:var(--fg)} #todo b{font-weight:600;color:var(--fg);border-radius:3px;padding:0 3px}
 .coin{display:inline-block;width:.78em;height:.78em;border-radius:50%;background:var(--gold);box-shadow:inset 0 0 0 .14em #a87f12,0 .1em 0 #3a2c06;vertical-align:-.06em;margin-right:.3em}
-#tut+#ff,#ff+#snd,#snd+#qm{margin-left:-8px} #ff,#tut{width:auto;padding:0 8px;border-radius:13px;font-size:12px}
+#ff,#tut{width:auto;padding:0 8px;border-radius:13px;font-size:12px}
 #tut.new{color:#04140b;background:var(--gold);border-color:var(--gold);animation:nudge 1.6s ease-in-out infinite}   /* a first visit: the tutorial is here, if you want it */
 @keyframes nudge{0%,100%{transform:none}10%{transform:translateY(-3px) rotate(-3deg)}20%{transform:none}}
 .rb{width:26px;height:26px;padding:0;border-radius:50%;border:1px solid var(--chipon);background:var(--chip);color:var(--acc);font:600 14px var(--mono);cursor:pointer}
@@ -66,11 +68,13 @@ main{flex:1;min-height:0;display:flex}
 #help .card{width:min(1000px,calc(100vw - 24px));min-width:min-content;box-sizing:border-box;font-size:14px;margin:12px;padding:16px 26px;background:linear-gradient(#0a1912,#06100b);border:1px solid var(--chipon);border-radius:12px;line-height:1.5;box-shadow:0 20px 60px rgba(0,0,0,.5)}
 #help h2{margin:0 0 6px;color:var(--acc);letter-spacing:.2em;text-transform:uppercase;font-size:18px;text-shadow:0 0 14px rgba(126,224,168,.45)} #help p{margin:8px 0} #help table{border-collapse:collapse;margin:8px 0} #help td{padding:2px 14px 2px 0;vertical-align:top}
 #help td:first-child{color:var(--acc);white-space:nowrap} #help .ac td{font-size:12.5px;padding-right:10px} #help .ac th{text-align:left;color:var(--gold);font-size:12.5px;padding:2px 10px 2px 0} #help .ac tr.sec td{color:var(--dim);padding-top:8px;text-transform:uppercase;letter-spacing:.1em;font-size:11px} #help .go{color:var(--dim);margin-top:12px} #help .pg{display:none} #help .pg.on{display:block} #pnav span{cursor:pointer;padding:0 4px} #pnav span.on{color:var(--acc)} #help code{color:var(--gold)}
-@media (max-width:760px){main{flex-direction:column}#term{width:auto;height:50%;overflow:hidden}#bar{gap:10px;padding:8px 12px}#brand{display:none}#todo small{display:none}}   /* narrow: the bar keeps the numbers and buttons */
+@media (max-width:760px){main{flex-direction:column}#term{width:auto;height:50%;overflow:hidden}#brand{display:none}}   /* narrow: the corners keep the numbers and buttons */
 </style></head><body>
-<div id="bar"><span id="brand">TOWER POWER</span><b id="lvl"></b><span id="todo"></span><button id="tut" class="rb" title="a short guided first landing, departure and hold">tutorial</button><button id="ff" class="rb" title="game speed: 1× 2× 4×"></button><button id="snd" class="rb" title="sound on/off"></button><button id="qm" class="rb" title="help">?</button></div>
 <main>
-<div id="view"><canvas id="cv"></canvas><div id="banner"></div><div id="over"></div></div>
+<div id="view"><canvas id="cv"></canvas>
+<div id="tl" class="corner"><span id="brand">TOWER POWER</span><b id="lvl"></b></div>
+<div id="tr" class="corner"><button id="tut" class="rb" title="a short guided first landing, departure and hold">tutorial</button><button id="ff" class="rb" title="game speed: 1× 2× 4×"></button><button id="snd" class="rb" title="sound on/off"></button><button id="qm" class="rb" title="help">?</button></div>
+<div id="br" class="corner"><span id="todo"></span></div><div id="banner"></div><div id="over"></div></div>
 <section id="term">
 <div class="srow"><span class="lbl">strikes</span><span id="strikes"></span></div>
 <div id="guide"><div class="tpl"><span>plane</span> <em>action</em> <u>&lt;direction&gt;</u></div>
@@ -538,9 +542,11 @@ const viewLeft = () => AIRPORT_X - areaRadius - VIEW_MARGIN,
   viewWidth = () => 2 * (areaRadius + VIEW_MARGIN),
   viewHeight = () => 2 * (areaRadius + VIEW_MARGIN),
   textZoom = () => areaRadius / AREA_RADIUS;
-// the canvas's top-left corner in world units: the empty corner beside the round area, where the wind is written
+// the canvas's top-left corner in world units: the empty corner beside the round area, where the wind is written under the
+// game's name; and a length in screen (CSS) px as world units
 const screenCornerX = () => -viewX / viewScale,
-  screenCornerY = () => -viewY / viewScale;
+  screenCornerY = () => -viewY / viewScale,
+  screenPx = cssPixels => (cssPixels * (devicePixelRatio || 1)) / viewScale;
 // the eight compass words and their headings in degrees, as drawn on screen: 0 = east, 90 = south (y grows downward)
 const HEADINGS = {north: -90, northeast: -45, east: 0, southeast: 45, south: 90, southwest: 135, west: 180, northwest: -135};
 // the compass word for a heading (radians)
@@ -1310,7 +1316,7 @@ function payForPlane(plane, colour, message, keepOnScreen) {
   showReply(`${message} · +${formatMoney(pay)}${bonus ? ` · streak ×${game.streak} +${formatMoney(bonus)}` : ''}`);
   showPayment(plane, colour, pay, bonus, before);
 }
-// how a payment looks and sounds: the till, a spray of bills and the chips where the plane was (kept inside the radar), the bar
+// how a payment looks and sounds: the till, a spray of bills and the chips where the plane was (kept inside the radar), the score
 // swelling, and every MILESTONE a big bill
 function showPayment(plane, colour, pay, bonus, before) {
   sound.cash(game.streak);
@@ -4759,16 +4765,16 @@ function drawRadar() {
     ctx.fillStyle = '#8fd8ff';
     ctx.fillText(
       windBlowing() ? `wind from the ${windWord()}` : 'calm',
-      screenCornerX() + 14 * textZoom(),
-      screenCornerY() + 20 * textZoom(),
+      screenCornerX() + screenPx(16),
+      screenCornerY() + screenPx(54),
     );
     setFont(11);
     ctx.fillStyle = '#5f7d69';
     if (windBlowing())
       ctx.fillText(
-        `planes take off and land heading ${windWord()}`,
-        screenCornerX() + 14 * textZoom(),
-        screenCornerY() + 38 * textZoom(),
+        `land & take off heading ${windWord()}`,
+        screenCornerX() + screenPx(16),
+        screenCornerY() + screenPx(72),
       );
     ctx.textAlign = 'center';
   }
@@ -5061,7 +5067,7 @@ function clockSVG(plane) {
 /* =====================================================================================================================
    § 15 THE SCREEN
 
-   WHAT  The panels around the radar (the top bar, strikes, the READY list), the overlay (paused, the shift-over screen
+   WHAT  The panels around the radar (the radar's corners: name, mode, buttons, money and tokens; strikes, the READY list), the overlay (paused, the shift-over screen
          with the shop), the numbers counting up, and the frame loop.
    WHY   The radar shows the sky; these show the score and what to do between shifts.
    HOW   animationFrame runs every screen frame: advance the world, count numbers up, draw, update the panels.
@@ -5132,7 +5138,7 @@ function shopTake(choice) {
   }
 }
 let lastFrameTime = performance.now();
-// the score in the bar counts up to the real one and swells when it grows; the tokens flash when one is earned
+// the score in the corner counts up to the real one and swells when it grows; the tokens flash when one is earned
 const bumpedAt = {score: -1e9, tok: -1e9},
   shown = {score: 0};
 // the style of a number that just changed: it swells, wobbles and lights up, then settles (t: when it changed)
@@ -5154,7 +5160,7 @@ function animationFrame(now) {
   updatePanels();
   requestAnimationFrame(animationFrame);
 }
-// the numbers count up: the bar's score toward the real one, the shift-over score from 0 (ticking as it goes)
+// the numbers count up: the corner's score toward the real one, the shift-over score from 0 (ticking as it goes)
 function countUpNumbers(seconds) {
   const gap = game.score - shown.score;
   shown.score = gap < 0 ? game.score : shown.score + Math.max(Math.min(gap, 1), gap * Math.min(1, seconds * 6));
@@ -5164,7 +5170,7 @@ function countUpNumbers(seconds) {
     if (Math.floor(game.shownOverScore / 7) > before) sound.tick();
   }
 }
-// everything around the radar: the bar, the strikes, the READY list, the overlay
+// everything around the radar: the corners, the strikes, the READY list, the overlay
 function updatePanels() {
   const sweep = game.sweep;
   tutorialButton.textContent = game.tutorial ? 'leave tutorial' : 'tutorial';
@@ -5180,7 +5186,7 @@ function updatePanels() {
   const streak = game.streak > 1 && !game.over ? ` · <b style="background:#ff7a45;color:#04140b">×${game.streak} streak</b>` : '';
   const tokens =
     `<span class="tok" title="tokens buy upgrades after a shift: it pays 1 per $1,000 earned when it ends"><b style="${bumpStyle(bumpedAt.tok, '#f2c94c')}">${COIN_HTML}${progress.tokens}</b>` +
-    `${game.over ? '' : ` <small>+${Math.floor(game.score / DOLLARS_PER_TOKEN)} at shift end · 1 per ${formatMoney(DOLLARS_PER_TOKEN)}</small>`}</span>`;
+    `</span>`;
   elementById('todo').innerHTML = game.practice
     ? ''
     : `${game.handledCount} planes · <b style="${bumpStyle(bumpedAt.score, '#86d48a')}">${formatMoney(shown.score)}</b>${streak}${game.daily ? '' : ' · ' + tokens}`;
