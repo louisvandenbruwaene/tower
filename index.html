@@ -119,7 +119,7 @@ main{flex:1;min-height:0;display:flex}
 <section class="pg"><h2>Money</h2><table>
 <tr><td>money</td><td>Every plane pays its fare: prop $400, jet $1,000, heavy $1,600, fighter $1,500, private jet $4,000, air ambulance $3,500, helicopter $2,500. It loses 1% per second beyond par (down to 10%); late priority flights pay a quarter. A <b>streak</b> (planes in a row without a strike) adds 10% a plane, up to +50%.</td></tr>
 <tr><td>shift</td><td>One shift that never ends: the first five planes in slow motion, the traffic growing for 15 minutes. It pays a token per $1,000 when it ends.</td></tr>
-<tr><td>buy</td><td>Upgrades for every later shift, one step at a time (10, 20, 50, 100, 200 tokens): <b>tanks</b> +20 s fuel a step · <b>patience</b> +20 s departure patience a step · <b>height</b> levels lm 4000, mh 6000, ht 8000, top 9000, peak 10000 · <b>nav</b> a wider area, holds NOVEMBER and SIERRA, then departures fly out alone and arrivals find a landing circle by themselves · <b>runway</b> tighter, then perfect timing (a departure rolls in the gap before an arrival, an arrival starts its final while the runway is still in use), then runways N-S, NE-SW and NW-SE, each its own (the view zooms out to fit them) · <b>helipad</b> helipads HOTEL, INDIA, OSCAR: helicopters join the traffic, more with every pad.</td></tr>
+<tr><td>buy</td><td>Upgrades for every later shift, one step at a time (10, 20, 50, 100, 200 tokens): <b>tanks</b> +20 s fuel a step · <b>patience</b> +20 s departure patience a step · <b>height</b> levels lm 4000, mh 6000, ht 8000, top 9000, peak 10000 · <b>nav</b> a wider area, holds NOVEMBER and SIERRA, then departures fly out alone and arrivals find a landing circle by themselves · <b>runway</b> tighter, then perfect timing (a departure rolls in the gap before an arrival, an arrival starts its final while the runway is still in use), then a parallel runway, then two crossing each other between the two, like an X (crossing runways share their tarmac: one in use makes both busy) · <b>helipad</b> helipads HOTEL, OSCAR, INDIA in the angles of the X: helicopters join the traffic, more with every pad.</td></tr>
 <tr><td>daily · hard</td><td><b>daily</b>: today's shift, the same for everyone, no upgrades. <b>hard</b> (after a $10,000 shift): a game of its own, with its own best, tokens and upgrades (<b>normal</b> goes back; the app opens in the one you played last); no autopilot and no runway timing (nav stops after SIERRA, runway is only the three runways, for 10, 20 and 50); <b>land</b> only once you have flown the plane onto the lit strip yourself, low and facing the runway, and <b>hold alpha</b> only at ALPHA.</td></tr>
 </table></section>
 <section class="pg"><h2 id="acdata">Aircraft</h2><div id="actable"></div></section>
@@ -329,12 +329,16 @@ const WORLD_W = 848,
   AIRPORT_X = WORLD_W / 2,
   AIRPORT_Y = WORLD_H / 2; // the world's frame: the airport centre (AX,AY), where waiting planes circle
 // runways: a centre (x,y) and the heading a of its forward way (0 = east). The main one runs east-west through the airport
-// centre; EXTRA_RUNWAYS are the ones the runway upgrade adds, in buying order (centre from the airport, heading)
+// centre; EXTRA_RUNWAYS are the ones the runway upgrade adds, in buying order (centre from the airport, heading, and whether
+// it crosses the others marked so): a parallel one 160 south (4 km), then two diagonals crossing each other halfway between
+// the two, like an X. Crossing runways share their tarmac: one in use makes both busy
 const EXTRA_RUNWAYS = [
-  [120, -85, Math.PI / 2],
-  [-205, -90, -Math.PI / 4],
-  [-205, 90, Math.PI / 4],
+  [0, 160, 0, false],
+  [0, 80, Math.PI / 4, true],
+  [0, 80, -Math.PI / 4, true],
 ];
+const CROSSING_CIRCLE_DISTANCE = 190; // a crossing runway's landing circles lie this far out from its ends (further than
+// CIRCLE_DISTANCE), so they stay clear of the east-west runways' circles
 
 // --- call signs, par times ---
 // plane names (call signs): bird names, each with its own first letter, so typing one letter picks the plane
@@ -343,25 +347,24 @@ const NAMES =
     ' ',
   );
 // holding fixes: a plane holds by circling the fix (right turns) at its low-level speed, so on its turn radius at that speed.
-// A freighter's is the widest (about 71); the fixes sit where that ring stays inside your area and at least 130 from every
-// landing circle of every runway there can be (layout searched once with the runways, keeping every runway, landing circle and
-// final clear of each other and of the apron: alpha..zulu inside RADAR0, november and sierra, the nav
-// upgrade's, inside RANGE_R). FIXES holds this shift's ones
+// A freighter's is the widest (about 71); the fixes sit where that ring stays inside your area and clear of every runway,
+// final and landing circle there can be, and of the apron, at least 150 apart (layout searched once with every runway built:
+// alpha..zulu inside AREA_RADIUS, november and sierra, the nav upgrade's, inside AREA_RADIUS_WIDER). FIXES holds this shift's ones
 const ALL_FIXES = {
-  alpha: [-225, -195],
-  bravo: [280, -110],
-  kilo: [165, 255],
-  zulu: [-200, 230],
-  november: [0, -385],
-  sierra: [0, 385],
+  alpha: [-160, -255],
+  bravo: [160, -255],
+  kilo: [0, 305],
+  zulu: [0, -305],
+  november: [-370, -105],
+  sierra: [370, -105],
 };
 // helipads, bought with the helipad upgrade in this order: a helicopter lands on one and departs from one, never using a
-// runway. Each sits where it is clear of every runway, final, landing circle, holding fix and the apron (layout searched
-// once with every runway built), {name: [x, y] from the airport centre}
+// runway. They sit in the angles between the legs of the crossing runways (the X): east, west, and the one facing the
+// parallel runway, {name: [x, y] from the airport centre}
 const ALL_HELIPADS = {
-  hotel: [290, 150],
-  india: [230, -220],
-  oscar: [-70, 100],
+  hotel: [40, 80],
+  oscar: [-40, 80],
+  india: [0, 130],
 };
 const HELIPAD_RADIUS = 9; // px: a helipad's drawn size (225 m across, with its safety area)
 const HELI_SHARE_PER_PAD = 0.12; // each helipad makes this share of the new traffic a helicopter arriving (3 pads: 36%), as
@@ -420,10 +423,10 @@ const NORMAL_UPGRADES = {
     what: 'more room, more holds, then the autopilot',
   },
   runway: {
-    tiers: ['tighter timing', 'perfect timing', 'runway N-S', 'runway NE-SW', 'runway NW-SE'],
-    what: 'departures and arrivals share the runway closer, then more runways',
+    tiers: ['tighter timing', 'perfect timing', 'parallel runway', 'crossing runway NW-SE', 'crossing runway NE-SW'],
+    what: 'departures and arrivals share the runway closer, then a parallel runway, then two crossing ones',
   },
-  helipad: {tiers: ['helipad hotel', 'helipad india', 'helipad oscar'], what: 'helicopters: they pay the most, land on a pad'},
+  helipad: {tiers: ['helipad hotel', 'helipad oscar', 'helipad india'], what: 'helicopters: they pay the most, land on a pad'},
 };
 // hard mode keeps its own tokens and upgrades: no autopilot and no timing help, the runways cheaper
 const HARD_UPGRADES = {
@@ -894,24 +897,30 @@ function startShift(practice = false, daily = false, hard = false) {
       runways: hard ? progress.runway : Math.max(0, progress.runway - 2),
       helipads: progress.helipad,
     });
-  // the main runway east-west through the centre and the ones the upgrade adds, apart from it and each other (none shares
-  // tarmac, no final crosses a runway); each with a landing circle off both ends (dir +1: landing the runway's forward way,
+  // the main runway east-west through the centre and the ones the upgrade adds (a parallel one, then two crossing each
+  // other; no final crosses a runway); each with a landing circle off both ends (dir +1: landing the runway's forward way,
   // from the circle behind its start), named for where it lies
   RUNWAYS = [
     {x: AIRPORT_X, y: AIRPORT_Y, forwardHeading: 0},
-    ...EXTRA_RUNWAYS.slice(0, rules.runways).map(([x, y, forwardHeading]) => ({
+    ...EXTRA_RUNWAYS.slice(0, rules.runways).map(([x, y, forwardHeading, crossing]) => ({
       x: AIRPORT_X + x,
       y: AIRPORT_Y + y,
       forwardHeading: forwardHeading,
+      crossing,
     })),
   ].map((runway, i) => ({...runway, index: i, wakeRestLeft: 0}));
   CIRCLES = {};
   for (const runway of RUNWAYS)
     for (const direction of [1, -1]) {
       const landHeading = normaliseAngle(runway.forwardHeading + (direction > 0 ? 0 : Math.PI)),
-        circleCentre = runwayPoint(runway, -direction * (RUNWAY_HALF_LENGTH + CIRCLE_DISTANCE)),
-        runwayEnd = runwayPoint(runway, -direction * RUNWAY_HALF_LENGTH);
-      CIRCLES[compassWordOf(landHeading + Math.PI)] = {
+        circleCentre = runwayPoint(
+          runway,
+          -direction * (RUNWAY_HALF_LENGTH + (runway.crossing ? CROSSING_CIRCLE_DISTANCE : CIRCLE_DISTANCE)),
+        ),
+        runwayEnd = runwayPoint(runway, -direction * RUNWAY_HALF_LENGTH),
+        compassName = compassWordOf(landHeading + Math.PI);
+      // named for where it lies; the parallel runway's circles lie where the main one's do: west 2, east 2
+      CIRCLES[CIRCLES[compassName] ? compassName + ' 2' : compassName] = {
         x: circleCentre.x,
         y: circleCentre.y,
         runwayDir: direction,
@@ -1393,16 +1402,23 @@ function runwayDoneIn(plane) {
   if (plane.state === 'final') return timeToTouchdown(plane) + ROLLOUT_TIME;
   return 0;
 }
-// the arrivals on final to a runway
-const arrivalsOnFinal = runway => game.planes.filter(plane => plane.state === 'final' && plane.runway === runway);
+// do two runways share tarmac: the same runway, or two crossing ones (a plane on either keeps both busy)
+const sharesTarmac = (first, second) => !!first && (first === second || (first.crossing && second.crossing));
+// the rest left after a heavy on a runway or one crossing it
+const wakeRestOn = runway => Math.max(...RUNWAYS.filter(other => sharesTarmac(other, runway)).map(other => other.wakeRestLeft));
+// the arrivals on final to a runway, or to one crossing it
+const arrivalsOnFinal = runway =>
+  game.planes.filter(plane => plane.state === 'final' && sharesTarmac(plane.runway, runway));
 // may a departure at the holding point of runway r line up now (with timing), and may a lined-up one roll?
 const departureFits = (departure, runway) =>
-  !runway.wakeRestLeft &&
+  !wakeRestOn(runway) &&
   !game.planes.some(
-    other => other !== departure && other.runway === runway && ['enter', 'roll', 'rollout'].includes(other.state),
+    other =>
+      other !== departure && sharesTarmac(other.runway, runway) && ['enter', 'roll', 'rollout'].includes(other.state),
   ) &&
   arrivalsOnFinal(runway).every(
     other =>
+      other.runway === runway &&
       other.runwayDir === CIRCLES[departure.takeoffEnd].runwayDir &&
       timeToTouchdown(other) >= TIMING_FACTOR[rules.timing] * (LINE_UP_TIME + takeoffRunTime(departure) + RUNWAY_MARGIN),
   ) &&
@@ -1410,44 +1426,47 @@ const departureFits = (departure, runway) =>
     other =>
       other.cleared &&
       (other.inCircle || other.autoCircle) &&
-      CIRCLES[other.inCircle || other.autoCircle].runway === runway &&
-      CIRCLES[other.inCircle || other.autoCircle].runwayDir !== CIRCLES[departure.takeoffEnd].runwayDir,
-  ); // one cleared to land towards it: wait
+      sharesTarmac(CIRCLES[other.inCircle || other.autoCircle].runway, runway) &&
+      (CIRCLES[other.inCircle || other.autoCircle].runway !== runway ||
+        CIRCLES[other.inCircle || other.autoCircle].runwayDir !== CIRCLES[departure.takeoffEnd].runwayDir),
+  ); // one cleared to land towards it, or onto the runway crossing it: wait
 const takeoffRollFits = departure =>
-  !departure.runway.wakeRestLeft &&
+  !wakeRestOn(departure.runway) &&
   arrivalsOnFinal(departure.runway).every(
     arrival =>
+      arrival.runway === departure.runway &&
       arrival.runwayDir === CIRCLES[departure.takeoffEnd].runwayDir &&
       timeToTouchdown(arrival) >= TIMING_FACTOR[rules.timing] * (takeoffRunTime(departure) + RUNWAY_MARGIN),
   );
-// may an arrival start a final of t game s onto runway r now?
+// may an arrival start a final of t game s onto runway r now? (traffic on a crossing runway must be done with it first)
 const arrivalFits = (arrival, runway, finalSeconds, direction) =>
   !rules.timing
     ? !runwayBusy(runway)
-    : runway.wakeRestLeft * TIMING_FACTOR[rules.timing] <= finalSeconds &&
+    : wakeRestOn(runway) * TIMING_FACTOR[rules.timing] <= finalSeconds &&
       game.planes.every(
         other =>
           other === arrival ||
-          other.runway !== runway ||
+          !sharesTarmac(other.runway, runway) ||
           !RUNWAY_STATES.includes(other.state) ||
-          ((other.kind === 'arr' ? other.runwayDir : CIRCLES[other.takeoffEnd].runwayDir) === direction &&
+          ((other.runway !== runway ||
+            (other.kind === 'arr' ? other.runwayDir : CIRCLES[other.takeoffEnd].runwayDir) === direction) &&
             TIMING_FACTOR[rules.timing] * (runwayDoneIn(other) + RUNWAY_MARGIN) <= finalSeconds),
       );
 // the pictogram's size: small on the ground, a little bigger the higher it flies (drawn eased, see p.vs)
 const drawSizeFor = plane =>
   (onGround(plane) ? DRAW_SIZE_GROUND : DRAW_SIZE_LOW + plane.level * DRAW_SIZE_PER_LEVEL) * plane.type.drawScale;
-// the plane using a runway now, if any (any runway when none is given), and whether the runway is busy: a plane on it
-// or its rest after a heavy
+// the plane using a runway now (or one crossing it), if any (any runway when none is given), and whether the runway is
+// busy: a plane on it or on one crossing it, or the rest after a heavy
 const runwayUser = runway =>
-  game.planes.find(plane => RUNWAY_STATES.includes(plane.state) && (!runway || plane.runway === runway));
-const runwayBusy = runway => !!runwayUser(runway) || runway.wakeRestLeft > 0;
+  game.planes.find(plane => RUNWAY_STATES.includes(plane.state) && (!runway || sharesTarmac(plane.runway, runway)));
+const runwayBusy = runway => !!runwayUser(runway) || wakeRestOn(runway) > 0;
 // arrivals first: a departure enters the runway only while no arrival is cleared to land on it (one waiting for the wind to
 // turn back does not count, it cannot land yet)
 const arrivalClearedFor = runway =>
   game.planes.some(plane => {
     if (!plane.cleared || (plane.inCircle && hasTailwind(plane.inCircle))) return false;
     const circleName = plane.inCircle || plane.autoCircle;
-    return !circleName || CIRCLES[circleName].runway === runway;
+    return !circleName || sharesTarmac(CIRCLES[circleName].runway, runway);
   });
 // which way down the runway suits a departure: the wind decides while it blows, else the end that points closest to where
 // it wants to go
@@ -1811,10 +1830,14 @@ function followLine(plane, x, y, lineHeading, curvature) {
 const separationNeeded = (first, second) => SEPARATION + (first.type.heavyWake || second.type.heavyWake ? WAKE_EXTRA : 0);
 // the wind as a compass letter, E or W, for messages and labels
 const windWord = () => (game.windDir > 0 ? 'E' : 'W');
-// runway names as painted on them: the heading in tens of degrees, 09 heading east, 27 heading west
+// runway names as painted on them: the heading in tens of degrees, 09 heading east, 27 heading west; of two parallel ones the
+// left one (seen landing that way) is L, the other R
 const runwayName = (runway, direction) => {
-  const degrees = (((((runway.forwardHeading + (direction > 0 ? 0 : Math.PI)) * 180) / Math.PI + 90) % 360) + 360) % 360;
-  return String(Math.round(degrees / 10) || 36).padStart(2, '0');
+  const landHeading = runway.forwardHeading + (direction > 0 ? 0 : Math.PI),
+    degrees = ((((landHeading * 180) / Math.PI + 90) % 360) + 360) % 360,
+    twin = RUNWAYS.find(other => other !== runway && other.forwardHeading === runway.forwardHeading),
+    leftOfTwin = twin && (runway.x - twin.x) * Math.sin(landHeading) - (runway.y - twin.y) * Math.cos(landHeading) > 0;
+  return String(Math.round(degrees / 10) || 36).padStart(2, '0') + (twin ? (leftOfTwin ? 'L' : 'R') : '');
 };
 // a heading as a pilot hears it: three digits, in fives, 360 for north (090 is east)
 const headingNumber = heading =>
@@ -2908,7 +2931,7 @@ function hintFor(name) {
   if (plane.state === 'taxi')
     return `${plane.name} ${plane.atGate ? 'waits at its gate for the apron to clear' : 'is taxiing to the holding point'}${plane.givenTurn ? '' : ` · you can already give it ${plane.name} turn ${shortWayUpper(plane.exitWay)}`}`;
   if (plane.state === 'lineup')
-    return `${plane.name} waits at the holding point until ${rules.timing ? 'there is a gap before the next arrival' : 'the runway is free and no arrival is cleared to land'}${plane.runway.wakeRestLeft > 0 ? ' (wake turbulence behind a heavy)' : ''}`;
+    return `${plane.name} waits at the holding point until ${rules.timing ? 'there is a gap before the next arrival' : 'the runway is free and no arrival is cleared to land'}${wakeRestOn(plane.runway) > 0 ? ' (wake turbulence behind a heavy)' : ''}`;
   if (plane.state === 'rollout') return `${plane.name} is rolling out: the runway is busy until it turns off`;
   if (plane.state === 'taxiin') return `${plane.name} is taxiing in to the apron`;
   if (plane.state === 'roll')
@@ -4521,9 +4544,13 @@ function drawRadar() {
     setFont(10, 700);
     ctx.fillStyle = colour;
     ctx.fillText('H', pad.x, pad.y + 0.5);
+    // its name on its outer side, clear of the runway legs around it (below it when it sits on the airport's centre line)
     setFont(10.5, 500);
     ctx.fillStyle = 'rgba(211,234,217,.55)';
-    ctx.fillText(name.toUpperCase(), pad.x, pad.y + HELIPAD_RADIUS + 10);
+    const side = Math.sign(pad.x - AIRPORT_X);
+    ctx.textAlign = side > 0 ? 'left' : side < 0 ? 'right' : 'center';
+    ctx.fillText(name.toUpperCase(), pad.x + side * (HELIPAD_RADIUS + 5), pad.y + (side ? 0.5 : HELIPAD_RADIUS + 10));
+    ctx.textAlign = 'center';
   }
   // extended centrelines and the landing circles: bright while an arrival is inside, chevrons for the way to face, dim while a storm closes them
   for (const runway of RUNWAYS) {
@@ -4620,7 +4647,7 @@ function drawRadar() {
     }
   ctx.lineWidth = 7;
   for (const circle of Object.values(CIRCLES))
-    if (circle.runway.index > 0) {
+    if (circle.runway.forwardHeading !== 0) {
       const holdX = circle.endX - circle.dirX * 16,
         holdY = circle.endY - circle.dirY * 16;
       ctx.beginPath();
@@ -4688,15 +4715,17 @@ function drawRadar() {
       }
     setGlow('', 0);
     ctx.restore();
-    // its status under it, and on the main runway with wind: the end departures roll from, gold arrows pointing the way they take off
+    // its status under it (not for the crossing runways: their legs and helipads leave no room, their lights say it), and
+    // on the main runway with wind: the end departures roll from, gold arrows pointing the way they take off
     setFont(11, 500);
     ctx.fillStyle = busy ? '#f2a03c' : '#4f9a70';
     const statusAt = runwayPoint(runway, 0, 22);
-    ctx.fillText(
-      `runway ${onRunway ? `busy · ${onRunway.name}` : runway.wakeRestLeft > 0 ? `wake ${Math.ceil(runway.wakeRestLeft)} s` : 'free'}`,
-      statusAt.x,
-      statusAt.y,
-    );
+    if (!runway.crossing)
+      ctx.fillText(
+        `runway ${onRunway ? `busy · ${onRunway.name}` : runway.wakeRestLeft > 0 ? `wake ${Math.ceil(runway.wakeRestLeft)} s` : 'free'}`,
+        statusAt.x,
+        statusAt.y,
+      );
     if (windBlowing() && runway.index === 0) {
       const upwind = -game.windDir,
         arrowsX = AIRPORT_X + upwind * (RUNWAY_HALF_LENGTH + 44);
