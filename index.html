@@ -104,6 +104,7 @@ main{flex:1;min-height:0;display:flex}
 <section class="pg"><h2>Traffic</h2><table>
 <tr><td>blue planes</td><td><b>Arrivals.</b> They come in high: bring them down to low, into a landing circle, and clear them to land.</td></tr>
 <tr><td>gold planes</td><td><b>Departures.</b> Each wants to leave through one of 8 slices of your area (the gold one). Take it off the runway way closest to it, then turn it that way before it reaches the edge.</td></tr>
+<tr><td>helicopters</td><td>With the <b>helipad</b> upgrade. They fly at low only and use a helipad (H), never a runway: <b>owl land</b> sends one to the nearest free pad (<b>owl land india</b>: that one), where it hovers in and sets down; <b>kite takeoff</b> lifts one off its pad and out its own way. One per pad at a time (amber while taken).</td></tr>
 <tr><td>purple planes</td><td><b>Overflights</b> from the neighbouring sector, after 10 planes. They cross in a straight line: keep them apart and let them leave through their slice.</td></tr>
 <tr><td>types</td><td>told apart by the pictogram: <b>prop</b> slow, turns tight · <b>jet</b> · <b>bizjet</b> fast, climbs quickly · <b>heavy</b> and <b>cargo</b> big, turn wide, climb slowly, need more room, and the runway rests after them (wake) · <b>MIL</b> fighters (white star by the name), fast and tight-turning</td></tr>
 <tr><td>priority</td><td><b>VIP</b> private jets (gold star by the name) and <b>MEDEVAC</b> air ambulances (blue cross by the name) go first both ways: an arrival lands within 2 minutes, a departure is rolling within 50 s, not counting its taxi (the clock by its name), or it is a strike. While one waits, other planes of its kind may not land or take off (a MAYDAY may).</td></tr>
@@ -116,9 +117,9 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>readback</td><td>A pilot sometimes mishears: the reply shows what it understood. Say it again.</td></tr>
 </table></section>
 <section class="pg"><h2>Money</h2><table>
-<tr><td>money</td><td>Every plane pays its fare: prop $400, jet $1,000, heavy $1,600, fighter $1,500, private jet $4,000, air ambulance $3,500. It loses 1% per second beyond par (down to 10%); late priority flights pay a quarter. A <b>streak</b> (planes in a row without a strike) adds 10% a plane, up to +50%.</td></tr>
+<tr><td>money</td><td>Every plane pays its fare: prop $400, jet $1,000, heavy $1,600, fighter $1,500, private jet $4,000, air ambulance $3,500, helicopter $2,500. It loses 1% per second beyond par (down to 10%); late priority flights pay a quarter. A <b>streak</b> (planes in a row without a strike) adds 10% a plane, up to +50%.</td></tr>
 <tr><td>shift</td><td>One shift that never ends: the first five planes in slow motion, the traffic growing for 15 minutes. It pays a token per $1,000 when it ends.</td></tr>
-<tr><td>buy</td><td>Upgrades for every later shift, one step at a time (10, 20, 50, 100, 200 tokens): <b>tanks</b> +20 s fuel a step · <b>patience</b> +20 s departure patience a step · <b>height</b> levels lm 4000, mh 6000, ht 8000, top 9000, peak 10000 · <b>nav</b> a wider area, holds NOVEMBER and SIERRA, then departures fly out alone and arrivals find a landing circle by themselves · <b>runway</b> tighter, then perfect timing (a departure rolls in the gap before an arrival, an arrival starts its final while the runway is still in use), then runways N-S, NE-SW and NW-SE, each its own (the view zooms out to fit them).</td></tr>
+<tr><td>buy</td><td>Upgrades for every later shift, one step at a time (10, 20, 50, 100, 200 tokens): <b>tanks</b> +20 s fuel a step · <b>patience</b> +20 s departure patience a step · <b>height</b> levels lm 4000, mh 6000, ht 8000, top 9000, peak 10000 · <b>nav</b> a wider area, holds NOVEMBER and SIERRA, then departures fly out alone and arrivals find a landing circle by themselves · <b>runway</b> tighter, then perfect timing (a departure rolls in the gap before an arrival, an arrival starts its final while the runway is still in use), then runways N-S, NE-SW and NW-SE, each its own (the view zooms out to fit them) · <b>helipad</b> helipads HOTEL, INDIA, OSCAR: helicopters join the traffic, more with every pad.</td></tr>
 <tr><td>daily · hard</td><td><b>daily</b>: today's shift, the same for everyone, no upgrades. <b>hard</b> (after a $10,000 shift): a game of its own, with its own best, tokens and upgrades (<b>normal</b> goes back; the app opens in the one you played last); no autopilot and no runway timing (nav stops after SIERRA, runway is only the three runways, for 10, 20 and 50); <b>land</b> only once you have flown the plane onto the lit strip yourself, low and facing the runway, and <b>hold alpha</b> only at ALPHA.</td></tr>
 </table></section>
 <section class="pg"><h2 id="acdata">Aircraft</h2><div id="actable"></div></section>
@@ -132,7 +133,7 @@ main{flex:1;min-height:0;display:flex}
          to low, into a landing circle off a runway end, and clear them to land. Departures wait in the READY list: take
          them off and turn them to the slice of the edge they want to leave through. Overflights cross your area. Two
          planes less than 400 ft apart in height and too close is a strike; three strikes end the shift. Every plane pays
-         a fare, a shift pays tokens, tokens buy upgrades (more levels, more room, timing help, more runways).
+         a fare, a shift pays tokens, tokens buy upgrades (more levels, more room, timing help, more runways, helipads).
    WHY   A game about calm planning under growing pressure: realistic distances, speeds and turns, simple orders.
    HOW   One file, no libraries. Every step of game time (advanceWorld) moves traffic, weather and planes; every screen
          frame draws the radar (drawRadar) and the panels around it. Typed words are read as their most likely meaning
@@ -259,7 +260,11 @@ const TYPES={
   medevac:{tag:'MEDEVAC',fare:3500,priority:1,model:'Learjet 45 air ambulance',role:'air ambulance',knotsAtLevels:[200,235,265,285,300],approachKt:125,ceilingRow:2,turnDegreesPerSecond:5.5,climbFeetPerMinute:3500,takeoffAcceleration:3,heavyWake:0,drawScale:.85,reserveSeconds:200,
     maxTakeoffTonnes:9.75,emptyTonnes:6.1,wingspanMetres:14.6,lengthMetres:17.7,cruiseKnots:457,tankKg:2740,burnKgPerHour:700},
   military:{tag:'MIL',fare:1500,model:'Eurofighter Typhoon',role:'fighter',knotsAtLevels:[250,300,350,380,400],approachKt:150,ceilingRow:4,turnDegreesPerSecond:9,climbFeetPerMinute:8000,takeoffAcceleration:6,heavyWake:0,drawScale:.8,reserveSeconds:160,
-    maxTakeoffTonnes:23.5,emptyTonnes:11,wingspanMetres:10.95,lengthMetres:15.96,cruiseKnots:540,tankKg:4996,burnKgPerHour:3000}};
+    maxTakeoffTonnes:23.5,emptyTonnes:11,wingspanMetres:10.95,lengthMetres:15.96,cruiseKnots:540,tankKg:4996,burnKgPerHour:3000},
+  // helicopters (heli) come only with the helipad upgrade, never by TYPE_MIX: they fly at low only, land on a helipad, not a
+  // runway, and pay well (wingspan: the rotor's diameter)
+  heli:{tag:'heli',fare:2500,heli:1,model:'Airbus H145',role:'helicopter',knotsAtLevels:[130,130,130,130,130],approachKt:60,ceilingRow:0,turnDegreesPerSecond:12,climbFeetPerMinute:1500,takeoffAcceleration:2,heavyWake:0,drawScale:1.3,reserveSeconds:200,
+    maxTakeoffTonnes:3.8,emptyTonnes:1.92,wingspanMetres:11,lengthMetres:13.6,cruiseKnots:132,tankKg:723,burnKgPerHour:250}};
 const TYPE_MIX = {light: 0.22, bizjet: 0.13, jet: 0.36, heavy: 0.12, cargo: 0.1, vip: 0.05, medevac: 0.04, military: 0.04}; // how often each type shows up (once types are on)
 // --- traffic: where and how new planes appear ---
 const SPAWN_EDGE_INSET = 6; // px: new planes appear this far inside the edge of your area
@@ -350,6 +355,23 @@ const ALL_FIXES = {
   november: [0, -385],
   sierra: [0, 385],
 };
+// helipads, bought with the helipad upgrade in this order: a helicopter lands on one and departs from one, never using a
+// runway. Each sits where it is clear of every runway, final, landing circle, holding fix and the apron (layout searched
+// once with every runway built), {name: [x, y] from the airport centre}
+const ALL_HELIPADS = {
+  hotel: [290, 150],
+  india: [230, -220],
+  oscar: [-70, 100],
+};
+const HELIPAD_RADIUS = 9; // px: a helipad's drawn size (225 m across, with its safety area)
+const HELI_SHARE_PER_PAD = 0.12; // each helipad makes this share of the new traffic helicopters (3 pads: 36%)
+const HELI_DEPARTURE_SHARE = 0.5; // of those, this share are departures waiting on a free pad
+const HELI_OVER_PAD = 8; // px: this close to its pad (200 m) it hovers onto the pad's centre and sets down; flying there it
+// slows down in time to arrive at walking pace, and slower still while it has much to turn
+const HELI_SET_DOWN_SECONDS = 6,
+  HELI_LIFT_SECONDS = 6; // game s to set down on a pad from low, and to lift off it up to low
+const HELI_PARKED_SECONDS = 10; // game s a landed helicopter stays on its pad (the pad stays taken) before it is towed away
+const HELI_ROTOR_TURNS = 3; // rotor turns per game s as drawn (still while waiting on a pad, slowing to a stop once parked)
 // the fare: each type pays its own (pay); it loses 1% for every second beyond par (from appearing to landing or hand-off), down to 10%.
 // Par is about what a plane takes flown well with the sky to itself (measured: arrivals 49-101 game s, departures 60-76)
 const PAR_TIME = {arr: 90, dep: 75, ovf: 40};
@@ -370,6 +392,7 @@ const BASE_RULES = {
   ovf: false,
   extraFuelSeconds: 0,
   extraPatienceSeconds: 0,
+  helipads: 0,
 };
 // the shift switches every rule on from the start. Its first planes come in slow motion (WARMUP_*)
 const SHIFT_RULES = {types: true, fuel: true, readback: 0.06, wind: true, storms: 1, ovf: true};
@@ -399,6 +422,7 @@ const NORMAL_UPGRADES = {
     tiers: ['tighter timing', 'perfect timing', 'runway N-S', 'runway NE-SW', 'runway NW-SE'],
     what: 'departures and arrivals share the runway closer, then more runways',
   },
+  helipad: {tiers: ['helipad hotel', 'helipad india', 'helipad oscar'], what: 'helicopters: they pay the most, land on a pad'},
 };
 // hard mode keeps its own tokens and upgrades: no autopilot and no timing help, the runways cheaper
 const HARD_UPGRADES = {
@@ -407,6 +431,7 @@ const HARD_UPGRADES = {
   height: NORMAL_UPGRADES.height,
   nav: {tiers: NORMAL_UPGRADES.nav.tiers.slice(0, 3), what: 'more room, more holds'},
   runway: {tiers: NORMAL_UPGRADES.runway.tiers.slice(2), prices: [10, 20, 50], what: 'more runways'},
+  helipad: NORMAL_UPGRADES.helipad,
 };
 
 // --- sound and screen ---
@@ -520,6 +545,14 @@ const levelTyped = typed => {
 };
 // this shift's holding fixes, each {x, y} on screen (alpha..zulu always, november and sierra with the nav upgrade)
 let FIXES = {};
+// this shift's helipads, each {x, y} on screen (as many as the helipad upgrade bought, rules.helipads)
+let HELIPADS = {};
+const placeHelipads = () =>
+  (HELIPADS = Object.fromEntries(
+    Object.entries(ALL_HELIPADS)
+      .slice(0, rules.helipads)
+      .map(([padName, [x, y]]) => [padName, {x: AIRPORT_X + x, y: AIRPORT_Y + y}]),
+  ));
 
 /* =====================================================================================================================
    § 4  SAVING AND THE SHIFT
@@ -799,8 +832,8 @@ if (!storage('tower-money')) {
 }
 // the wallet and upgrades of the mode being played: META.normal or META.hard (startShift picks)
 const PROGRESS = {
-  normal: {tokens: 0, height: 0, runway: 0, nav: 0, tanks: 0, patience: 0, ...loadJson('tower-meta', {})},
-  hard: {tokens: 0, height: 0, runway: 0, nav: 0, tanks: 0, patience: 0, ...loadJson('tower-meta-hard', {})},
+  normal: {tokens: 0, height: 0, runway: 0, nav: 0, tanks: 0, patience: 0, helipad: 0, ...loadJson('tower-meta', {})},
+  hard: {tokens: 0, height: 0, runway: 0, nav: 0, tanks: 0, patience: 0, helipad: 0, ...loadJson('tower-meta-hard', {})},
 };
 // the progress of the mode being played (normal or hard): tokens and every upgrade's bought steps; saved after every change
 let progress = PROGRESS.normal;
@@ -858,6 +891,7 @@ function startShift(practice = false, daily = false, hard = false) {
       extraPatienceSeconds: EXTRA_PATIENCE_PER_STEP * progress.patience,
       timing: hard ? 0 : Math.min(2, progress.runway),
       runways: hard ? progress.runway : Math.max(0, progress.runway - 2),
+      helipads: progress.helipad,
     });
   // the main runway east-west through the centre and the ones the upgrade adds, apart from it and each other (none shares
   // tarmac, no final crosses a runway); each with a landing circle off both ends (dir +1: landing the runway's forward way,
@@ -902,6 +936,7 @@ function startShift(practice = false, daily = false, hard = false) {
       .slice(0, 4 + Math.max(0, Math.min(2, rules.nav - 1)))
       .map(([fixName, [x, y]]) => [fixName, {x: AIRPORT_X + x, y: AIRPORT_Y + y}]),
   );
+  placeHelipads();
   game = {
     pace: 1,
     time: 0,
@@ -956,16 +991,16 @@ function freeName() {
 // inCircle/autoCircle (the landing circle it is landing in, or flying itself to), approachPath/flown (its line-up path and
 // how far along it is), takeoffEnd/landingEnd (circle names of the runway ends it uses), holdFix/holdCentre, and flags
 function makePlane(fields) {
-  const typeName = game.forceType || (rules.types ? pickRandomType(fields.kind) : 'jet');
+  const typeName = fields.typeName || game.forceType || (rules.types ? pickRandomType(fields.kind) : 'jet');
   const plane = {
     holdFix: null,
     trail: [],
     trailClock: 0,
     bornAt: game.time,
-    typeName,
-    type: TYPES[typeName],
     turnRate: 0,
     ...fields,
+    typeName,
+    type: TYPES[typeName],
   };
   if (plane.speed === undefined) plane.speed = levelSpeed(plane);
   return plane;
@@ -978,8 +1013,9 @@ const approachSpeed = plane => PX_PER_KT * plane.type.approachKt,
 const turnRateOf = plane => degreesToRadians(plane.type.turnDegreesPerSecond) * TIME_SCALE,
   turnRadius = (plane, speed = plane.speed) => speed / turnRateOf(plane);
 // the states of a plane on the ground: waiting in the READY list, taxiing out, waiting at the holding point, entering the
-// runway and lining up, rolling out after landing, taxiing in
-const GROUND_STATES = ['ready', 'taxi', 'lineup', 'enter', 'rollout', 'taxiin'],
+// runway and lining up, rolling out after landing, taxiing in; a helicopter waiting on its pad to depart, or parked on it
+// after landing
+const GROUND_STATES = ['ready', 'taxi', 'lineup', 'enter', 'rollout', 'taxiin', 'onpad', 'parked'],
   onGround = plane => GROUND_STATES.includes(plane.state);
 const goesFirst = (other, plane) =>
   TAXI_RIGHT_OF_WAY[other.state] > TAXI_RIGHT_OF_WAY[plane.state] ||
@@ -1031,7 +1067,7 @@ function spawnDeparture(dest) {
 }
 // a new arrival entering at the edge of your area from a bearing (degrees), heading roughly at the airport (±20°),
 // at high or as high as its type goes, with full tanks
-function spawnArrival(bearing) {
+function spawnArrival(bearing, typeName) {
   const bearingRadians = degreesToRadians(bearing),
     x = AIRPORT_X + Math.cos(bearingRadians) * (areaRadius - SPAWN_EDGE_INSET),
     y = AIRPORT_Y + Math.sin(bearingRadians) * (areaRadius - SPAWN_EDGE_INSET),
@@ -1039,12 +1075,39 @@ function spawnArrival(bearing) {
   const name = freeName();
   if (!name) return;
   sound.contact();
-  const plane = makePlane({name, kind: 'arr', state: 'fly', x, y, heading: heading, targetHeading: heading});
+  const plane = makePlane({name, kind: 'arr', typeName, state: 'fly', x, y, heading: heading, targetHeading: heading});
   plane.level = plane.targetLevel = plane.levelFrom = Math.min(ARRIVE_LEVEL, highestLevel(plane));
   plane.speed = levelSpeed(plane); // in high, or as high as its type goes
   plane.fuel = plane.fuelFull = rules.fuel ? plane.type.reserveSeconds + rules.extraFuelSeconds : Infinity; // it enters with full tanks
   if (plane.type.priority) plane.patience = plane.patienceFull = PRIORITY_ARRIVAL_SECONDS;
   game.planes.push(plane);
+}
+// a new helicopter departure, waiting on a free helipad (none free: none comes), wanting to leave toward a random way
+function spawnHeliDeparture() {
+  const padName = freeHelipads()[(trafficRandom() * freeHelipads().length) | 0],
+    name = freeName();
+  if (!padName || !name) return false;
+  sound.contact();
+  const pad = HELIPADS[padName],
+    plane = makePlane({
+      name,
+      kind: 'dep',
+      typeName: 'heli',
+      exitWay: COMPASS_WORDS[(trafficRandom() * 8) | 0],
+      state: 'onpad',
+      pad: padName,
+      x: pad.x,
+      y: pad.y,
+      heading: -Math.PI / 2,
+      targetHeading: -Math.PI / 2,
+      level: -1,
+      targetLevel: -1,
+      levelFrom: -1,
+      speed: 0,
+    });
+  plane.patience = plane.patienceFull = rules.fuel ? plane.type.reserveSeconds + rules.extraPatienceSeconds : Infinity;
+  game.planes.push(plane);
+  return true;
 }
 // an overflight from the neighbouring sector: crosses your area in a straight line, to leave through the slice it is aimed at
 function spawnOverflight(bearing) {
@@ -1100,7 +1163,7 @@ function stormInSlice(bearing) {
 }
 // an arrival or overflight enters at a random point of the edge, away from other traffic if it can, and never through a
 // slice with a storm in it; false when every slice has one (try again later)
-function spawnPlane(kind) {
+function spawnPlane(kind, typeName) {
   if (kind === 'dep') {
     spawnDeparture(Object.keys(HEADINGS)[(trafficRandom() * 8) | 0]);
     return true;
@@ -1115,11 +1178,12 @@ function spawnPlane(kind) {
     if (!game.planes.some(plane => !onGround(plane) && Math.hypot(plane.x - x, plane.y - y) < SPAWN_CLEAR_DISTANCE)) break;
   }
   if (spot === null) return false;
-  kind === 'ovf' ? spawnOverflight(spot) : spawnArrival(spot);
+  kind === 'ovf' ? spawnOverflight(spot) : spawnArrival(spot, typeName);
   return true;
 }
 // planes still to handle: in the air (not yet landed), or departures that have not left
-const activePlaneCount = () => game.planes.filter(plane => plane.state !== 'rollout' && plane.state !== 'taxiin').length;
+const activePlaneCount = () =>
+  game.planes.filter(plane => plane.state !== 'rollout' && plane.state !== 'taxiin' && plane.state !== 'parked').length;
 // game s until the next plane in the shift, for how busy it is now and how long the shift has run
 function secondsToNextPlane() {
   const active = activePlaneCount();
@@ -1128,9 +1192,14 @@ function secondsToNextPlane() {
   return Math.max(TRAFFIC_EMPTY, Math.min(TRAFFIC_LONGEST_GAP, TRAFFIC_GAP * TRAFFIC_BUSY ** (active - expected)));
 }
 // a random new plane for the shift: an overflight (once they are on), a departure (unless three are already waiting) or an
-// arrival
+// arrival. With helipads, a share of them are helicopters instead: a departure on a free pad, or an arrival
 function spawnRandomPlane() {
   const roll = trafficRandom();
+  if (rules.helipads && trafficRandom() < HELI_SHARE_PER_PAD * rules.helipads) {
+    if (trafficRandom() < HELI_DEPARTURE_SHARE && spawnHeliDeparture()) return;
+    spawnPlane('arr', 'heli');
+    return;
+  }
   spawnPlane(
     game.overflightsOn && roll < OVERFLIGHT_SHARE
       ? 'ovf'
@@ -1280,6 +1349,18 @@ function taxiAlong(plane, seconds) {
 function removePlane(plane) {
   game.planes = game.planes.filter(other => other !== plane);
 }
+// helipads: a pad is taken by the helicopter flying to it, setting down on it or parked on it, or waiting on it to depart
+// and lifting off it. One helicopter at a time per pad
+const HELIPAD_STATES = ['topad', 'padland', 'parked', 'onpad', 'liftoff'];
+const helipadUser = padName => game.planes.find(plane => plane.pad === padName && HELIPAD_STATES.includes(plane.state)),
+  freeHelipads = () => Object.keys(HELIPADS).filter(padName => !helipadUser(padName));
+// the free helipad nearest to a helicopter, if any
+const nearestFreeHelipad = plane =>
+  freeHelipads().sort(
+    (first, second) =>
+      Math.hypot(HELIPADS[first].x - plane.x, HELIPADS[first].y - plane.y) -
+      Math.hypot(HELIPADS[second].x - plane.x, HELIPADS[second].y - plane.y),
+  )[0];
 // the states in which a plane uses a runway: landing on final, entering it, rolling for takeoff, rolling out after landing
 const RUNWAY_STATES = ['final', 'enter', 'roll', 'rollout'];
 // runway timing (the runway upgrade). doneIn: game s until a plane on the runway is done with it (a departure entering or
@@ -1852,6 +1933,7 @@ function bringTraffic(seconds) {
 // one tick of one plane: its clocks, then on the ground, rolling or in the air, then moving on
 function updatePlane(plane, seconds) {
   if (!runClocks(plane, seconds)) return;
+  if (plane.type.heli && flyHelicopter(plane, seconds)) return;
   if (moveOnGround(plane, seconds)) return;
   if (plane.state === 'roll') takeoffRun(plane, seconds);
   else if (plane.state === 'rollout') {
@@ -1901,7 +1983,7 @@ function runClocks(plane, seconds) {
       showReply(`!${plane.type.tag} ${plane.name}: ${Math.ceil(plane.patience)} s left to land it`);
     }
   }
-  if (plane.kind === 'arr' && plane.state !== 'final' && plane.state !== 'rollout') {
+  if (plane.kind === 'arr' && !['final', 'rollout', 'padland', 'parked'].includes(plane.state)) {
     plane.fuel -= seconds;
     if (plane.fuel <= 0) {
       removePlane(plane);
@@ -1971,6 +2053,64 @@ function moveOnGround(plane, seconds) {
     startRoll(plane);
   }
   return false;
+}
+// the heading from a plane to the middle of a way's slice at the edge of your area (a helicopter leaving from a pad far
+// from the centre must aim there, not just fly that way)
+const headingToSlice = (plane, way) => {
+  const bearing = degreesToRadians(HEADINGS[way]);
+  return Math.atan2(AIRPORT_Y + Math.sin(bearing) * areaRadius - plane.y, AIRPORT_X + Math.cos(bearing) * areaRadius - plane.x);
+};
+// a helicopter at its pad: waiting on it, lifting off it straight up to low (turning on the spot, then speeding up toward
+// where it was sent), flying to it (hovering in, slower the closer it is and the more it still has to turn), setting down
+// on it (it pays then), parked on it. Elsewhere it flies like any plane. True when its tick ends here
+function flyHelicopter(plane, seconds) {
+  const pad = HELIPADS[plane.pad],
+    rotorSpin =
+      plane.state === 'onpad'
+        ? 0
+        : plane.state === 'parked'
+          ? plane.parkedLeft / HELI_PARKED_SECONDS
+          : plane.state === 'liftoff'
+            ? Math.min(1, 0.3 + plane.level + 1)
+            : 1;
+  plane.rotorAngle = ((plane.rotorAngle || 0) + seconds * 2 * Math.PI * HELI_ROTOR_TURNS * rotorSpin) % (2 * Math.PI);
+  if (plane.state === 'onpad') return true;
+  if (plane.state === 'parked') {
+    if ((plane.parkedLeft -= seconds) <= 0) removePlane(plane);
+    return true;
+  }
+  if (plane.state === 'liftoff') {
+    plane.level = Math.min(0, plane.level + seconds / HELI_LIFT_SECONDS);
+    turnToward(plane, null, seconds);
+    plane.speed = levelSpeed(plane) * (plane.level + 1) ** 2;
+    if (plane.level >= 0) plane.state = 'fly';
+  } else if (plane.state === 'topad') {
+    const distance = Math.hypot(pad.x - plane.x, pad.y - plane.y);
+    plane.targetHeading = Math.atan2(pad.y - plane.y, pad.x - plane.x);
+    turnToward(plane, null, seconds);
+    const stillToTurn = Math.cos(normaliseAngle(plane.targetHeading - plane.heading)),
+      wantedSpeed =
+        Math.min(levelSpeed(plane), 1 + Math.sqrt(2 * AIR_ACCEL_PX * Math.max(0, distance - HELI_OVER_PAD))) *
+        Math.max(0.2, stillToTurn);
+    plane.speed += Math.max(-AIR_ACCEL_PX * seconds, Math.min(AIR_ACCEL_PX * seconds, wantedSpeed - plane.speed));
+    if (distance < HELI_OVER_PAD) {
+      plane.state = 'padland';
+      plane.speed = 0;
+    }
+  } else if (plane.state === 'padland') {
+    plane.x += (pad.x - plane.x) * Math.min(1, 2 * seconds);
+    plane.y += (pad.y - plane.y) * Math.min(1, 2 * seconds);
+    plane.level = plane.targetLevel = Math.max(-1, plane.level - seconds / HELI_SET_DOWN_SECONDS);
+    if (plane.level <= -1) {
+      sound.touchdown();
+      plane.state = 'parked';
+      plane.parkedLeft = HELI_PARKED_SECONDS;
+      payForPlane(plane, '#7ee0a8', `${plane.name} landed on helipad ${plane.pad.toUpperCase()}`, true);
+      return true;
+    }
+  } else return false;
+  moveAhead(plane, seconds);
+  return true;
 }
 // the takeoff run: it lifts off at its rotation speed (a heavy needs more runway), or at the latest at the end of the runway
 function takeoffRun(plane, seconds) {
@@ -2279,6 +2419,7 @@ const distanceFromAirport = plane => Math.hypot(plane.x - AIRPORT_X, plane.y - A
 const shopOpen = () => game.over && !game.practice && !game.daily;
 // what a plane can be ordered to do in the state it is in
 function actionsFor(plane) {
+  if (plane.type.heli) return helicopterActions(plane);
   if (plane.state === 'ready') return ['takeoff'];
   if (plane.state === 'taxi' || plane.state === 'lineup' || plane.state === 'enter' || plane.state === 'roll') return ['turn'];
   if (plane.state === 'final') return ['abort'];
@@ -2292,8 +2433,23 @@ function actionsFor(plane) {
     ...(plane.cleared || plane.state === 'hold' || plane.state === 'tofix' ? ['abort'] : []),
   ];
 }
+// what a helicopter can be ordered to do: lift off its pad; turn once lifting off; in the air turn, hold, land on a pad (an
+// arrival), stop flying to its pad or holding. It stays at low, so no climbing or descending
+function helicopterActions(plane) {
+  if (plane.state === 'onpad') return ['takeoff'];
+  if (plane.state === 'liftoff') return ['turn'];
+  if (plane.state === 'padland' || plane.state === 'parked') return [];
+  return [
+    'turn',
+    'hold',
+    ...(plane.kind === 'arr' && plane.state !== 'topad' ? ['land'] : []),
+    ...(plane.state === 'topad' || plane.state === 'hold' || plane.state === 'tofix' ? ['abort'] : []),
+  ];
+}
 // what can follow an action: where to take off or turn, the levels it can climb or descend to, the fixes it can hold at
 function argumentsFor(plane, action) {
+  if (plane.type.heli && action === 'takeoff') return [];
+  if (plane.type.heli && action === 'land') return Object.keys(HELIPADS);
   if (action === 'takeoff') return takeoffWays();
   if (action === 'turn') return TURN_WORDS;
   if (action === 'ascend')
@@ -2339,6 +2495,7 @@ function isValidOrder(words) {
   const plane = planeNamed(first);
   if (!plane) return true;
   if (!action) return actionsFor(plane).some(next => isValidOrder([first, next]));
+  if (plane.type.heli && action === 'land') return argument ? !helipadUser(argument) : freeHelipads().length > 0;
   if ((action === 'land' || action === 'takeoff') && priorityAhead(plane)) return false;
   if (action === 'land' && game.hard) return manualLandingCircle(plane)[0] !== '!';
   if (action === 'hold' && argument && game.hard) return isNearFix(plane, argument);
@@ -2352,9 +2509,10 @@ function isValidOrder(words) {
   return true;
 }
 // the priority flight that must go before p, if any: a waiting priority departure before other departures, a priority arrival
-// not yet cleared before other arrivals. A MAYDAY, a late one and the priority flights themselves are never held up
+// not yet cleared before other arrivals. A MAYDAY, a late one, the priority flights themselves and helicopters (they use no
+// runway) are never held up
 const priorityAhead = plane =>
-  plane.type.priority || plane.mayday
+  plane.type.priority || plane.mayday || plane.type.heli
     ? null
     : game.planes.find(
         other =>
@@ -2376,7 +2534,7 @@ function orderLevel(plane, level) {
   plane.targetLevel = level;
 }
 // turns a plane toward a compass word or by a relative turn (from where it is heading, or from its last order). A turn
-// ends a hold
+// ends a hold, and a helicopter's flight to its pad
 function steerTo(plane, direction) {
   if (direction in HEADINGS) plane.targetHeading = degreesToRadians(HEADINGS[direction]);
   else
@@ -2384,7 +2542,7 @@ function steerTo(plane, direction) {
       (plane.state === 'hold' ? plane.heading : plane.targetHeading) + degreesToRadians(RELATIVE_TURNS[direction]),
     );
   plane.givenTurn = true;
-  if (plane.state === 'hold' || plane.state === 'tofix') plane.state = 'fly';
+  if (plane.state === 'hold' || plane.state === 'tofix' || plane.state === 'topad') plane.state = 'fly';
 }
 // now and then a pilot mishears: a compass turn 45° off, or the other level in the same direction. The readback shows it.
 const pilotMishears = () => rules.readback && !game.practice && trafficRandom() < rules.readback;
@@ -2450,7 +2608,7 @@ function executeOrder(words) {
   const plane = planeNamed(first),
     name = plane.name;
   if (!action)
-    return plane.state === 'rollout' || plane.state === 'taxiin'
+    return plane.state === 'rollout' || plane.state === 'taxiin' || plane.state === 'parked'
       ? `${name} has landed: nothing to do`
       : `!${name} what? ${actionsFor(plane)
           .filter(next => isValidOrder([name, next]))
@@ -2490,6 +2648,31 @@ function executeOrder(words) {
     plane.holdFix = null;
     plane.holdCentre = spotHoldCentre(plane);
     return `${name}: orbiting right here, until you turn it (or land, inside a landing circle)`;
+  }
+  if (plane.type.heli && action === 'land') {
+    // straight to a helipad (the one named, else the nearest free one), staying at low; it hovers in and sets down there
+    const padName = argument || nearestFreeHelipad(plane);
+    if (!padName) return `!every helipad is taken: ${name} hold until one is free`;
+    const user = helipadUser(padName);
+    if (user && user !== plane) return `!helipad ${padName.toUpperCase()} is taken by ${user.name}`;
+    plane.state = 'topad';
+    plane.pad = padName;
+    plane.holdFix = null;
+    return `${name}: direct helipad ${padName.toUpperCase()} at low, land there`;
+  }
+  if (plane.type.heli && action === 'takeoff') {
+    if (plane.state !== 'onpad') return `!${name} is not waiting on a helipad`;
+    // straight up off its pad to low, then by itself toward where it wants to leave (a turn sends it elsewhere)
+    plane.state = 'liftoff';
+    orderLevel(plane, 0);
+    plane.targetHeading = headingToSlice(plane, plane.exitWay);
+    plane.givenTurn = true;
+    return `${name}: lift off helipad ${plane.pad.toUpperCase()}, then ${shortWayUpper(plane.exitWay)} at low (${LEVEL_FEET[0]} ft)`;
+  }
+  if (plane.type.heli && action === 'abort' && plane.state === 'topad') {
+    plane.state = 'fly';
+    plane.targetHeading = plane.heading;
+    return `${name}: stops flying to helipad ${plane.pad.toUpperCase()}, flying straight ahead`;
   }
   if (((action === 'land' && !plane.cleared) || action === 'takeoff') && priorityAhead(plane))
     return priorityMessage(priorityAhead(plane));
@@ -2680,12 +2863,26 @@ function hintFor(name) {
     // nothing typed: show what the most urgent plane is waiting for (fuel, a level change, the runway…)
     const mostUrgent =
       game.planes.find(mostUrgent => mostUrgent.mayday) ||
-      game.planes.find(mostUrgent => mostUrgent.state !== 'ready') ||
+      game.planes.find(mostUrgent => mostUrgent.state !== 'ready' && mostUrgent.state !== 'parked') ||
       game.planes[0];
     return hintFor(mostUrgent.name);
   }
   const onRunway = runwayUser(),
     fuel = plane.mayday ? `MAYDAY ${Math.ceil(plane.fuel)} s of fuel · ` : '';
+  if (plane.type.heli) {
+    const pad = plane.pad && plane.pad.toUpperCase();
+    if (plane.state === 'onpad')
+      return `${plane.impatient ? `out of patience in ${Math.ceil(plane.patience)} s · ` : ''}${plane.name} waits on helipad ${pad}, wants to leave ${shortWayUpper(plane.exitWay)} → ${plane.name} takeoff`;
+    if (plane.state === 'liftoff')
+      return `${plane.name} is lifting off helipad ${pad}, then flies out ${shortWayUpper(plane.exitWay)} at low`;
+    if (plane.state === 'topad') return `${fuel}${plane.name} is flying to helipad ${pad} at low: keep low traffic clear of it`;
+    if (plane.state === 'padland') return `${plane.name} is setting down on helipad ${pad}`;
+    if (plane.state === 'parked') return `${plane.name} has landed`;
+    if (plane.kind === 'arr' && plane.state !== 'tofix')
+      return freeHelipads().length
+        ? `${fuel}${plane.name} is a helicopter: it lands on a helipad, not a runway → ${plane.name} land`
+        : `${fuel}every helipad is taken: ${plane.name} hold until one is free`;
+  }
   if (plane.state === 'ready')
     return `${plane.impatient ? `out of patience in ${Math.ceil(plane.patience)} s · ` : ''}${plane.name} wants to leave ${shortWayUpper(plane.exitWay)} → ${plane.name} takeoff ${shortWayUpper(bestTakeoffWay(plane.exitWay))} (${windBlowing() ? 'into the wind' : `the runway direction closest to ${shortWayUpper(plane.exitWay)}`})${onRunway ? ` · it waits at the runway end while ${onRunway.name} uses it` : ''}`;
   if (plane.state === 'taxi')
@@ -3228,10 +3425,10 @@ const ADMIN_WORDS = [
 // what admin suggests after each command word (first and second argument)
 const TYPE_NAMES = ['prop', 'bizjet', 'jet', 'heavy', 'cargo', 'vip', 'medevac', 'mil']; // as typed in admin
 // prettier-ignore
-const ADMIN_ARGS={arrival:[[...TYPE_NAMES,'random'],['n','ne','e','se','s','sw','w','nw']],departure:null,overflight:null,
+const ADMIN_ARGS={arrival:[[...TYPE_NAMES,'heli','random'],['n','ne','e','se','s','sw','w','nw']],departure:null,overflight:null,
   approach:[TYPE_NAMES,['0','45','90','135','180','-45','-90','-135']],sweep:[['all',...TYPE_NAMES,'stop'],['30','15','45']],
   arc:[['0','0.25','0.5','0.75','1']],paths:[['on','off']],fuel:[['on','off']],traffic:[['on','off']],wind:[['e','w','auto','off']],storms:[['on','off']],
-  storm:[['n','ne','e','se','s','sw','w','nw']],speed:[['1','2','3','5','10','0.5']],set:[['levels','runways','nav','fuel','types','readback','wind','storms','ovf','tank']]};
+  storm:[['n','ne','e','se','s','sw','w','nw']],speed:[['1','2','3','5','10','0.5']],set:[['levels','runways','nav','fuel','types','readback','wind','storms','ovf','tank','helipads']]};
 ADMIN_ARGS.departure = ADMIN_ARGS.overflight = ADMIN_ARGS.arrival;
 // type words admin understands, and the type each means
 const TYPE_WORDS = {
@@ -3245,6 +3442,7 @@ const TYPE_WORDS = {
   medevac: 'medevac',
   mil: 'military',
   military: 'military',
+  heli: 'heli',
 };
 // a compass word typed in admin (n or north), or null
 const typedCompassWord = typed =>
@@ -3391,6 +3589,12 @@ function adminCommand(typed) {
       const typeName = typedType(second),
         direction = typedCompassWord(third);
       if (!typeName || !direction) return '!departure <type> <direction>';
+      if (typeName === 'heli') {
+        if (!spawnHeliDeparture()) return '!no free helipad (set helipads 3) or no free name';
+        const helicopter = game.planes[game.planes.length - 1];
+        helicopter.exitWay = direction;
+        return `${helicopter.name}: helicopter departure for the ${shortWayUpper(direction)}, waiting on helipad ${helicopter.pad.toUpperCase()}`;
+      }
       const plane = spawnOfType(typeName, () => spawnDeparture(direction));
       return plane
         ? `${plane.name}: ${typeName} departure for the ${shortWayUpper(direction)}, waiting at the apron`
@@ -3498,6 +3702,7 @@ function adminCommand(typed) {
             : third === 'off' || third === 'false'
               ? false
               : +third;
+      if (second === 'helipads') placeHelipads();
       return `${second} = ${rules[second]}`;
     }
   }
@@ -3643,6 +3848,8 @@ const OUTLINES={
   bizjet:[[[-18,-160],[0,-190],[18,-160],[18,40],[16,110],[0,160],[-16,110],[-18,40]],...withMirror([[18,-20],[150,55],[150,78],[18,40]],[[16,110],[62,150],[62,166],[0,160]],[[22,55],[46,55],[46,110],[22,110]])],
   heavy:[[[-34,-150],[0,-190],[34,-150],[34,30],[28,110],[0,175],[-28,110],[-34,30]],...withMirror([[34,-40],[230,50],[230,80],[34,30]],[[28,110],[100,145],[100,165],[16,155]])]};
 OUTLINES.cargo = OUTLINES.heavy;
+// prettier-ignore
+OUTLINES.heli=[[[-40,-140],[0,-150],[40,-140],[55,-50],[40,40],[12,62],[-12,62],[-40,40],[-55,-50]],[[-8,62],[8,62],[6,190],[-6,190]],[[-45,145],[45,145],[45,160],[-45,160]]];
 OUTLINES.medevac = OUTLINES.bizjet;
 // prettier-ignore
 OUTLINES.vip=[[[-20,-140],[0,-205],[20,-140],[20,38],[18,122],[0,170],[-18,122],[-20,38]],...withMirror([[20,-10],[165,62],[180,80],[20,38]],[[18,122],[72,160],[72,178],[0,170]],[[24,70],[52,62],[52,124],[24,120]])];
@@ -3945,6 +4152,9 @@ function drawEffect(effect) {
 }
 // prettier-ignore
 const TYPE_SHAPES={
+  // a helicopter: round cabin, skids, a thin tail boom with a stabiliser and the tail rotor at its side (the main rotor is
+  // drawn turning over it, drawRotor)
+  heli:new Path2D('M0 -150 C 40 -150 55 -110 55 -50 C 55 10 40 45 12 62 L 8 145 L 45 145 L 45 160 L 7 160 L 6 190 L -6 190 L -7 160 L -45 160 L -45 145 L -8 145 L -12 62 C -40 45 -55 10 -55 -50 C -55 -110 -40 -150 0 -150 Z M10 168 L 18 168 L 18 206 L 10 206 Z M60 -85 L 68 -85 L 68 40 L 60 40 Z M-68 -85 L -60 -85 L -60 40 L -68 40 Z'),
   get cargo(){return this.heavy},   // a freighter is drawn like a wide-body
   get medevac(){return this.bizjet},   // an air ambulance is a business jet (its blue cross is in the label, NAME_EMBLEMS)
   // a long-range private jet: long slim body, winglets, engines at the tail, T-tail
@@ -4260,6 +4470,24 @@ function drawRadar() {
     ctx.fillStyle = 'rgba(211,234,217,.55)';
     ctx.fillText(name.toUpperCase(), fix.x, fix.y + 15);
   }
+  // helipads: a ring with an H, amber while a helicopter has it (flying to it, on it, lifting off it)
+  for (const [name, pad] of Object.entries(HELIPADS)) {
+    const colour = helipadUser(name) ? '#f2a03c' : '#7ee0a8';
+    ctx.fillStyle = '#16201c';
+    ctx.beginPath();
+    ctx.arc(pad.x, pad.y, HELIPAD_RADIUS, 0, 7);
+    ctx.fill();
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.lineWidth = 1;
+    setFont(10, 700);
+    ctx.fillStyle = colour;
+    ctx.fillText('H', pad.x, pad.y + 0.5);
+    setFont(10.5, 500);
+    ctx.fillStyle = 'rgba(211,234,217,.55)';
+    ctx.fillText(name.toUpperCase(), pad.x, pad.y + HELIPAD_RADIUS + 10);
+  }
   // extended centrelines and the landing circles: bright while an arrival is inside, chevrons for the way to face, dim while a storm closes them
   for (const runway of RUNWAYS) {
     const reach = RUNWAY_HALF_LENGTH + CIRCLE_DISTANCE + 90,
@@ -4523,6 +4751,16 @@ function drawRadar() {
       ctx.stroke();
       ctx.setLineDash([]);
     }
+    if (plane.state === 'topad') {
+      const pad = HELIPADS[plane.pad];
+      ctx.setLineDash([2, 5]);
+      ctx.strokeStyle = 'rgba(211,234,217,.3)';
+      ctx.beginPath();
+      ctx.moveTo(plane.x, plane.y);
+      ctx.lineTo(pad.x, pad.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
     if (plane.state === 'tofix') {
       const fix = FIXES[plane.holdFix];
       ctx.setLineDash([2, 5]);
@@ -4547,7 +4785,9 @@ function drawRadar() {
       fade =
         plane.state === 'taxiin' && plane.path.length === 1
           ? Math.min(1, Math.hypot(plane.path[0][0] - plane.x, plane.path[0][1] - plane.y) / 20)
-          : 1; // a landed plane fades as it reaches the apron
+          : plane.state === 'parked'
+            ? Math.min(1, plane.parkedLeft / 3)
+            : 1; // a landed plane fades as it reaches the apron, a landed helicopter at the end of its time on the pad
     ctx.save();
     ctx.globalAlpha = fade;
     ctx.translate(plane.x, plane.y);
@@ -4557,7 +4797,12 @@ function drawRadar() {
     ctx.fillStyle = colour;
     ctx.fill(TYPE_SHAPES[plane.typeName]);
     setGlow('', 0);
+    if (plane.type.heli) drawRotor(plane.rotorAngle || 0, colour);
     ctx.restore();
+    if (plane.state === 'parked') {
+      plane.tooClose = 0;
+      continue; // a landed helicopter: no label
+    }
     // data block on a leader line: name, level, what it is doing, a departure's direction; a level change fills the bar
     // under it. The type is left out (the pictogram shows it): a departure shows only where it wants to go, an arrival
     // 'landing' from being cleared until it has landed
@@ -4567,7 +4812,7 @@ function drawRadar() {
     // there), no 'wait' (the runway is amber), 'can land' only in hard mode (lined up by hand is hard to judge by eye)
     const landing =
         plane.kind === 'arr' &&
-        (plane.state === 'final' || plane.state === 'rollout' || plane.cleared) &&
+        (plane.cleared || ['final', 'rollout', 'topad', 'padland'].includes(plane.state)) &&
         !(plane.inCircle && hasTailwind(plane.inCircle)),
       tag =
         plane.kind !== 'arr' || plane.state === 'taxiin'
@@ -4580,7 +4825,7 @@ function drawRadar() {
                 ? ' · can land'
                 : '';
     // a landing plane low and level needs no level letter ('landing' says it)
-    const showLevel = !ground && !(landing && level === 0 && !moving);
+    const showLevel = !ground && !(landing && level === 0 && !moving) && !plane.type.heli; // a helicopter is always low
     const rest = `${showLevel ? ' ' + lvTxt : ''}${tag}${plane.kind === 'dep' || (plane.kind !== 'arr' && !ground) ? ' → ' + shortWayUpper(plane.exitWay) : ''}`;
     setFont(ground ? 11 : 12.5, typedNow ? 600 : 500);
     // right after the name: a waiting departure's patience, a priority arrival's deadline, else an arrival's fuel once
@@ -4633,6 +4878,28 @@ function drawRadar() {
   for (const effect of game.effects) drawEffect(effect);
   drawPops();
   setGlow('', 0);
+}
+// a helicopter's main rotor, in its pictogram's units (already placed, turned and scaled): two blades across the hub at
+// angle, over a faint disc
+function drawRotor(angle, colour) {
+  const alpha = ctx.globalAlpha;
+  ctx.globalAlpha = alpha * 0.18;
+  ctx.fillStyle = colour;
+  ctx.beginPath();
+  ctx.arc(0, -40, 175, 0, 7);
+  ctx.fill();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = colour;
+  ctx.lineWidth = 18;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  for (const blade of [0, Math.PI / 2]) {
+    ctx.moveTo(Math.cos(angle + blade) * 175, -40 + Math.sin(angle + blade) * 175);
+    ctx.lineTo(-Math.cos(angle + blade) * 175, -40 - Math.sin(angle + blade) * 175);
+  }
+  ctx.stroke();
+  ctx.lineCap = 'butt';
+  ctx.lineWidth = 1;
 }
 // a small jerrycan, filled as full as the tanks are (full on entry). Green, amber below half, red below a quarter;
 // at MAYDAY it glows red and pulses
