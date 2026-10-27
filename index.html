@@ -106,7 +106,7 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>heron land</td><td>only inside an open landing circle (also ends a hold). Above <b>low</b> it circles there until you <b>descend</b> it; at low it lines up by itself and lands, arriving at most 15° off the runway heading. With the runway busy it circles until it is free (four times round at most, then it goes around)</td></tr>
 <tr><td>wren takeoff e</td><td>a departure in the <b>ready</b> list taxis to that runway end, waits until the runway is free, takes off that way, climbs to mid and flies straight on until you turn it (you may turn it while it taxis). The guide on the right lists the ways your runways take off. When the wind leaves one way only, <b>wren takeoff</b> is enough</td></tr>
 <tr><td>heron abort</td><td>ends a hold (straight on) or a landing: it goes around, climbing to mid</td></tr>
-<tr><td>tutorial · speed</td><td>a guided first landing, departure and hold (<b>skip</b> leaves it) · time 1×, 2×, 4×, 8× (both also buttons top right)</td></tr>
+<tr><td>tutorial · speed</td><td>a guided first landing, departure and hold (<b>skip</b> leaves it) · time 1×, 2×, 4×, 8× (<b>speed 4</b> picks one; both also buttons top right)</td></tr>
 </table>
 <p>Faded text in the prompt is a suggestion: <b>→</b> takes all of it, <b>Tab</b> takes one word. Capitals don't matter. Typos are fixed for you (<b>nt</b> = north): the reply shows what was understood. <b>Esc</b> pauses, <b>help</b> shows this card.</p></section>
 <section class="pg"><h2>Traffic</h2><table>
@@ -139,8 +139,8 @@ main{flex:1;min-height:0;display:flex}
    WHAT  You are the air traffic controller of one airport. Planes are steered by typed orders of the shape
          "plane action [direction]" (heron turn s, heron descend, wren takeoff e). Arrivals come in high: bring them down
          to low, into a landing circle off a runway end, and clear them to land. Departures wait in the READY list: take
-         them off and turn them to the slice of the edge they want to leave through. Overflights cross your area. Two
-         two aircraft colliding (icons touching, less than 400 ft apart in height) is two strikes; three strikes end the shift. Every plane pays
+         them off and turn them to the slice of the edge they want to leave through. Overflights cross your area.
+         Two aircraft colliding (icons touching, less than 400 ft apart in height) is two strikes; three strikes end the shift. Every plane pays
          a fare, a shift pays tokens, tokens buy upgrades (more levels, more room, timing help, more runways, helipads).
    WHY   A game about calm planning under growing pressure: realistic distances, speeds and turns, simple orders.
    HOW   One file, no libraries. Every step of game time (advanceWorld) moves traffic, weather and planes; every screen
@@ -457,6 +457,17 @@ const HARD_UPGRADES = {
   runway: {tiers: NORMAL_UPGRADES.runway.tiers.slice(2), prices: [10, 20, 50], what: 'more runways'},
   helipad: NORMAL_UPGRADES.helipad,
 };
+
+// --- typing ---
+// commands that throw away a running shift: in the middle of a shift they must be typed in full (no start of the word, no
+// typo fixing), so a stray 'd' or 're' does not end it
+const SHIFT_ENDING_COMMANDS = ['restart', 'daily', 'hard', 'normal', 'tutorial'];
+// the hint line keeps quiet about turns while an arrival heads at most HINT_ON_COURSE_DEGREES beside the point in a landing
+// circle it should aim for, so it does not ask for a new turn each time the bearing crosses into the next compass word.
+// Closer than HINT_ON_COURSE_FROM circle radii it asks for the exact compass word again (a wide turner would circle round it)
+const HINT_ON_COURSE_DEGREES = 40,
+  HINT_ON_COURSE_FROM = 3;
+const FAST_FORWARD_STEPS = [1, 2, 4, 8]; // the game speeds the speed button and the 'speed' command step through
 
 // --- sound and screen ---
 // the music: "electro" by Pro Sensory (CC0, opengameart.org/content/electro), looping under the sounds; the ♪ switch turns both off
@@ -1541,12 +1552,37 @@ const nearestCircle = plane =>
       Math.hypot(CIRCLES[first].x - plane.x, CIRCLES[first].y - plane.y) -
       Math.hypot(CIRCLES[second].x - plane.x, CIRCLES[second].y - plane.y),
   )[0];
-// the compass word that points a plane at the nearest open landing circle, at its outer half so it has room to line up
-const wayToCircle = plane => {
-  const circle = CIRCLES[nearestCircle(plane)];
-  return compassWordFor(
-    circle.x - circle.dirX * CIRCLE_RADIUS * 0.5 - plane.x,
-    circle.y - circle.dirY * CIRCLE_RADIUS * 0.5 - plane.y,
+// the way from a plane to the point an arrival aims for in a landing circle: its outer half, so it has room to line up
+const towardCircle = (plane, circleName) => {
+  const circle = CIRCLES[circleName];
+  return {
+    x: circle.x - circle.dirX * CIRCLE_RADIUS * 0.5 - plane.x,
+    y: circle.y - circle.dirY * CIRCLE_RADIUS * 0.5 - plane.y,
+  };
+};
+// the compass word that points a plane at a landing circle (the nearest open one unless named)
+const wayToCircle = (plane, circleName = nearestCircle(plane)) => {
+  const toward = towardCircle(plane, circleName);
+  return compassWordFor(toward.x, toward.y);
+};
+// the open landing circle the hint line steers an arrival to: the nearest, counting one behind its heading up to twice as
+// far, so a plane about as far from both does not get sent to one, then the other, as it turns
+const hintCircle = plane =>
+  (Object.keys(CIRCLES).some(circleOpen) ? Object.keys(CIRCLES).filter(circleOpen) : Object.keys(CIRCLES))
+    .map(circleName => {
+      const toward = towardCircle(plane, circleName),
+        offHeading = normaliseAngle(Math.atan2(toward.y, toward.x) - plane.targetHeading);
+      return {circleName, cost: Math.hypot(toward.x, toward.y) * (2 - Math.cos(offHeading))};
+    })
+    .sort((first, second) => first.cost - second.cost)[0].circleName;
+// is an arrival still far out and roughly on course for its hint circle: heading at most HINT_ON_COURSE_DEGREES beside the
+// point it aims for (so the hint does not ask for a new turn when the bearing only crosses into the next compass word)
+const onCourseForCircle = plane => {
+  const toward = towardCircle(plane, hintCircle(plane));
+  return (
+    plane.state === 'fly' &&
+    Math.hypot(toward.x, toward.y) > CIRCLE_RADIUS * HINT_ON_COURSE_FROM &&
+    Math.abs(normaliseAngle(Math.atan2(toward.y, toward.x) - plane.targetHeading)) <= degreesToRadians(HINT_ON_COURSE_DEGREES)
   );
 };
 const tooCloseToLineUp = (plane, circle) => distancePastEnd(circle, plane) > -LINE_UP_CUTOFF; // too close to the runway end to line up any more
@@ -1864,6 +1900,9 @@ const runwayName = (runway, direction) => {
 // a heading as a pilot hears it: three digits, in fives, 360 for north (090 is east)
 const headingNumber = heading =>
   String(Math.round((((((heading * 180) / Math.PI + 90) % 360) + 360) % 360) / 5) * 5 || 360).padStart(3, '0');
+// a heading in a reply: the pilot's number, then the nearest compass word for anyone who does not read headings (225 = SW)
+const headingText = heading =>
+  `heading ${headingNumber(heading)} (${shortWayUpper(compassWordFor(Math.cos(heading), Math.sin(heading)))})`;
 // final: the line-up path, flown by following it, touching down at the runway end
 function startFinal(plane, circleName, path) {
   const circle = CIRCLES[circleName];
@@ -2520,11 +2559,13 @@ function optionsAfter(words) {
       'sound',
       ...(game.tutorial ? ['skip'] : ['tutorial']),
       ...(!game.practice ? ['daily'] : []),
-      ...(bestScore >= HARD_UNLOCK && !game.practice ? ['hard'] : []),
+      ...(!game.practice ? ['hard'] : []),
       ...(game.hard || game.daily ? ['normal'] : []),
-      ...(shopOpen() ? ['buy'] : []),
+      'buy',
     ];
   if (words[0] === 'buy') return words.length === 1 ? Object.keys(shopUpgrades) : [];
+  if (words[0] === 'sound') return words.length === 1 ? ['on', 'off'] : [];
+  if (words[0] === 'speed') return words.length === 1 ? FAST_FORWARD_STEPS.map(String) : [];
   const plane = planeNamed(words[0]);
   if (!plane || game.over) return [];
   if (words.length === 1) return actionsFor(plane);
@@ -2535,10 +2576,14 @@ function optionsAfter(words) {
 // carried out is still read as typed and answered with the reason
 function isValidOrder(words) {
   const [first, action, argument] = words;
+  if (first === 'hard') return bestScore >= HARD_UNLOCK;
   if (first === 'buy')
-    return action
-      ? !isComplete(action) && progress.tokens >= nextPrice(action)
-      : optionsAfter(['buy']).some(next => isValidOrder(['buy', next]));
+    return (
+      shopOpen() &&
+      (action
+        ? !isComplete(action) && progress.tokens >= nextPrice(action)
+        : optionsAfter(['buy']).some(next => isValidOrder(['buy', next])))
+    );
   if (first === 'pause') return !game.over;
   const plane = planeNamed(first);
   if (!plane) return true;
@@ -2611,10 +2656,11 @@ function executeOrder(words) {
     togglePause();
     return '';
   }
-  if (first === 'speed') return cycleFastForward();
+  if (first === 'speed') return cycleFastForward(action);
   if (first === 'sound') {
+    if (!action || (action === 'on') !== sound.on) sound.toggle();
     showSoundState();
-    return `sound ${sound.toggle() ? 'on' : 'off'}`;
+    return `sound ${sound.on ? 'on' : 'off'}`;
   }
   if (first === 'help') {
     showHelp(true);
@@ -2624,7 +2670,10 @@ function executeOrder(words) {
     showHelp(true, HELP_PAGES.length - 1);
     return '';
   }
-  if (first === 'tutorial') return startTutorial();
+  if (first === 'tutorial') {
+    startTutorial();
+    return 'tutorial: follow the banner over the radar · skip leaves it';
+  }
   if (first === 'skip') {
     endTutorial();
     return 'tutorial closed: a new shift';
@@ -2638,10 +2687,13 @@ function executeOrder(words) {
     return `daily shift ${todayDate()}: the same traffic for everyone today, no upgrades`;
   }
   if (first === 'hard') {
+    if (bestScore < HARD_UNLOCK)
+      return `!hard opens after a ${formatMoney(HARD_UNLOCK)} shift (your best: ${formatMoney(bestScore)})`;
     startShift(false, false, true);
     return `hard shift: no autopilot. Fly each plane onto a runway's dashed line yourself, low and facing the runway, then land; fly to a fix before holding there`;
   }
   if (first === 'buy') {
+    if (!shopOpen()) return '!upgrades are bought after a shift, on the shift-over screen';
     if (!action)
       return `!buy what? ${validOptions(['buy']).join(' · ') || (Object.keys(shopUpgrades).some(upgrade => !isComplete(upgrade)) ? 'nothing you can afford yet' : 'everything is bought')}`;
     if (isComplete(action)) return `!${action} is complete`;
@@ -2671,7 +2723,7 @@ function executeOrder(words) {
       normaliseAngle(plane.targetHeading - (onGround(plane) || plane.state === 'roll' ? plane.targetHeading : plane.heading)) < 0
         ? 'left'
         : 'right';
-    return `${name}: ${direction in RELATIVE_TURNS ? `${RELATIVE_TURNS[direction] < 0 ? 'left' : 'right'} ${Math.abs(RELATIVE_TURNS[direction])}°,` : Math.abs(normaliseAngle(plane.targetHeading - plane.heading)) < 0.02 ? '' : side} heading ${headingNumber(plane.targetHeading)}${plane.state === 'roll' || onGround(plane) ? ' after departure' : ''}`;
+    return `${name}: ${direction in RELATIVE_TURNS ? `${RELATIVE_TURNS[direction] < 0 ? 'left' : 'right'} ${Math.abs(RELATIVE_TURNS[direction])}°,` : Math.abs(normaliseAngle(plane.targetHeading - plane.heading)) < 0.02 ? '' : side} ${headingText(plane.targetHeading)}${plane.state === 'roll' || onGround(plane) ? ' after departure' : ''}`;
   }
   if (action === 'ascend' || action === 'descend') {
     const climbing = action === 'ascend';
@@ -2720,7 +2772,7 @@ function executeOrder(words) {
     plane.givenTurn = false;
     if (argument) {
       steerTo(plane, argument);
-      return `${name}: lift off helipad ${plane.pad.toUpperCase()} straight up to low (${LEVEL_FEET[0]} ft), then heading ${headingNumber(plane.targetHeading)}`;
+      return `${name}: lift off helipad ${plane.pad.toUpperCase()} straight up to low (${LEVEL_FEET[0]} ft), then ${headingText(plane.targetHeading)}`;
     }
     return `${name}: lift off helipad ${plane.pad.toUpperCase()} straight up to low (${LEVEL_FEET[0]} ft), it hovers there · then ${name} turn ${shortWayUpper(plane.exitWay)}`;
   }
@@ -2974,13 +3026,14 @@ function hintFor(name) {
   const circleName = circleAt(plane);
   if (circleName && circleOpen(circleName))
     return `${fuel}${plane.name} is in the ${circleName} landing circle → ${plane.name} land`;
-  const way = wayToCircle(plane);
-  if (isHeading(plane, way))
-    return `${fuel}${plane.name} is heading for the ${nearestCircle(plane)} circle: land once it is inside${plane.level > 0.05 ? ` · descending ${levelBar(plane)}` : ''}`;
+  const circleToFly = hintCircle(plane),
+    way = wayToCircle(plane, circleToFly);
+  if (isHeading(plane, way) || onCourseForCircle(plane))
+    return `${fuel}${plane.name} is heading for the ${circleToFly} circle: land once it is inside${plane.level > 0.05 ? ` · descending ${levelBar(plane)}` : ''}`;
   return `${fuel}${plane.name} must fly into ${
     Object.keys(CIRCLES).every(circleOpen)
       ? 'a landing circle'
-      : `the ${nearestCircle(plane)} landing circle (${Object.keys(CIRCLES)
+      : `the ${circleToFly} landing circle (${Object.keys(CIRCLES)
           .filter(circleName => !circleOpen(circleName))
           .map(circleName => `${circleName}: ${whyClosed(circleName)}`)
           .join(', ')})`
@@ -3131,7 +3184,12 @@ function readWords(typedWords) {
       if (understood.length === 2) break;
       return {err: '!too many words: plane action [direction]'};
     }
-    const meant = meaningOf(typed, choices);
+    let meant = meaningOf(typed, choices);
+    // in the middle of a shift a command that ends it counts only typed in full; anything shorter means something else
+    if (SHIFT_ENDING_COMMANDS.includes(meant) && meant !== typed && !understood.length && !game.over && !game.practice) {
+      meant = meaningOf(typed, choices.filter(choice => !SHIFT_ENDING_COMMANDS.includes(choice)));
+      if (!meant) return {err: `!${typed}? (to end this shift, type ${meaningOf(typed, choices)} in full)`};
+    }
     if (!meant) return {err: `!${typed}? ${validOptions(understood).slice(0, 8).map(shortWayUpper).join(' · ')}`};
     understood.push(meant);
   }
@@ -3285,14 +3343,16 @@ function aircraftSheet() {
 // the ♪ button: sound and music on or off (the label shows which)
 const soundButton = document.getElementById('snd'),
   showSoundState = () => setTimeout(() => (soundButton.textContent = sound.on ? '♪' : '×'));
-// fast-forward: 1×, 2×, 4× or 8×, on top of the game's own pace. Each frame runs step() that many times, so the physics
-// keeps its usual time step. Kept across restarts, not saved.
+// fast-forward: one of FAST_FORWARD_STEPS, on top of the game's own pace. Each frame runs step() that many times, so the
+// physics keeps its usual time step. Kept across restarts, not saved.
 let fastForward = 1;
-// the speed button and the 'speed' command: 1×, 2×, 4×, 8×, then back to 1×
+// the speed button and the 'speed' command step through FAST_FORWARD_STEPS, then back to the first; 'speed 4' picks one
 const speedButton = document.getElementById('ff'),
   showSpeed = () => (speedButton.textContent = fastForward + '×');
-const cycleFastForward = () => {
-  fastForward = fastForward >= 8 ? 1 : fastForward * 2;
+const cycleFastForward = chosen => {
+  fastForward = chosen
+    ? +chosen
+    : FAST_FORWARD_STEPS[(FAST_FORWARD_STEPS.indexOf(fastForward) + 1) % FAST_FORWARD_STEPS.length];
   showSpeed();
   return `time runs ${fastForward}×`;
 };
@@ -3358,7 +3418,7 @@ const TUTORIAL_STEPS = [
       planes.c = tutorialArrival(205);
     },
     say: planes =>
-      `Two arrivals, <b>${planes.b.name}</b> and <b>${planes.c.name}</b>, both at high. One runway lands one plane at a time, and two planes less than two levels apart must keep apart or you get a strike. Two levels apart (2,000 ft) they pass safely. Bring one down first: ${commandText(`${planes.b.name} descend`)}.`,
+      `Two arrivals, <b>${planes.b.name}</b> and <b>${planes.c.name}</b>, both at high. One runway lands one plane at a time, and two planes whose icons touch less than ${COLLISION_HEIGHT_FEET} ft apart in height collide. On different levels they pass safely. Bring one down first: ${commandText(`${planes.b.name} descend`)}.`,
     done: planes => planes.b.targetLevel < ARRIVE_LEVEL,
   },
   {
@@ -5060,6 +5120,14 @@ function clockSVG(plane) {
 // the overlay over the radar: 'paused', or the shift-over screen with the shop
 const overlay = document.getElementById('over'),
   elementById = id => document.getElementById(id);
+// writes an element's content only when it changed: rewriting it every frame costs a layout each time, and a click on the
+// shop would never land (the card pressed would be gone by the time the button comes up). Returns whether it changed
+const writeHtml = (element, html) => {
+  if (element.lastHtml === html) return false;
+  element.lastHtml = html;
+  element.innerHTML = html;
+  return true;
+};
 // after a shift: the score, tokens earned, and the upgrades to buy (or today's best, for the daily shift)
 // the shift's numbers, one row after another once the score has counted up
 function tallyHtml() {
@@ -5129,6 +5197,7 @@ const bumpedAt = {score: -1e9, tok: -1e9},
 // the style of a number that just changed: it swells, wobbles and lights up, then settles (t: when it changed)
 const bumpStyle = (bumpedAt, colour) => {
   const strength = Math.exp(-(performance.now() - bumpedAt) / 220);
+  if (strength < 0.001) return ''; // settled: the same style every frame, so the number is not rewritten
   return `display:inline-block;transform:scale(${(1 + 0.5 * strength).toFixed(3)}) rotate(${(-6 * strength * Math.sin((performance.now() - bumpedAt) / 40)).toFixed(2)}deg);${strength > 0.05 ? `background:${colour};color:#04140b` : ''}`;
 };
 // every screen frame: advance the world (as many times as the speed button says), count numbers up, draw, update the panels
@@ -5158,39 +5227,48 @@ function countUpNumbers(seconds) {
 // everything around the radar: the corners, the strikes, the READY list, the overlay
 function updatePanels() {
   const sweep = game.sweep;
-  tutorialButton.textContent = game.tutorial ? 'leave tutorial' : 'tutorial';
-  elementById('lvl').textContent = game.tutorial
-    ? 'tutorial'
-    : game.admin
-      ? `admin${sweep ? ` · sweep ${sweep.log.length + 1}/${sweep.log.length + sweep.list.length + 1}` : ''}`
-      : game.daily
-        ? `daily · ${todayDate()}`
-        : game.hard
-          ? `hard · best ${formatMoney(hardBestScore)}`
-          : `shift · best ${formatMoney(bestScore)}`;
+  writeHtml(tutorialButton, game.tutorial ? 'leave tutorial' : 'tutorial');
+  writeHtml(
+    elementById('lvl'),
+    game.tutorial
+      ? 'tutorial'
+      : game.admin
+        ? `admin${sweep ? ` · sweep ${sweep.log.length + 1}/${sweep.log.length + sweep.list.length + 1}` : ''}`
+        : game.daily
+          ? `daily · ${todayDate()}`
+          : game.hard
+            ? `hard · best ${formatMoney(hardBestScore)}`
+            : `shift · best ${formatMoney(bestScore)}`,
+  );
   const streak = game.streak > 1 && !game.over ? ` · <b style="background:#ff7a45;color:#04140b">×${game.streak} streak</b>` : '';
   const tokens =
     `<span class="tok" title="tokens buy upgrades after a shift: it pays 1 per $1,000 earned when it ends"><b style="${bumpStyle(bumpedAt.tok, '#f2c94c')}">${COIN_HTML}${progress.tokens}</b>` +
     `</span>`;
-  elementById('todo').innerHTML = game.practice
-    ? ''
-    : `${game.handledCount} planes · <b style="${bumpStyle(bumpedAt.score, '#86d48a')}">${formatMoney(shown.score)}</b>${streak}${game.daily ? '' : ' · ' + tokens}`;
-  elementById('strikes').innerHTML = [0, 1, 2].map(i => `<i class="${i < game.strikes ? 'on' : ''}"></i>`).join('');
+  writeHtml(
+    elementById('todo'),
+    game.practice
+      ? ''
+      : `${game.handledCount} planes · <b style="${bumpStyle(bumpedAt.score, '#86d48a')}">${formatMoney(shown.score)}</b>${streak}${game.daily ? '' : ' · ' + tokens}`,
+  );
+  writeHtml(elementById('strikes'), [0, 1, 2].map(i => `<i class="${i < game.strikes ? 'on' : ''}"></i>`).join(''));
   const focus = typedPlaneName(),
     ready = game.planes.filter(plane => plane.state === 'ready'),
     busy = runwayUser() && ready.length ? '<span class="busy">runway busy</span>' : '';
-  elementById('ready').innerHTML =
+  writeHtml(
+    elementById('ready'),
     ready
       .map(
         plane =>
           `<b style="color:${plane.name === focus ? '#fff' : KIND_COLOUR.dep}">${plane.name}${emblemSVG(plane)}${clockSVG(plane)} → ${shortWayUpper(plane.exitWay)}</b>`,
       )
-      .join(' ') + busy || '<span style="color:var(--dim)">none</span>';
+      .join(' ') + busy || '<span style="color:var(--dim)">none</span>',
+  );
   const show = (overScreenUp() && !game.practice) || game.paused;
   overlay.style.display = show ? 'grid' : 'none';
   if (show) {
-    overlay.innerHTML = `<div>${game.paused ? 'paused<br><small>esc</small>' : shiftOverHtml()}</div>`; // one box, so the grid centres it as a whole
-    fitToWindow(overlay.firstChild, 40);
+    // one box, so the grid centres it as a whole
+    if (writeHtml(overlay, `<div>${game.paused ? 'paused<br><small>esc</small>' : shiftOverHtml()}</div>`))
+      fitToWindow(overlay.firstChild, 40);
   }
 }
 // the tutorial is a button next to the speed button: never forced. A new player sees it nudging until they open it once
@@ -5321,6 +5399,7 @@ document.getElementById('actable').innerHTML = aircraftSheet();
 addEventListener('resize', resize);
 resize();
 addEventListener('resize', () => {
+  overlay.lastHtml = null; // refit the overlay to the new size on the next frame
   if (helpShown()) fitToWindow(helpEl.querySelector('.card:not([style*="none"])'));
 });
 document.fonts.ready.then(() => helpShown() && showHelpPage(typing.helpPage));
