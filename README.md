@@ -24,8 +24,8 @@ owl land                  # a helicopter: flies itself to the nearest free helip
 kite takeoff              # a helicopter on its pad: lifts straight up to low and hovers there until you turn it (kite turn ne); kite takeoff ne flies that way once up, wind or not
 buy nav                   # after a shift: spend tokens on upgrades (tanks patience height nav runway helipad), or use the arrow keys
 daily                     # today's seeded shift, the same for everyone
-speed                     # time runs 1×, 2×, 4×, 8× and back (or the 1× button)
-sound                     # sound effects on/off (or the ♪ button)
+speed                     # time runs 1×, 2×, 4×, 8× and back (or the 1× button); speed 4 picks one
+sound                     # sound effects on/off (or the ♪ button); sound off, sound on
 aircraft                  # the data sheet: every aircraft type's real model, weights, speeds, turn, climb, runway, fuel
 ```
 
