@@ -26,7 +26,7 @@ main{flex:1;min-height:0;display:flex}
 #view{flex:1;position:relative;min-width:0} canvas{position:absolute;inset:0;width:100%;height:100%}
 #over{position:absolute;inset:0;display:none;place-items:center;place-content:center;overflow:hidden;padding:16px;box-sizing:border-box;font-size:30px;font-weight:600;background:rgba(2,8,5,.6);backdrop-filter:blur(3px);text-align:center;line-height:1.6;text-shadow:0 0 18px rgba(126,224,168,.4)}
 #over small{font-size:16px;font-weight:400;color:var(--dim)} #over .big{display:inline-block;font-size:64px;font-weight:800;color:#0b2a10;background:#86d48a;padding:4px 30px;margin:6px 0;border-radius:6px;box-shadow:inset 0 0 0 9px #86d48a,inset 0 0 0 12px rgba(11,42,16,.45),0 6px 0 #2b6131;text-shadow:none;line-height:1.25}
-#over .tally{font-size:16px;font-weight:500;text-shadow:none;display:grid;grid-template-columns:auto auto;gap:2px 28px;justify-content:center;margin-top:10px} #over .tally span:nth-child(odd){color:var(--dim);text-align:right} #over .tally span:nth-child(even){text-align:left}
+#over .tally{font-size:16px;font-weight:500;text-shadow:none;display:grid;grid-template-columns:auto auto;gap:2px 28px;justify-content:center;margin-top:10px} #over .tally span:nth-child(odd){color:var(--dim);text-align:right} #over .tally span:nth-child(even){text-align:left} #over .tally .x{font-style:normal;color:var(--bad)}
 #over .shop{font-size:15px;font-weight:400;line-height:1.45;text-align:left;margin:18px auto 0;width:min(600px,100%);text-shadow:none} #over .shop b{color:var(--gold);font-weight:500}
 #over .purse{color:var(--dim);font-size:14px;text-align:center} #over .purse span{color:var(--fg);font-size:20px;font-weight:700}
 #over .ups{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:14px}
@@ -462,6 +462,18 @@ const HARD_UPGRADES = {
 // commands that throw away a running shift: in the middle of a shift they must be typed in full (no start of the word, no
 // typo fixing), so a stray 'd' or 're' does not end it
 const SHIFT_ENDING_COMMANDS = ['restart', 'daily', 'hard', 'normal', 'tutorial'];
+// shortcuts, never suggested, read as the full order (the reply shows what was understood): a word that is no action of the
+// plane but means one of these (heron down = heron descend, wren depart = wren takeoff), or a turn word right after the name
+// (heron n = heron turn n, heron left = heron turn left), or for a departure still waiting a takeoff direction (wren e)
+const ACTION_SHORTCUTS = {down: 'descend', lower: 'descend', up: 'ascend', climb: 'ascend', depart: 'takeoff'};
+// two typed words read as one (heron turn south west = heron turn southwest)
+const JOINED_WORDS = {
+  'take off': 'takeoff',
+  'north east': 'northeast',
+  'north west': 'northwest',
+  'south east': 'southeast',
+  'south west': 'southwest',
+};
 // the hint line keeps quiet about turns while an arrival heads at most HINT_ON_COURSE_DEGREES beside the point in a landing
 // circle it should aim for, so it does not ask for a new turn each time the bearing crosses into the next compass word.
 // Closer than HINT_ON_COURSE_FROM circle radii it asks for the exact compass word again (a wide turner would circle round it)
@@ -472,6 +484,10 @@ const FAST_FORWARD_STEPS = [1, 2, 4, 8]; // the game speeds the speed button and
 // --- sound and screen ---
 // the music: "electro" by Pro Sensory (CC0, opengameart.org/content/electro), looping under the sounds; the ♪ switch turns both off
 const MUSIC_VOL = 0.35;
+// a new row of score chips landing within CHIP_STACK_REACH px across of a row in the first CHIP_STACK_WHILE of its life
+// goes above it instead
+const CHIP_STACK_REACH = 160,
+  CHIP_STACK_WHILE = 0.7;
 const VIEW_MARGIN = 8; // px of world around your area on screen: just enough for the exit slices on its rim
 // two taxi lanes on one wide taxiway: departures taxi out on the inner one (x AX±OUT_X, apron row OUT_Y) to a holding point
 // HOLD short of the runway, arrivals taxi in on the outer one, so the two never sit on top of each other
@@ -1259,15 +1275,24 @@ function spawnRandomPlane() {
   );
 }
 // a strike: a red ring and the reason; it ends a streak, and the third ends the shift (in admin and the tutorial none count)
-function strike(message, x, y) {
+// what the strike was, in a word or two (label), is shown where it happened and listed on the shift-over screen
+function strike(message, x, y, label) {
   if (game.over) return;
   sound.strike();
   showReply('!' + message);
   game.effects.push({x, y, age: 0, colour: '#ff6b5e', radius: 40});
   const free = game.admin || game.tutorial;
-  if (game.streak > 1 && !free) popChips({x, y: y - 28, chips: [{kind: 'bad', text: 'streak lost'}], size: 14, life: 1.5});
+  if (!free)
+    popChips({
+      x,
+      y: y - 28,
+      chips: [{kind: 'bad', text: '✕ ' + label}, game.streak > 1 && {kind: 'bad', text: 'streak lost'}].filter(Boolean),
+      size: 14,
+      life: 2.4,
+    });
   game.streak = 0;
   if (free) return;
+  (game.strikeLog ||= []).push(label);
   game.strikes++;
   if (game.strikes >= STRIKES_TO_END) endShift();
 }
@@ -2043,6 +2068,7 @@ function runClocks(plane, seconds) {
         `${plane.type.priority ? plane.type.tag + ' ' : ''}${plane.name} waited too long and was cancelled`,
         plane.x,
         plane.y,
+        `${plane.name} cancelled`,
       );
       return false;
     }
@@ -2065,7 +2091,7 @@ function runClocks(plane, seconds) {
     if (plane.patience <= 0) {
       plane.patience = Infinity;
       plane.late = true;
-      strike(`${plane.type.tag} ${plane.name} is late`, plane.x, plane.y);
+      strike(`${plane.type.tag} ${plane.name} is late`, plane.x, plane.y, `${plane.name} late`);
     } else if (plane.patience < MAYDAY_SECONDS && !plane.impatient) {
       plane.impatient = true;
       sound.mayday();
@@ -2076,7 +2102,7 @@ function runClocks(plane, seconds) {
     plane.fuel -= seconds;
     if (plane.fuel <= 0) {
       removePlane(plane);
-      strike(`${plane.name} ran out of fuel`, plane.x, plane.y);
+      strike(`${plane.name} ran out of fuel`, plane.x, plane.y, `${plane.name} out of fuel`);
       return false;
     }
     if (plane.fuel < MAYDAY_SECONDS && !plane.mayday) {
@@ -2443,7 +2469,7 @@ function moveAhead(plane, seconds) {
       plane.kind !== 'arr'
         ? `${plane.name} left to the ${shortWayUpper(went)}, it wanted ${shortWayUpper(plane.exitWay)}`
         : `${plane.name} flew out of your area`;
-    strike(why, plane.x, plane.y);
+    strike(why, plane.x, plane.y, plane.kind !== 'arr' ? `${plane.name} wrong side` : `${plane.name} lost`);
   }
 }
 // a departure in the first part of its takeoff run is still below 600 m, under even the low level: nothing can hit it
@@ -2470,7 +2496,12 @@ function checkSeparation(airborne) {
       removePlane(second);
       explode(first, second);
       game.strikes++;
-      strike(`${first.name} and ${second.name} collided`, (first.x + second.x) / 2, (first.y + second.y) / 2);
+      strike(
+        `${first.name} and ${second.name} collided`,
+        (first.x + second.x) / 2,
+        (first.y + second.y) / 2,
+        `${first.name} + ${second.name} collided`,
+      );
     }
 }
 // a storm cell: a plane that flies into one loses control and crash-lands (a strike)
@@ -2481,7 +2512,7 @@ function crashIntoStorms(airborne) {
         plane.destroyed = 1;
         removePlane(plane);
         crashLand(plane);
-        strike(`${plane.name} crash-landed in a storm`, plane.x, plane.y);
+        strike(`${plane.name} crash-landed in a storm`, plane.x, plane.y, `${plane.name} storm`);
       }
 }
 
@@ -2642,6 +2673,9 @@ const pilotMishears = () => rules.readback && !game.practice && trafficRandom() 
 // the eight compass words in order round the compass, and a neighbour of one (what a pilot who mishears turns to)
 const COMPASS_WORDS = Object.keys(HEADINGS),
   neighbourWay = way => COMPASS_WORDS[(COMPASS_WORDS.indexOf(way) + (trafficRandom() < 0.5 ? 1 : 7)) % 8];
+// 'descending to ' or 'climbing to ' while a plane is still on its way to its ordered level, else nothing
+const levelChangeText = plane =>
+  Math.abs(plane.level - plane.targetLevel) <= 0.05 ? '' : plane.targetLevel < plane.level ? 'descending to ' : 'climbing to ';
 // carries out an order (words already read by readWords) and returns the reply; a reply starting with '!' is an error.
 // Game commands first (restart, pause, speed, sound, help, tutorial, modes, buy), then orders to a plane
 function executeOrder(words) {
@@ -2723,13 +2757,20 @@ function executeOrder(words) {
       normaliseAngle(plane.targetHeading - (onGround(plane) || plane.state === 'roll' ? plane.targetHeading : plane.heading)) < 0
         ? 'left'
         : 'right';
-    return `${name}: ${direction in RELATIVE_TURNS ? `${RELATIVE_TURNS[direction] < 0 ? 'left' : 'right'} ${Math.abs(RELATIVE_TURNS[direction])}°,` : Math.abs(normaliseAngle(plane.targetHeading - plane.heading)) < 0.02 ? '' : side} ${headingText(plane.targetHeading)}${plane.state === 'roll' || onGround(plane) ? ' after departure' : ''}`;
+    const turnText =
+      direction in RELATIVE_TURNS
+        ? `${RELATIVE_TURNS[direction] < 0 ? 'left' : 'right'} ${Math.abs(RELATIVE_TURNS[direction])}°, `
+        : Math.abs(normaliseAngle(plane.targetHeading - plane.heading)) < 0.02
+          ? '' // already on that heading
+          : side + ' ';
+    const afterDeparture = plane.state === 'roll' || onGround(plane) ? ' after departure' : '';
+    return `${name}: ${turnText}${headingText(plane.targetHeading)}${afterDeparture}`;
   }
   if (action === 'ascend' || action === 'descend') {
     const climbing = action === 'ascend';
     let level = argument ? levelTyped(argument) : climbing ? highestLevel(plane) : 0;
     if (climbing ? level <= plane.targetLevel : level >= plane.targetLevel)
-      return `!${name} is already ${LEVEL_NAMES[plane.targetLevel]}`;
+      return `!${name} is already ${levelChangeText(plane)}${LEVEL_NAMES[plane.targetLevel]}`;
     const otherLevels = argumentsFor(plane, action)
       .map(levelTyped)
       .filter(i => i !== level);
@@ -2970,6 +3011,7 @@ function hintFor(name) {
     // nothing typed: show what the most urgent plane is waiting for (fuel, a level change, the runway…)
     const mostUrgent =
       game.planes.find(mostUrgent => mostUrgent.mayday) ||
+      game.planes.find(mostUrgent => mostUrgent.impatient) ||
       game.planes.find(mostUrgent => mostUrgent.state !== 'ready' && mostUrgent.state !== 'parked') ||
       game.planes[0];
     return hintFor(mostUrgent.name);
@@ -3173,6 +3215,28 @@ function meaningOf(typed, choices) {
   });
   return pick;
 }
+// a word after a plane's name that is none of its actions, read as a shortcut (ACTION_SHORTCUTS): the words it stands
+// for, or null
+function shortcutAfterName(typed, actions) {
+  const action = ACTION_SHORTCUTS[typed];
+  if (action) return actions.includes(action) ? [action] : null;
+  if (actions.includes('turn')) {
+    const turnWord = meaningOf(typed, TURN_WORDS);
+    if (turnWord) return ['turn', turnWord];
+  }
+  const takeoffWord = actions.includes('takeoff') && meaningOf(typed, Object.keys(HEADINGS));
+  return takeoffWord ? ['takeoff', takeoffWord] : null;
+}
+// the typed words, with each pair that is one word (JOINED_WORDS: take off, south west) joined
+function joinWords(typedWords) {
+  const joined = [];
+  for (let i = 0; i < typedWords.length; i++) {
+    const pair = JOINED_WORDS[`${typedWords[i]} ${typedWords[i + 1]}`];
+    joined.push(pair || typedWords[i]);
+    if (pair) i++;
+  }
+  return joined;
+}
 // reads typed words as an order: each word becomes the option it most likely means, where options depend on the words
 // before it (a plane name, then that plane's actions, then that action's arguments). Returns {words} or {err: the message}
 function readWords(typedWords) {
@@ -3185,6 +3249,11 @@ function readWords(typedWords) {
       return {err: '!too many words: plane action [direction]'};
     }
     let meant = meaningOf(typed, choices);
+    const shortcut = !meant && understood.length === 1 && planeNamed(understood[0]) && shortcutAfterName(typed, choices);
+    if (shortcut) {
+      understood.push(...shortcut);
+      continue;
+    }
     // in the middle of a shift a command that ends it counts only typed in full; anything shorter means something else
     if (SHIFT_ENDING_COMMANDS.includes(meant) && meant !== typed && !understood.length && !game.over && !game.practice) {
       meant = meaningOf(typed, choices.filter(choice => !SHIFT_ENDING_COMMANDS.includes(choice)));
@@ -3253,7 +3322,7 @@ function runTyped(typed) {
       return logOrder(typed);
     }
   }
-  const typedWords = typed.split(/\s+/),
+  const typedWords = joinWords(typed.split(/\s+/)),
     parsed = readWords(typedWords);
   if (parsed.err) {
     sound.err();
@@ -4359,8 +4428,19 @@ const setGlow = (colour, blur) => {
 };
 // score pops: flat chips that land one after another, each punching in with a small tilt, then the row floats up and fades.
 // Real time, not game time
-const CHIP_POPS = [],
-  popChips = fields => CHIP_POPS.push({t0: performance.now(), life: 1.9, rise: 30, gap: 0.16, ...fields});
+// A row that would land on a younger row nearby goes just above it, so two payments at once stay readable
+const CHIP_POPS = [];
+function popChips(fields) {
+  const pop = {t0: performance.now(), life: 1.9, rise: 30, gap: 0.16, size: 15, ...fields};
+  for (let clash; (clash = CHIP_POPS.find(other => rowsOverlap(other, pop))); )
+    pop.y = clash.y - (clash.size + pop.size) * 0.85;
+  CHIP_POPS.push(pop);
+}
+// does a chip row still on screen (in the first part of its life) sit where a new one would land?
+const rowsOverlap = (other, pop) =>
+  pop.t0 - other.t0 < other.life * 1000 * CHIP_STACK_WHILE &&
+  Math.abs(other.x - pop.x) < CHIP_STACK_REACH &&
+  Math.abs(other.y - pop.y) < (other.size + pop.size) * 0.8;
 // each chip's colours: background, text, shadow
 const CHIP_COLOURS = {
   cash: ['#86d48a', '#0b2a10', '#2b6131'],
@@ -5136,6 +5216,7 @@ function tallyHtml() {
       ['planes', game.handledCount],
       ...(game.bestStreak > 1 ? [['best streak', `×${game.bestStreak}`]] : []),
       ['tokens', `${COIN_HTML}+${game.tokensEarned}`],
+      ...(game.strikeLog || []).map(label => ['<i class="x">✕</i>', `<i class="x">${escapeHtml(label)}</i>`]),
     ];
   return `<div class="tally">${rows.map(([label, value], i) => (shown > i * 0.3 ? `<span>${label}</span><span>${value}</span>` : '<span></span><span></span>')).join('')}</div>`;
 }
