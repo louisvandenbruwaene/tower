@@ -80,7 +80,7 @@ main{flex:1;min-height:0;display:flex}
 #over .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:8px}
 #over .btn{cursor:pointer;padding:8px 12px;border:2px solid var(--line);border-radius:8px;background:#0a1711;box-shadow:0 3px 0 #020805}
 #over .btn em{font-style:normal;color:var(--gold);float:right;margin-left:10px} #over .btn.sel{border-color:var(--fg);transform:translateY(-2px)}
-#over .card{display:flex;flex-direction:column;gap:3px;min-height:64px} #over .card b{font-size:16px;color:var(--fg)} #over .card.gold{border-color:#6b520c} #over .card.blood{border-color:#5a1a16}
+#over .card{display:flex;flex-direction:column;gap:3px;min-height:64px} #over .card b{font-size:16px;color:var(--fg)} #over .card small b.money{font-size:inherit;color:#86d48a} #over .card.sold{opacity:.35;justify-content:center;align-items:center} #over .card.gold{border-color:#6b520c} #over .card.blood{border-color:#5a1a16}
 #over .card.plain{cursor:default;padding:8px 12px;border:2px solid var(--line);border-radius:8px;background:#0a1711} #over .card .season{color:var(--blue)} #over .pair{display:flex;gap:8px;margin-top:4px}
 #over .tally{display:grid;grid-template-columns:auto 1fr;gap:2px 20px;font-size:14px} #over .tally span:nth-child(odd){color:var(--dim)} #over .x{font-style:normal;color:var(--bad)}
 #over .big{display:inline-block;font-size:56px;font-weight:800;color:#0b2a10;background:#86d48a;padding:2px 24px;border-radius:6px;width:max-content}
@@ -119,7 +119,8 @@ main{flex:1;min-height:0;display:flex}
 #toast .sms{background:#1b2733;border-color:#2f4458;border-radius:14px 14px 14px 4px} #toast .sms b{display:block;font-size:10.5px;letter-spacing:.14em;color:var(--blue);margin-bottom:2px}
 #todo .fav{color:#ff8a7e}
 /* money: a small green banknote before the amount; rewards green, a loss red, a price plain */
-i.note{display:inline-block;width:1.05em;height:.66em;margin:0 .22em 0 .05em;vertical-align:-.04em;border-radius:.1em;background:#86d48a;box-shadow:inset 0 0 0 .09em #2b6131,inset 0 0 0 .2em #86d48a,inset 0 0 0 .26em rgba(43,97,49,.55)}
+i.note{display:inline-block;position:relative;width:1.05em;height:.66em;margin:0 .22em 0 .05em;vertical-align:-.04em;border-radius:.1em;background:#86d48a;box-shadow:inset 0 0 0 .09em #2b6131,inset 0 0 0 .2em #86d48a,inset 0 0 0 .26em rgba(43,97,49,.55)}
+i.note::after{content:'$';position:absolute;inset:0;display:grid;place-items:center;font:800 .5em/1 'JetBrains Mono',monospace;font-style:normal;color:#2b6131} b.money.minus i.note::after{color:#6b1d17} b.cost i.note::after{color:#59655d} #over .big i.note::after{color:#0b2a10}
 b.money{color:#86d48a;font-weight:700;white-space:nowrap} b.money.minus{color:var(--bad)} b.money.minus i.note{background:var(--bad);box-shadow:inset 0 0 0 .09em #6b1d17}
 b.cost{color:var(--fg);white-space:nowrap} b.cost i.note{background:#c9d4cc;box-shadow:inset 0 0 0 .09em #59655d,inset 0 0 0 .2em #c9d4cc,inset 0 0 0 .26em rgba(89,101,93,.55)} #strikes small{color:var(--dim);font-size:11px;margin-left:6px}
 @media (max-width:760px){#over .cols{grid-template-columns:1fr}}
@@ -158,7 +159,7 @@ b.cost{color:var(--fg);white-space:nowrap} b.cost i.note{background:#c9d4cc;box-
 <tr><td>wren takeoff e</td><td>a departure in the <b>ready</b> list taxis to that runway end, waits until the runway is free, takes off that way, climbs to mid and flies straight on until you turn it (you may turn it while it taxis). The guide on the right lists the ways your runways take off. When the wind leaves one way only, <b>wren takeoff</b> is enough</td></tr>
 <tr><td>heron abort</td><td>ends a hold (straight on) or a landing: it goes around, climbing to mid</td></tr>
 <tr><td>tutorial · speed</td><td>a guided first landing, departure and hold, between shifts (<b>skip</b> leaves it) · time 1×, 2×, 4×, 8× (<b>speed 4</b> picks one; both also buttons top right)</td></tr>
-<tr><td>groundstop</td><td>a <b>favour</b> the devil owes you, typed in full, used once: <b>groundstop</b> (no new traffic 30 s) · <b>expedite heron</b> (lands now) · <b>vector</b> (arrivals turn to their circles) · <b>standby</b> (no patience lost 60 s) · <b>freeze</b> (10 s slow motion) · <b>cleanup</b> (a write-up struck) · <b>double heron</b> (pays ×2) · <b>tailwind</b> (20% faster 30 s)</td></tr>
+<tr><td>groundstop</td><td>a <b>favour</b> from the shop, typed in full, used once: <b>groundstop</b> (no new traffic 30 s) · <b>expedite heron</b> (lands now) · <b>vector</b> (arrivals turn to their circles) · <b>standby</b> (no patience lost 60 s) · <b>freeze</b> (10 s slow motion) · <b>cleanup</b> (a write-up struck) · <b>double heron</b> (pays ×2) · <b>tailwind</b> (20% faster 30 s)</td></tr>
 <tr><td>pause</td><td>with the Pause skills: a tactical pause, the radar stays and orders work · <b>pause 3</b> stops intern screen 3 alone. <b>Esc</b> is the plain pause: it hides the radar and takes no orders</td></tr>
 <tr><td>supervisor</td><td>every screen has its own call signs (birds, trees, rivers, stars, stones, fish): type any plane on any screen. An order to a plane an intern forgot fixes the mistake</td></tr>
 </table>
@@ -186,7 +187,8 @@ b.cost{color:var(--fg);white-space:nowrap} b.cost i.note{background:#c9d4cc;box-
 <tr><td>ranks</td><td>Intern (half pay, never fired, the supervisor watches) → Controller → either <b>Senior I · II · III</b> (one harder sector, more pay) or <b>Supervisor · Senior Supervisor · Chief</b> (2 · 4 · 6 intern screens: fix their mistakes).</td></tr>
 <tr><td>rent</td><td>Due every 3 shifts, 30% more each week, faster after week 5. Can't pay: <b>broke</b>, the career is over. Holding 8 weeks of rent at the end of a week: you may <b>retire</b> (the win).</td></tr>
 <tr><td>jobs</td><td>Every week other airports want you, up to the tier your reputation (A reviews) reaches. A new job starts you over at Controller. Fired: back to intern at a small airport, cash and tattoos kept.</td></tr>
-<tr><td>the devil</td><td>After every shift: three tattoo sketches for a share of the rent. Most strong ones carry a catch, some a sacrifice (a strike, your eyes, your rank, your soul). Same style on both arms or hands: 1.5× as strong. 2 and 4 of a style add its mark.</td></tr>
+<tr><td>shop</td><td>After every shift: kit (yours for the career) and favours (one use).</td></tr>
+<tr><td>the devil</td><td>Every 2nd week: three tattoo sketches for a share of the rent. Most strong ones carry a catch, some a sacrifice (a strike, your eyes, your rank, your soul). Same style on both arms or hands: 1.5× as strong. 2 and 4 of a style add its mark.</td></tr>
 <tr><td>skills</td><td>Milestones give skill points; between careers they buy information and comfort (path lines, warnings, pauses, interns), never pay.</td></tr>
 </table></section>
 <section class="pg"><h2 id="acdata">Aircraft</h2><div id="actable"></div></section>
@@ -538,7 +540,7 @@ const RANKS = {
   super6:     {name: 'Chief',             level: 4, track: 'super',  screens: 6, base: 1.6},
 };
 const INTERN_LEVEL = {traffic: 0.8}; // an intern screen's traffic, times the airport's
-// the airports. tier sets the pay (TIER_PAY_STEP) and how much reputation the job board needs. runways: which of
+// the airports. brief: the boss's text on your first shift there. tier sets the pay (TIER_PAY_STEP) and how much reputation the job board needs. runways: which of
 // EXTRA_RUNWAYS it has besides the main one; helipads; heights: how many of the extra levels (HEIGHT_UPGRADE_ORDER);
 // wider: the wider area and its two extra fixes; mix: its traffic by type (TYPE_MIX's names); traffic: planes expected in
 // the air at once; storms; wind (and windPace: its spells this many times as long); readback: a share of orders misheard;
@@ -547,51 +549,57 @@ const INTERN_LEVEL = {traffic: 0.8}; // an intern screen's traffic, times the ai
 // a crash below mid, restricted = a write-up)
 // prettier-ignore
 const AIRPORTS = {
-  hollin:   {name: 'Hollin Field',         tier: 1, character: 'Grass strip, props only, calm',
+  hollin:   {name: 'Hollin Field',         tier: 1, brief: 'small field, props only. quiet days.',
              runways: [], helipads: 0, heights: 0, mix: {light: 1}, traffic: 2.7, storms: 0, wind: false, readback: 0},
-  mossbay:  {name: 'Mossbay Regional',     tier: 1, character: 'Sea fog (names only far out), props and bizjets',
+  mossbay:  {name: 'Mossbay Regional',     tier: 1, brief: 'sea fog here: far out you only see call signs.',
              runways: [], helipads: 0, heights: 0, mix: {light: 0.6, bizjet: 0.4}, traffic: 2.9, storms: 0, wind: true, readback: 0.02, fog: true},
-  kesterton:{name: 'Kesterton',            tier: 2, character: 'One runway, strong crosswinds, jets',
+  kesterton:{name: 'Kesterton',            tier: 2, brief: 'one runway and the wind keeps turning. jets.',
              runways: [], helipads: 0, heights: 1, mix: {jet: 0.55, light: 0.2, bizjet: 0.15, medevac: 0.05, vip: 0.05}, traffic: 2.8, storms: 1, wind: true, windPace: 0.55, readback: 0.03},
-  larkspur: {name: 'Larkspur Heliport',    tier: 2, character: 'Three pads and a short runway',
+  larkspur: {name: 'Larkspur Heliport',    tier: 2, brief: 'three helipads, one short runway.',
              runways: [], helipads: 3, heights: 1, mix: {light: 0.5, bizjet: 0.3, medevac: 0.2}, traffic: 2.7, storms: 0, wind: true, readback: 0.03},
-  portarden:{name: 'Port Arden',           tier: 3, character: 'Parallel runways, freighters at night',
+  portarden:{name: 'Port Arden',           tier: 3, brief: 'two parallel runways. lots of freighters.',
              runways: [0], helipads: 0, heights: 2, mix: {cargo: 0.35, heavy: 0.2, jet: 0.3, light: 0.1, medevac: 0.05}, traffic: 3.6, storms: 1, wind: true, readback: 0.04, timing: 1},
-  granite:  {name: 'Granite Valley',       tier: 3, character: 'Mountains close sectors, storms',
+  granite:  {name: 'Granite Valley',       tier: 3, brief: 'mountains: anything below mid there crashes.',
              runways: [], helipads: 0, heights: 2, mix: {jet: 0.5, light: 0.2, bizjet: 0.2, medevac: 0.1}, traffic: 3.2, storms: 2, wind: true, readback: 0.04,
              zones: [{x: 7500, y: -9500, r: 3600, kind: 'mountain'}, {x: -8000, y: 9000, r: 3300, kind: 'mountain'}]},
-  northgate:{name: 'Northgate',            tier: 3, character: 'Air base: fighters, closed airspace',
+  northgate:{name: 'Northgate',            tier: 3, brief: 'air base. fighters, and a block you may not enter.',
              runways: [], helipads: 1, heights: 2, mix: {military: 0.35, jet: 0.3, light: 0.15, heavy: 0.1, vip: 0.1}, traffic: 3.4, storms: 1, wind: true, readback: 0.04,
              zones: [{x: -9000, y: -8500, r: 3200, kind: 'restricted'}]},
-  calder:   {name: 'Calder City',          tier: 4, character: 'Crossing runways, VIP traffic',
+  calder:   {name: 'Calder City',          tier: 4, brief: 'crossing runways, and the VIPs love us.',
              runways: [1, 2], helipads: 1, heights: 3, mix: {...TYPE_MIX, vip: 0.15}, traffic: 4.2, storms: 1, wind: true, readback: 0.05, ovf: true, timing: 1},
-  marrow:   {name: 'Marrow International', tier: 5, character: 'Four runways, all weather, readback errors',
+  marrow:   {name: 'Marrow International', tier: 5, brief: 'four runways, all weather, pilots mishear.',
              runways: [0, 1, 2], helipads: 2, heights: 4, wider: true, mix: TYPE_MIX, traffic: 5.2, storms: 2, wind: true, readback: 0.08, ovf: true, timing: 2},
-  meridian: {name: 'Meridian Hub',         tier: 6, character: 'Everything, and you fly every line-up yourself',
+  meridian: {name: 'Meridian Hub',         tier: 6, brief: 'everything. you fly every line-up yourself.',
              runways: [0, 1, 2], helipads: 3, heights: 5, wider: true, mix: TYPE_MIX, traffic: 5.8, storms: 2, wind: true, readback: 0.08, ovf: true, manual: true},
 };
 const FIRST_AIRPORTS = ['hollin', 'mossbay']; // an intern starts at one of these
-// a season rolls with every job offer: it changes that airport for as long as you work there
+// a season rolls with every job offer: it changes that airport for as long as you work there; what: the boss's text
 // prettier-ignore
 const SEASONS = {
   quiet:    {name: 'quiet season'},
-  airshow:  {name: 'airshow week',  what: 'a block of airspace is closed for the show', zones: [{x: 0, y: 10500, r: 2600, kind: 'restricted'}]},
-  night:    {name: 'night shifts',  what: 'labels show only call signs, pay ×1.25', night: true, pay: 1.25},
-  works:    {name: 'runway works',  what: 'the runway rests 4 s after every plane', restAfterEvery: 4},
-  heatwave: {name: 'heatwave',      what: 'planes climb and descend 25% slower', climb: 0.75},
-  stormy:   {name: 'storm season',  what: 'one more storm cell, pay ×1.1', storms: 1, pay: 1.1},
-  busy:     {name: 'busy season',   what: '20% more traffic, pay ×1.1', traffic: 1.2, pay: 1.1},
+  airshow:  {name: 'airshow week',  what: 'airshow this week. a block of sky is closed.', zones: [{x: 0, y: 10500, r: 2600, kind: 'restricted'}]},
+  night:    {name: 'night shifts',  what: 'nights this week. you only see call signs. pay ×1.25.', night: true, pay: 1.25},
+  works:    {name: 'runway works',  what: 'runway works: 4 s rest after every plane.', restAfterEvery: 4},
+  heatwave: {name: 'heatwave',      what: 'heatwave. planes climb and descend slower.', climb: 0.75},
+  stormy:   {name: 'storm season',  what: 'storm season: one more cell. pay ×1.1.', storms: 1, pay: 1.1},
+  busy:     {name: 'busy season',   what: 'busy season: 20% more traffic. pay ×1.1.', traffic: 1.2, pay: 1.1},
 };
 
 /* --- the devil and his tattoos ------------------------------------------------------------------------------------
-   After every shift the devil offers three sketches. Each costs a share of this week's rent (PRICE_SHARE by rarity) and
+   At the end of every DEVIL_EVERY_WEEKS-th week the devil offers three sketches. Each costs a share of this week's rent (PRICE_SHARE by rarity) and
    most strong ones carry a catch: a curse (only while you wear it) or a sacrifice (for the rest of the career, 1 Blood
    each). Strength: a matching pair (the same style on both arms or both hands) works PAIR_STRENGTH times as strong;
    Fresh Ink makes the newest tattoo twice as strong, its catch too. Every number a tattoo uses is in its row. */
-const PRICE_SHARE = {c: 0.15, u: 0.3, r: 0.6, l: 1};
-const RARITY_WEIGHT = {c: 50, u: 32, r: 14, l: 4}; // how often each rarity is sketched
+const PRICE_SHARE = {kit: 0.15, u: 0.3, r: 0.6, l: 1}; // kit: a shop item's price
+const RARITY_WEIGHT = {u: 50, r: 14, l: 4}; // how often each rarity is sketched
 const BLESSING_WEIGHT = 0.35; // a blessing (no catch) is sketched this many times as often as others of its rarity
 const SKETCHES = 3; // designs the devil shows each visit
+const DEVIL_EVERY_WEEKS = 2; // the devil comes at the end of every 2nd week: tattoos are rare
+/* --- the shop: after every shift. Kit (the rows of TATTOOS with rarity 'kit': yours for the rest of the career, no skin
+   needed) and favours (one use). Prices are a share of this week's rent (PRICE_SHARE.kit, FAVOURS[].price). */
+const SHOP_KIT_CARDS = 3, // kit for sale after each shift
+  SHOP_FAVOUR_CARDS = 2; // favours for sale after each shift
+const RESTOCK_SHARE = 0.04; // restocking the shop costs this share of the rent (Coupon: half)
 const REROLL_SHARE = 0.05, // "something else" costs this share of the rent, and this much more every time in one visit
   REROLL_STEP = 0.05;
 const BURN_SHARE = 0.5; // burning a tattoo off costs this share of its price
@@ -628,56 +636,56 @@ const SACRIFICES = {
 const TATTOOS = {
   logbook:      {name: 'Tally Marks',     style: 'waves', rarity: 'u', kind: 'slow', gives: 'a mark for every plane handled without a write-up: ×0.05 Mult each, for the whole career; a write-up wipes them', catch: 'par 1 s shorter for every 10 marks', n: {xMultPerMark: 0.05, parSecondsPer10: 1}},
   headset:      {name: 'Four-Leaf',       style: 'waves', rarity: 'u', kind: 'bless', gives: 'the first write-up of every shift is forgiven: it does not count, the streak goes on', n: {forgiven: 1}},
-  cleansheet:   {name: 'Clean Slate',     style: 'waves', rarity: 'c', gives: 'end of shift: +¤100 for every plane in your best streak', n: {perPlane: 100}},
+  cleansheet:   {name: 'Clean Sheet',     style: 'waves', rarity: 'kit', gives: 'end of shift: +¤100 for every plane in your best streak', n: {perPlane: 100}},
   goldenpen:    {name: 'Gold Leaf',       style: 'waves', rarity: 'r', sac: 'strike', gives: 'a shift with no write-ups pays ×2', n: {xPay: 1}},
-  stopwatch:    {name: 'Swift',           style: 'waves', rarity: 'c', gives: 'a plane finished under par: +0.5 Mult', n: {mult: 0.5}},
+  stopwatch:    {name: 'Stopwatch',           style: 'waves', rarity: 'kit', gives: 'a plane finished under par: +0.5 Mult', n: {mult: 0.5}},
   shortfinal:   {name: 'Arrow',           style: 'waves', rarity: 'u', gives: '+¤40 for every second a plane finishes under par', catch: 'a late plane loses 2% of its fare a second, not 1%', n: {perSecond: 40, latePercent: 1}},
   express:      {name: 'Comet',           style: 'waves', rarity: 'u', gives: 'a departure rolling within 10 s of reaching the runway: ×1.5 Mult', catch: 'departures have half their patience', n: {seconds: 10, xMult: 0.5, patience: 0.5}},
   rushhour:     {name: 'Stampede',        style: 'waves', rarity: 'r', kind: 'slow', gives: 'every fare ×1.5, and +×0.1 more after every shift', catch: 'traffic +20%, and +10% more after every shift', n: {fare: 0.5, farePerShift: 0.1, traffic: 0.2, trafficPerShift: 0.1}},
-  greenlight:   {name: 'Sparrow',         style: 'waves', rarity: 'c', gives: 'departures +0.5 Mult (helicopter lift-offs too)', n: {mult: 0.5}},
+  greenlight:   {name: 'Green Light',         style: 'waves', rarity: 'kit', gives: 'departures +0.5 Mult (helicopter lift-offs too)', n: {mult: 0.5}},
   dancer:       {name: 'Two Swallows',    style: 'waves', rarity: 'u', gives: 'a departure rolling within 5 s after a landing on the same runway: +¤500', catch: 'departures roll the moment you say so, even onto a busy runway', n: {seconds: 5, cash: 500}},
-  wakerider:    {name: 'Whale',           style: 'wings', rarity: 'c', gives: 'heavies and freighters +0.75 Mult', n: {mult: 0.75}},
-  freight:      {name: 'Anchor',          style: 'wings', rarity: 'c', gives: 'every 4th new plane is a freighter; freighters +¤400', n: {every: 4, cash: 400}},
+  wakerider:    {name: 'Wake Rider',           style: 'wings', rarity: 'kit', gives: 'heavies and freighters +0.75 Mult', n: {mult: 0.75}},
+  freight:      {name: 'Freight Deal',          style: 'wings', rarity: 'kit', gives: 'every 4th new plane is a freighter; freighters +¤400', n: {every: 4, cash: 400}},
   jumbo:        {name: 'Albatross',       style: 'wings', rarity: 'r', gives: 'when a plane lands: ×1.25 Mult for every heavy or freighter in the air', catch: 'the wake rest after a heavy is doubled', n: {xPerHeavy: 0.25, wake: 1}},
   wakechart:    {name: 'Wake',            style: 'wings', rarity: 'u', gives: 'the wake rest after a heavy is halved; each heavy departure: +0.5 Mult to the next 3 planes', catch: 'a plane closer than 4 km behind a heavy in the air is a write-up', n: {wake: 0.5, mult: 0.5, planes: 3}},
-  redcarpet:    {name: 'Crown',           style: 'wings', rarity: 'c', gives: 'VIPs +¤1,500', n: {cash: 1500}},
-  siren:        {name: 'Red Cross',       style: 'wings', rarity: 'c', gives: 'a MEDEVAC in half its deadline: +1 Mult to the next 3 planes', n: {mult: 1, planes: 3}},
+  redcarpet:    {name: 'Red Carpet',           style: 'wings', rarity: 'kit', gives: 'VIPs +¤1,500', n: {cash: 1500}},
+  siren:        {name: 'Siren',       style: 'wings', rarity: 'kit', gives: 'a MEDEVAC in half its deadline: +1 Mult to the next 3 planes', n: {mult: 1, planes: 3}},
   brass:        {name: 'Eagle',           style: 'wings', rarity: 'u', gives: 'priority flights and military jets come twice as often', catch: 'a late priority flight is 2 write-ups', n: {often: 1}},
   scramble:     {name: 'Fighter',         style: 'wings', rarity: 'u', gives: 'two military jets never collide; each one handled: +×0.1 Mult for the rest of the shift', catch: 'military jets fly 20% faster and cannot be held', n: {xMult: 0.1, speed: 0.2}},
-  rotorclub:    {name: 'Dragonfly',       style: 'wings', rarity: 'c', gives: 'helicopters +¤800', n: {cash: 800}},
+  rotorclub:    {name: 'Rotor Club',       style: 'wings', rarity: 'kit', gives: 'helicopters +¤800', n: {cash: 800}},
   turnaround:   {name: 'Hummingbird',     style: 'wings', rarity: 'u', gives: 'helicopter turnaround on the pad 40 s → 10 s', catch: 'twice as many helicopters', n: {seconds: 10, often: 1}},
   hoverhum:     {name: 'Moth',            style: 'wings', rarity: 'u', gives: 'every helicopter lift-off: +0.25 Mult to every plane for the rest of the shift', catch: 'helicopters cannot be held', n: {mult: 0.25}},
-  patient:      {name: 'Ouroboros',       style: 'clocks', rarity: 'c', gives: '+¤100 for every full lap a plane flies in a hold (up to 10)', n: {cash: 100, laps: 10}},
+  patient:      {name: 'Holding Pattern',       style: 'clocks', rarity: 'kit', gives: '+¤100 for every full lap a plane flies in a hold (up to 10)', n: {cash: 100, laps: 10}},
   stack:        {name: 'Spiral',          style: 'clocks', rarity: 'u', gives: 'when a plane lands: +0.25 Mult for every plane holding', catch: 'arrivals come in one level lower', n: {mult: 0.25}},
   sparefix:     {name: 'Compass',         style: 'clocks', rarity: 'u', kind: 'bless', gives: 'one more holding fix, GOLF, close to the airport', n: {}},
-  thermos:      {name: 'Camel',           style: 'clocks', rarity: 'c', gives: 'planes in a hold burn fuel 50% slower', n: {burn: 0.5}},
+  thermos:      {name: 'Thermos',           style: 'clocks', rarity: 'kit', gives: 'planes in a hold burn fuel 50% slower', n: {burn: 0.5}},
   lastdrop:     {name: 'Last Drop',       style: 'clocks', rarity: 'u', gives: 'a plane landing with under 20 s of fuel: ×3 its pay', catch: 'a MAYDAY no longer goes before priority flights', n: {seconds: 20, xPay: 2}},
-  fuelgauge:    {name: 'Gauge',           style: 'clocks', rarity: 'c', kind: 'bless', gives: 'fuel left in seconds on every label; a MAYDAY landing pays +¤1,000', n: {cash: 1000}},
+  fuelgauge:    {name: 'Fuel Gauge',           style: 'clocks', rarity: 'kit', gives: 'fuel left in seconds on every label; a MAYDAY landing pays +¤1,000', n: {cash: 1000}},
   fumes:        {name: 'Empty Bottle',    style: 'clocks', rarity: 'r', gives: 'every arrival fare ×1.5', catch: 'arrivals come in with half their fuel', n: {fare: 0.5, fuel: 0.5}},
-  gateagent:    {name: 'Hourglass',       style: 'clocks', rarity: 'c', gives: 'departures wait 30 s longer; one that waited over 30 s pays +¤300', n: {seconds: 30, cash: 300}},
-  thrill:       {name: 'Razor',           style: 'lightning', rarity: 'c', gives: '+¤200 for every near pass', n: {cash: 200}},
+  gateagent:    {name: 'Gate Agent',       style: 'clocks', rarity: 'kit', gives: 'departures wait 30 s longer; one that waited over 30 s pays +¤300', n: {seconds: 30, cash: 300}},
+  thrill:       {name: 'Thrill',           style: 'lightning', rarity: 'kit', gives: '+¤200 for every near pass', n: {cash: 200}},
   adrenaline:   {name: 'Heartline',       style: 'lightning', rarity: 'u', gives: 'every near pass or storm brush this shift: +0.25 Mult to every plane after it', catch: 'red warnings come at half the distance', n: {mult: 0.25, warning: 0.5}},
   nerves:       {name: 'Iron Spine',      style: 'lightning', rarity: 'u', gives: 'near passes count from 30% farther', catch: 'no red warnings: planes never turn red', n: {reach: 0.3}},
   daredevil:    {name: 'Skull',           style: 'lightning', rarity: 'r', sac: 'strike', gives: '×0.2 Mult for every near pass, for the whole career; a write-up wipes it', n: {xMult: 0.2}},
-  stormchaser:  {name: 'Storm Eye',       style: 'lightning', rarity: 'c', gives: 'a plane that brushed a storm cell: +0.75 Mult', n: {mult: 0.75}},
-  weatherradio: {name: 'Weathervane',     style: 'lightning', rarity: 'c', gives: 'storms and wind changes are forecast 60 s ahead', catch: 'one more storm cell', n: {seconds: 60}},
+  stormchaser:  {name: 'Storm Chaser',       style: 'lightning', rarity: 'kit', gives: 'a plane that brushed a storm cell: +0.75 Mult', n: {mult: 0.75}},
+  weatherradio: {name: 'Weather Radio',     style: 'lightning', rarity: 'kit', gives: 'storms and wind changes are forecast 60 s ahead', catch: 'one more storm cell', n: {seconds: 60}},
   crosswind:    {name: 'Windrose',        style: 'lightning', rarity: 'u', gives: 'after every wind change the next 5 landings get ×2 Mult', catch: 'the wind changes twice as often', n: {landings: 5, xMult: 1}},
-  foglamp:      {name: 'Lighthouse',      style: 'lightning', rarity: 'c', gives: 'every storm cell or wind change this shift: +5% pay at the end', n: {share: 0.05}},
+  foglamp:      {name: 'Fog Lamp',      style: 'lightning', rarity: 'kit', gives: 'every storm cell or wind change this shift: +5% pay at the end', n: {share: 0.05}},
   eye:          {name: 'Eye of the Storm', style: 'lightning', rarity: 'l', gives: 'every storm cell that passes: ×1.1 Mult on everything for the rest of the shift, compounding', catch: 'every storm cell is 15% bigger than the one before', n: {xMult: 0.1, grow: 0.15}},
   mentor:       {name: 'Old Key',         style: 'keys', rarity: 'u', kind: 'bless', gives: 'intern screens pay +25%; their mistakes are flagged, 3 s sooner', n: {pay: 0.25, seconds: 3}},
-  clipboard:    {name: 'Quill',           style: 'keys', rarity: 'c', gives: '+¤300 for every intern mistake you fix', n: {cash: 300}},
+  clipboard:    {name: 'Clipboard',           style: 'keys', rarity: 'kit', gives: '+¤300 for every intern mistake you fix', n: {cash: 300}},
   redpen:       {name: 'Scar',            style: 'keys', rarity: 'u', gives: 'every intern mistake fixed this shift: +×0.1 Mult on every screen', catch: 'interns make 25% more mistakes', n: {xMult: 0.1, mistakes: 0.25}},
   starintern:   {name: 'Third Eye',       style: 'keys', rarity: 'r', sac: 'eyes', gives: 'tattoos that grow (Tally Marks, Skull, Moth, Scar…) grow from every screen, not only the first', n: {}},
   corneroffice: {name: 'Throne',          style: 'keys', rarity: 'r', gives: '×1.25 pay on every screen for each screen beyond the first', catch: 'you get 5 to 8 s to fix an intern\'s mistake, not 8 to 12', n: {xPerScreen: 0.25, window: 3.5}},
-  radiocollector:{name: 'Bell',           style: 'keys', rarity: 'c', gives: '+1 favour slot; +0.25 Mult to every plane for each favour held', n: {slots: 1, mult: 0.25}},
+  radiocollector:{name: 'Radio Rack',           style: 'keys', rarity: 'kit', gives: '+1 favour slot; +0.25 Mult to every plane for each favour held', n: {slots: 1, mult: 0.25}},
   static:       {name: 'Forked Tongue',   style: 'keys', rarity: 'u', gives: 'every favour works twice', catch: 'favours cost twice as much', n: {price: 1}},
-  fortune:      {name: 'Black Cat',       style: 'keys', rarity: 'c', gives: 'end of shift: 1 in 2 chance the devil owes you a free favour', catch: '1 shift in 6 is a black-cat shift: twice the readback errors', n: {chance: 0.5, badLuck: 1 / 6}},
+  fortune:      {name: 'Lucky Coin',       style: 'keys', rarity: 'kit', gives: 'end of shift: 1 in 2 chance of a free favour', catch: '1 shift in 6: twice the misheard orders', n: {chance: 0.5, badLuck: 1 / 6}},
   purse:        {name: 'Coin Purse',      style: 'coins', rarity: 'u', kind: 'slow', gives: 'end of every week: +10% of your cash, up to a week of rent', n: {share: 0.1}},
   handshake:    {name: 'Handshake',       style: 'coins', rarity: 'u', gives: 'your performance bonus is doubled', catch: 'one C review and you are let go', n: {bonus: 1}},
   wolf:         {name: 'Wolf',            style: 'coins', rarity: 'r', gives: 'two more job offers; a new job starts you as Senior I or Supervisor', catch: 'your first shift at a new job is probation: below an A and you are let go', n: {offers: 2}},
   snake:        {name: 'Silver Snake',    style: 'coins', rarity: 'u', gives: 'a promotion needs one A review, not two', catch: 'you cannot turn a promotion down', n: {}},
   overtime:     {name: 'Moon',            style: 'coins', rarity: 'u', gives: 'the middle shift of every week is a night shift: it pays ×2', catch: 'at night, labels show only call signs', n: {xPay: 1}},
-  fleamarket:   {name: 'Fox',             style: 'coins', rarity: 'c', kind: 'bless', gives: '"something else" costs half', n: {price: 0.5}},
+  fleamarket:   {name: 'Coupon',             style: 'coins', rarity: 'kit', gives: 'restocking the shop and the devil\'s "something else" cost half', n: {price: 0.5}},
   magpie:       {name: 'Magpie',          style: 'coins', rarity: 'u', kind: 'slow', gives: '+0.1 Mult to every plane for every tattoo you wear', catch: '+3% traffic for every tattoo you wear', n: {mult: 0.1, traffic: 0.03}},
   blooddebt:    {name: 'Blood Debt',      style: 'horns', rarity: 'r', kind: 'slow', gives: '+0.25 Mult to every plane for every Blood you have given', n: {mult: 0.25}},
   echo:         {name: 'Fresh Ink',       style: 'horns', rarity: 'r', gives: 'your newest tattoo works twice as strong', catch: 'its catch is twice as strong too', n: {}},
@@ -754,7 +762,7 @@ const SKILL_TREE = [
     {name: 'Interns', nodes: [['fewer20', '20% fewer mistakes', 1], ['fewer40', '40% fewer', 2], ['callhelp', 'interns call you before a crash', 3]]},
     {name: 'Screens', nodes: [['flash', 'a screen in trouble flashes', 1], ['grow', 'it grows while in trouble', 2], ['pip', 'picture-in-picture of a conflict', 3]]}]},
   {name: 'Career', what: 'the start of a run', paths: [
-    {name: 'Start',     nodes: [['freetattoo', 'a free common tattoo', 1], ['neckopen', 'your neck open from the start', 2], ['rentpaid', 'first week of rent paid', 3]]},
+    {name: 'Start',     nodes: [['freetattoo', 'a free piece of kit', 1], ['neckopen', 'your neck open from the start', 2], ['rentpaid', 'first week of rent paid', 3]]},
     {name: 'Comeback',  nodes: [['shortintern', 'intern phase needs one A fewer', 1], ['fastback', 'one A fewer to be promoted again after a firing', 2]]},
     {name: 'The devil', nodes: [['freelook', 'his first "something else" of a career free', 1], ['foursketches', 'a fourth sketch at his first visit', 2]]}]},
 ];
@@ -776,7 +784,7 @@ const SUPERVISOR_TEXTS = {
   crash:     ['hey. pay attention, you can get people killed!', 'that was close. I took it. watch your levels.', 'I pulled them apart. two planes, one height: never.'],
   storm:     ['I turned it out of the storm. keep them clear of the red.'],
   fuel:      ['that one is low on fuel. it lands first, whatever the queue says.'],
-  welcome:   ['first day. I\'m right behind you. arrivals blue, departures gold.'],
+  welcome:   ['first day. I\'m right behind you. interns don\'t get fired. arrivals blue, departures gold.'],
   readylist: ['departures get grumpy. watch the READY list.'],
   solo:      ['you\'re on your own from tomorrow. don\'t make me come back.'],
   fired:     ['heard you got fired. desk by the window is free. again.'],
@@ -1320,6 +1328,7 @@ const META_KEY = 'tower-career-meta',
 const freshMeta = () => ({careers: 0, points: 0, skills: {}, milestones: {}, bestRetireSeconds: null, bestWeeks: 0});
 let meta = {...freshMeta(), ...loadJson(META_KEY, {})},
   career = loadJson(CAREER_KEY, null);
+  if (career) career.kit ||= [];
 const saveGame = () => {
   storage(META_KEY, JSON.stringify(meta));
   if (career && !career.daily) storage(CAREER_KEY, JSON.stringify(career));
@@ -1559,8 +1568,16 @@ function startCareerShift() {
     );
   enterWorld(worlds[0]);
   career.phase = 'shift';
+  if (shift.night && !seasonNow().night) textMessage('BOSS', 'night shift tonight. pay ×2.', 400);
   afterShiftStart();
   if (career.rank === 'intern' && career.shiftsHere === 0 && career.shifts === 0) supervisorText('welcome');
+  // a first shift somewhere: the boss texts what is special here, and this season
+  if (career.shiftsHere === 0) {
+    const from = career.rank === 'intern' ? 'SUPERVISOR' : 'BOSS',
+      season = SEASONS[career.season];
+    textMessage(from, `${airportNow().name}: ${airportNow().brief}`, 600);
+    if (season.what) textMessage(from, season.what, 2600);
+  }
 }
 // the panels that depend on the world: the ways your runways take off, the fixes to hold at; any tutorial banner goes
 function afterShiftStart() {
@@ -2026,7 +2043,7 @@ function showPayment(plane, colour, paid, before) {
          the newest. catchStrength(id): 0 or 1, × 2 with Fresh Ink. Every pay step is kept with the tattoo that made it,
          so the shift's end can show what each one added (shift.contributions).
    ===================================================================================================================== */
-const worn = id => !!career && !game?.practice && !game?.admin && !game?.tutorial && career.tattoos.some(tattoo => tattoo.id === id);
+const worn = id => !!career && !game?.practice && !game?.admin && !game?.tutorial && (career.tattoos.some(tattoo => tattoo.id === id) || (career.kit || []).includes(id));
 const wornAt = place => career && career.tattoos.find(tattoo => tattoo.place === place);
 // is this tattoo one of a matching pair: the same style on both arms or both hands
 function inPair(tattoo) {
@@ -2038,6 +2055,7 @@ function inPair(tattoo) {
 function tattooStrength(id) {
   if (!worn(id)) return 0;
   const tattoo = career.tattoos.find(t => t.id === id);
+  if (!tattoo) return 1; // shop kit: always plain strength
   return (inPair(tattoo) ? PAIR_STRENGTH : 1) * (career.newest === id && id !== 'echo' && worn('echo') ? 2 : 1);
 }
 const catchStrength = id => (worn(id) ? (career.newest === id && id !== 'echo' && worn('echo') ? 2 : 1) : 0);
@@ -5959,7 +5977,7 @@ const CHIP_COLOURS = {
 // how wide a chip is drawn at a size
 function chipWidth(chip, size) {
   setFont(size, '800');
-  return ctx.measureText(chip.text.replace('¤', '')).width + size * 0.9 + (chip.kind === 'coin' ? size * 0.9 : 0);
+  return ctx.measureText(chip.text.replace('¤', '$')).width + size * 0.9 + (chip.kind === 'coin' ? size * 0.9 : 0);
 }
 // one chip: a shadow, the chip (a banknote with an inner border for money, a coin for tokens) and its text
 function drawChip(chip, size) {
@@ -5997,7 +6015,7 @@ function drawChip(chip, size) {
     textX = size * 0.45;
   }
   ctx.fillStyle = foreground;
-  ctx.fillText(chip.text.replace('¤', ''), textX, size * 0.05);
+  ctx.fillText(chip.text.replace('¤', '$'), textX, size * 0.05); // a bill keeps its $
 }
 // a little spray of green banknotes jumping out of a plane that paid: each flies out, up and down again, spinning
 const banknotes = () => (game.banknotes ||= []);
@@ -7047,13 +7065,18 @@ function toast(text, kind = '') {
 }
 function supervisorText(key) {
   const texts = SUPERVISOR_TEXTS[key];
-  if (!texts) return;
-  sound.text();
-  const note = document.createElement('div');
-  note.className = 'note sms';
-  note.innerHTML = `<b>SUPERVISOR</b>${escapeHtml(texts[(Math.random() * texts.length) | 0])}`;
-  toastEl.appendChild(note);
-  setTimeout(() => note.remove(), 6500);
+  if (texts) textMessage('SUPERVISOR', texts[(Math.random() * texts.length) | 0]);
+}
+// a text on your phone, from the supervisor or the boss: where extra information goes, never on the cards
+function textMessage(from, text, delay = 0) {
+  setTimeout(() => {
+    sound.text();
+    const note = document.createElement('div');
+    note.className = 'note sms';
+    note.innerHTML = `<b>${from}</b>${moneyHtml(escapeHtml(text))}`;
+    toastEl.appendChild(note);
+    setTimeout(() => note.remove(), 7000);
+  }, delay);
 }
 // a milestone: skill points for the tree, once ever (not in the daily career)
 function reachMilestone(id) {
@@ -7089,6 +7112,7 @@ function newCareer(daily = false) {
     cStreak: 0,
     bonusRun: [],
     tattoos: [],
+    kit: [],
     newest: null,
     blood: 0,
     sacrifices: {},
@@ -7111,9 +7135,8 @@ function newCareer(daily = false) {
   career.stats.airports.push(career.airport);
   career.bestLevel = RANKS[career.rank].level;
   if (hasSkill('freetattoo') && !daily) {
-    const commons = Object.keys(TATTOOS).filter(id => TATTOOS[id].rarity === 'c');
-    career.tattoos.push({id: commons[(Math.random() * commons.length) | 0], place: 'leftarm', inkedAt: 0});
-    career.newest = career.tattoos[0].id;
+    const kit = Object.keys(TATTOOS).filter(id => TATTOOS[id].rarity === 'kit');
+    career.kit.push(kit[(Math.random() * kit.length) | 0]);
   }
   saveGame();
   startCareerShift();
@@ -7187,8 +7210,11 @@ function finishShift() {
     if (career.aStreak >= bonusNeeds && career.bonusRun.length >= bonusNeeds) queue.push('bonus');
     if (promotionDue()) queue.push('promotion');
   }
-  if (career.shiftOfWeek >= SHIFTS_PER_WEEK) queue.push('week', 'jobs');
-  queue.push('devil');
+  if (career.shiftOfWeek >= SHIFTS_PER_WEEK) {
+    queue.push('week', 'jobs');
+    if (career.week % DEVIL_EVERY_WEEKS === 0) queue.push('devil');
+  }
+  queue.push('shop');
   career.queue = queue;
   career.phase = 'review';
   screenState.choice = 'next';
@@ -7220,7 +7246,7 @@ function owedFavour() {
   const names = Object.keys(FAVOURS),
     name = names[(careerRandom() * names.length) | 0];
   career.favours.push(name);
-  toast(`the devil owes you a favour: ${name}`, 'blood');
+  toast(`free favour: ${name}`, 'gold');
 }
 const favourSlots = () =>
   FAVOUR_SLOTS + Math.floor(tattooStrength('radiocollector') * TATTOOS.radiocollector.n.slots + 1e-9) + (styleMark('keys', 4) ? 1 : 0);
@@ -7233,6 +7259,7 @@ function careerNext() {
   career.phase = career.queue.shift() || 'shift';
   screenState.choice = null;
   if (career.phase === 'devil') openDevil();
+  if (career.phase === 'shop') openShop();
   if (career.phase === 'jobs') career.offers = jobOffers();
   if (career.phase === 'week') settleWeek();
   if (career.phase === 'shift') startCareerShift();
@@ -7301,6 +7328,7 @@ function careerChoose(key) {
     return careerNext();
   }
   if (phase === 'devil') return devilChoose(key);
+  if (phase === 'shop') return shopChoose(key);
   if (phase === 'inking') return inkingChoose(key);
   if (phase === 'cv') {
     if (key === 'skills') {
@@ -7443,7 +7471,7 @@ function rerollPrice() {
 }
 // the devil's sketches: by rarity weight, blessings less often, nothing you wear
 function drawSketches(count) {
-  const pool = Object.keys(TATTOOS).filter(id => !worn(id)),
+  const pool = Object.keys(TATTOOS).filter(id => !worn(id) && TATTOOS[id].rarity !== 'kit'),
     weight = id => RARITY_WEIGHT[TATTOOS[id].rarity] * (TATTOOS[id].kind === 'bless' ? BLESSING_WEIGHT : 1),
     picked = [];
   while (picked.length < count && pool.length) {
@@ -7456,9 +7484,8 @@ function drawSketches(count) {
 }
 function openDevil() {
   career.devilVisits++;
-  const sketches = SKETCHES + (career.devilVisits === 1 && hasSkill('foursketches') ? 1 : 0),
-    favourNames = Object.keys(FAVOURS);
-  career.devil = {sketches: drawSketches(sketches), rerolls: 0, favour: favourNames[(careerRandom() * favourNames.length) | 0], burning: false, freeLook: false};
+  const sketches = SKETCHES + (career.devilVisits === 1 && hasSkill('foursketches') ? 1 : 0);
+  career.devil = {sketches: drawSketches(sketches), rerolls: 0, favour: null, burning: false, freeLook: false};
   screenState.choice = 'sketch:0';
 }
 const freePlaces = () => BODY_PLACES.filter(place => (!BODY_OPENS[place] || career.open[place]) && !career.sacrifices['skin:' + place] && !wornAt(place));
@@ -7519,6 +7546,63 @@ function devilChoose(key) {
     visit.buying = {id, price, index: +key.slice(7)};
     startInking(id, false);
   }
+}
+// the shop after every shift: kit you do not own yet, and favours
+function openShop() {
+  const kit = Object.keys(TATTOOS).filter(id => TATTOOS[id].rarity === 'kit' && !worn(id)),
+    favours = Object.keys(FAVOURS),
+    pick = (pool, count) => {
+      const picked = [];
+      while (picked.length < count && pool.length) picked.push(pool.splice((careerRandom() * pool.length) | 0, 1)[0]);
+      return picked;
+    };
+  career.shop = {kit: pick(kit, SHOP_KIT_CARDS), favours: pick(favours, SHOP_FAVOUR_CARDS), restocks: career.shop?.restocks || 0};
+  screenState.choice = 'next';
+}
+const kitPrice = id => Math.round((PRICE_SHARE.kit * rentNow()) / 10) * 10;
+const restockPrice = () => Math.round((RESTOCK_SHARE * rentNow() * (tattooStrength('fleamarket') ? TATTOOS.fleamarket.n.price : 1)) / 10) * 10;
+function shopChoose(key) {
+  const shop = career.shop;
+  if (key === 'next') return careerNext();
+  if (key === 'restock') {
+    const price = restockPrice();
+    if (career.cash < price) return toast('not enough cash', 'bad');
+    career.cash -= price;
+    openShop();
+    screenState.choice = 'restock';
+    return;
+  }
+  const [kind, index] = key.split(':'),
+    id = kind === 'kit' ? shop.kit[+index] : shop.favours[+index];
+  if (!id) return;
+  const price = kind === 'kit' ? kitPrice(id) : favourPrice(id);
+  if (career.cash < price) return toast('not enough cash', 'bad');
+  if (kind === 'favour' && career.favours.length >= favourSlots()) return toast('favour slots full', 'bad');
+  career.cash -= price;
+  if (kind === 'kit') {
+    career.kit.push(id);
+    shop.kit[+index] = null;
+    for (const [engineId, engine] of Object.entries(ENGINES)) if (engine.tattoos.every(worn)) reachMilestone('engine' + engineId);
+  } else {
+    career.favours.push(id);
+    shop.favours[+index] = null;
+  }
+  sound.tab();
+  saveGame();
+}
+function shopHtml() {
+  const shop = career.shop,
+    card = (key, name, what, price) => button(key, `<b>${escapeHtml(name)}</b><small>${escapeHtml(what)}</small><em>${costHtml(price)}</em>`, ' card'),
+    sold = '<div class="card plain sold"><small>sold</small></div>';
+  const kit = shop.kit.map((id, i) =>
+      id ? card('kit:' + i, TATTOOS[id].name, TATTOOS[id].gives + (TATTOOS[id].catch ? ` · but ${TATTOOS[id].catch}` : ''), kitPrice(id)) : sold),
+    favours = shop.favours.map((name, i) => (name ? card('favour:' + i, name, FAVOURS[name].what, favourPrice(name)) : sold));
+  const owned = career.kit.map(id => TATTOOS[id].name).join(' · ');
+  return `<h1>shop</h1><p>cash <b>${money(career.cash)}</b></p>
+    <div class="cards">${kit.join('')}</div>
+    <div class="cards">${favours.join('')}</div>
+    ${owned ? `<small>kit: ${escapeHtml(owned)}</small>` : ''}
+    <div class="extras">${button('restock', `restock <em>${costHtml(restockPrice())}</em>`)}${button('next', 'Enter: next shift')}</div>`;
 }
 // choosing the place for a tattoo, then the devil draws it
 function startInking(id, free) {
@@ -7606,6 +7690,7 @@ function careerHtml() {
   if (phase === 'broke') return `<h1 class="bad">broke</h1><p>Rent this week: <b>${money(career.weekRent)}</b>. You hold <b>${money(career.cash)}</b>.</p>${button('cv', 'the end of the career')}`;
   if (phase === 'jobs') return jobsHtml();
   if (phase === 'devil') return devilHtml();
+  if (phase === 'shop') return shopHtml();
   if (phase === 'inking') return inkingHtml();
   if (phase === 'cv') return cvHtml();
   if (phase === 'skills') return skillsHtml();
@@ -7634,29 +7719,21 @@ function reviewHtml() {
       .join('')}</div>
     <div class="grade ${gradeShown ? 'on' : ''} g${shift.grade}">${shift.fired ? 'fired' : shift.grade}</div>
     <small>${shift.fired ? escapeHtml(shift.fired) : gradeText()}</small>
-    <div class="cash">cash <b>${money(career.cash)}</b> · rent ${money(rentNow())} due after shift ${SHIFTS_PER_WEEK}</div>
-    ${button('next', 'Enter: go on')}</div></div>`;
+    <div class="cash">cash <b>${money(career.cash)}</b> · rent ${money(rentNow())}</div>
+    ${button('next', 'Enter')}</div></div>`;
 }
 const contributionName = id => (TATTOOS[id] ? TATTOOS[id].name : STYLES[id] ? STYLES[id].name + ' mark' : {streak: 'streak', salary: 'salary', supervisor: 'supervisor', double: 'double favour'}[id] || id);
 function gradeText() {
-  const needs = promotionDue() ? 'a promotion is offered' : `${career.aStreak} A in a row`;
-  return shift.grade === 'A'
-    ? `A review: ${needs}`
-    : shift.grade === 'B'
-      ? 'B review: the A streak starts over'
-      : career.rank === 'intern'
-        ? 'C review: the supervisor is not impressed (an intern is never let go)'
-        : `C review: ${CS_TO_FIRE} in a row and you are let go`;
+  return shift.grade === 'A' ? `${career.aStreak} A in a row` : shift.grade === 'C' && career.rank !== 'intern' ? `${career.cStreak}/${CS_TO_FIRE} C` : '';
 }
 function firedHtml() {
   return `<h1 class="bad">fired</h1><p>${escapeHtml(shift.fired)}</p>
-    <p>Back to intern, half pay, the supervisor watching. Your cash (${money(career.cash)}) and tattoos stay. Pick where to start again:</p>
-    <div class="cards">${FIRST_AIRPORTS.map(id => button(id, `<b>${AIRPORTS[id].name}</b><small>${AIRPORTS[id].character}</small>`, ' card')).join('')}</div>`;
+    <div class="cards">${FIRST_AIRPORTS.map(id => button(id, `<b>${AIRPORTS[id].name}</b><small>as intern</small>`, ' card')).join('')}</div>`;
 }
 function bonusHtml() {
   const amount = bonusAmount();
-  return `<h1 class="gold">performance bonus</h1><p>${career.bonusRun.length} A reviews in a row at ${escapeHtml(airportNow().name)}.</p>
-    <div class="cards">${button('cash', `<b>${money(amount)}</b><small>cash now</small>`, ' card')}${button('sketch', `<b>a rare sketch</b><small>from the devil's back book, free, catch and all</small>`, ' card blood')}</div>`;
+  return `<h1 class="gold">performance bonus</h1>
+    <div class="cards">${button('cash', `<b>${money(amount)}</b><small>cash now</small>`, ' card')}${button('sketch', `<b>a rare tattoo</b><small>free</small>`, ' card blood')}</div>`;
 }
 function promotionHtml() {
   const level = rankNow().level + 1,
@@ -7668,9 +7745,9 @@ function promotionHtml() {
       ? `${rank.screens} intern screens · salary + their planes`
       : `pay ×${rank.pay}${rank.traffic > 1 ? ` · traffic +${Math.round((rank.traffic - 1) * 100)}%` : ''}${rank.priority ? ` · priority ×${rank.priority}` : ''}`;
   };
-  return `<h1 class="gold">promotion</h1><p>${career.aStreak} A reviews in a row: ${escapeHtml(airportNow().name)} offers you more.</p>
-    <div class="cards">${options.map(id => button(id, `<b>${RANKS[id].name}</b><small>${describe(id)}</small>`, ' card')).join('')}${forced ? '' : button('decline', `<b>stay ${rankNow().name}</b><small>the offer comes back after the next good run</small>`, ' card')}</div>
-    ${forced ? '<small>Silver Snake: you cannot turn it down</small>' : ''}`;
+  return `<h1 class="gold">promotion</h1>
+    <div class="cards">${options.map(id => button(id, `<b>${RANKS[id].name}</b><small>${describe(id)}</small>`, ' card')).join('')}${forced ? '' : button('decline', `<b>stay ${rankNow().name}</b>`, ' card')}</div>
+`;
 }
 function weekHtml() {
   const rows = [
@@ -7683,8 +7760,8 @@ function weekHtml() {
   const choices = career.soulDue
     ? (career.canRetire ? button('retire', '<b>retire</b><small>keep your soul</small>', ' card gold') : '') +
       button('collect', '<b>the devil collects</b><small>your soul was due this week</small>', ' card blood')
-    : (career.canRetire ? button('retire', `<b>retire</b><small>${formatTime(career.playSeconds)} · the career is won</small>`, ' card gold') : '') +
-      button('next', `<b>${career.canRetire ? 'keep working' : 'on to the job board'}</b><small>week ${career.week} starts</small>`, ' card');
+    : (career.canRetire ? button('retire', `<b>retire</b><small>${formatTime(career.playSeconds)}</small>`, ' card gold') : '') +
+      button('next', `<b>${career.canRetire ? 'keep working' : 'next week'}</b>`, ' card');
   return `<h1>week ${career.week - 1} done</h1><div class="tally">${rows.map(([label, value]) => `<span>${label}</span><span>${value}</span>`).join('')}</div><div class="cards">${choices}</div>`;
 }
 const formatTime = seconds => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
@@ -7694,13 +7771,13 @@ function jobsHtml() {
   const offer = (job, i) => {
     const airport = AIRPORTS[job.airport],
       season = SEASONS[job.season],
-      head = `<b>${airport.name}</b><small>tier ${airport.tier} · pay ×${tierPay(airport.tier).toFixed(2)} · ${airport.character}</small><small class="season">${season.name}${season.what ? ': ' + season.what : ''}</small>`;
+      head = `<b>${airport.name}</b><small>tier ${airport.tier} · pay ×${tierPay(airport.tier).toFixed(2)}</small>${season.what ? `<small class="season">${season.name}</small>` : ''}`;
     return wolf
       ? `<div class="card plain">${head}<div class="pair">${button(i + ':senior1', 'as Senior I')}${button(i + ':super2', 'as Supervisor')}</div></div>`
-      : button(i + ':controller', head + '<small>as Controller</small>', ' card');
+      : button(i + ':controller', head, ' card');
   };
-  return `<h1>job board</h1><p>Reputation ${career.reputation}: offers up to tier ${reach}. A new job starts you over: rank, A streak, bonus.</p>
-    <div class="cards">${career.offers.map(offer).join('')}${button('stay', `<b>stay at ${escapeHtml(airportNow().name)}</b><small>${rankNow().name} · ${career.aStreak} A in a row</small>`, ' card')}</div>`;
+  return `<h1>job board</h1><p>reputation ${career.reputation} · up to tier ${reach}</p>
+    <div class="cards">${career.offers.map(offer).join('')}${button('stay', `<b>stay</b><small>${escapeHtml(airportNow().name)}</small>`, ' card')}</div>`;
 }
 function devilHtml() {
   const visit = career.devil,
@@ -7717,15 +7794,14 @@ function devilHtml() {
   };
   const extras = [
     button('reroll', `something else <em>${rerollPrice() ? costHtml(rerollPrice()) : 'free'}</em>`),
-    visit.favour ? button('favour', `favour: ${visit.favour} <em>${costHtml(favourPrice(visit.favour))}</em><small>${FAVOURS[visit.favour].what}</small>`) : '',
     career.tattoos.length ? button('burn', visit.burning ? 'stop burning' : 'burn one off') : '',
     ...Object.entries(BODY_OPENS)
       .filter(([place]) => !career.open[place])
       .map(([place, key]) => button('open:' + place, `open your ${place} <em class="catch">${SACRIFICES[key].name}</em>`)),
-    button('leave', 'walk away: next shift'),
+    button('leave', 'walk away'),
   ].join('');
   return `<div class="devil"><div class="cols"><div>${skinHtml({burning: visit.burning})}<small>${career.blood} Blood · favours ${career.favours.join(', ') || 'none'} (${favourSlots()} slots)</small></div>
-    <div class="col"><h1 class="blood">the devil</h1><p>Cash <b>${money(career.cash)}</b> · rent next week ${money(rent)}${career.cash < rent ? ' <b class="bad">(not covered)</b>' : ` (${(career.cash / rent).toFixed(1)} weeks covered)`}</p>
+    <div class="col"><h1 class="blood">the devil</h1><p>cash <b>${money(career.cash)}</b> · rent ${money(rent)}</p>
     <div class="cards">${visit.sketches.map(sketch).join('')}</div><div class="extras">${extras}</div>${styleLegend()}</div></div></div>`;
 }
 function styleLegend() {
@@ -7741,7 +7817,7 @@ function inkingHtml() {
   if (inking.startedAt)
     return `<div class="devil inking"><h1 class="blood">${tattoo.name}</h1><div class="ink">${tattooSvg(inking.id, 'drawing')}</div><small>on your ${BODY_PLACE_NAMES[inking.place]}</small></div>`;
   return `<div class="devil"><div class="cols"><div>${skinHtml({choosing: true})}</div><div class="col"><h1 class="blood">where?</h1>
-    <p><b>${tattoo.name}</b> (${STYLES[tattoo.style].name}). The same style on both arms or both hands: each works ${PAIR_STRENGTH}× as strong.</p>
+    <p><b>${tattoo.name}</b> · ${STYLES[tattoo.style].name}</p>
     <div class="extras">${freePlaces().map(place => button('place:' + place, BODY_PLACE_NAMES[place])).join('')}${inking.free ? '' : button('cancel', 'not now')}</div></div></div></div>`;
 }
 function cvHtml() {
@@ -7850,9 +7926,9 @@ function updatePanels() {
       : game.admin
         ? `admin${game.sweep ? ` · sweep ${game.sweep.log.length + 1}/${game.sweep.log.length + game.sweep.list.length + 1}` : ''}`
         : careerShift && career.phase !== 'shift'
-          ? `${airportNow().name} · ${rankNow().name} · week ${career.week} · between shifts · career ${formatTime(career.playSeconds)}`
+          ? `${airportNow().name} · week ${career.week}`
           : careerShift
-          ? `${airportNow().name} · ${rankNow().name} · week ${career.week} · shift ${Math.min(SHIFTS_PER_WEEK, career.shiftOfWeek + 1)}/${SHIFTS_PER_WEEK} · ${clock > 0 ? formatTime(clock) : 'handover'}${shift.night ? ' · night' : ''}${career.daily ? ' · daily' : ''} · career ${formatTime(career.playSeconds)}`
+          ? `${airportNow().name} · week ${career.week} · ${Math.min(SHIFTS_PER_WEEK, career.shiftOfWeek + 1)}/${SHIFTS_PER_WEEK} · ${clock > 0 ? formatTime(clock) : 'handover'}`
           : 'practice',
   );
   const streak = game.streak > 1 && !game.over ? ` · <b style="background:#ff7a45;color:#04140b">×${game.streak} streak</b>` : '';
@@ -7860,10 +7936,10 @@ function updatePanels() {
     elementById('todo'),
     moneyHtml(!careerShift
       ? ''
-      : `shift <b style="${bumpStyle(bumpedAt.score, '#86d48a')}">${formatMoney(shown.score)}</b>${streak} · cash ${formatMoney(career.cash)} · rent ${formatMoney(rentNow())} ${career.phase === 'shift' ? `after ${SHIFTS_PER_WEEK - career.shiftOfWeek === 1 ? 'this shift' : `${SHIFTS_PER_WEEK - career.shiftOfWeek} shifts`}` : ''}${career.favours.length ? ` · <span class="fav">${career.favours.join(' ')}</span>` : ''}${shift.groundstop > 0 ? ` · groundstop ${Math.ceil(shift.groundstop)}` : ''}`),
+      : `shift <b style="${bumpStyle(bumpedAt.score, '#86d48a')}">${formatMoney(shown.score)}</b>${streak} · cash ${formatMoney(career.cash)} · rent ${formatMoney(rentNow())}${career.favours.length ? ` · <span class="fav">${career.favours.join(' ')}</span>` : ''}${shift.groundstop > 0 ? ` · groundstop ${Math.ceil(shift.groundstop)}` : ''}`),
   );
   const limit = careerShift && career.rank !== 'intern' ? writeUpLimit() : WRITE_UPS_TO_FIRE;
-  writeHtml(elementById('strikes'), [...Array(limit)].map((_, i) => `<i class="${i < shift.writeUps ? 'on' : ''}"></i>`).join('') + (careerShift && career.rank === 'intern' ? '<small> intern: never fired</small>' : ''));
+  writeHtml(elementById('strikes'), [...Array(limit)].map((_, i) => `<i class="${i < shift.writeUps ? 'on' : ''}"></i>`).join('') );
   const focus = typedPlaneName(),
     ready = game.over ? [] : allPlanes().filter(({plane}) => plane.state === 'ready'); // between shifts the list is empty
   writeHtml(
