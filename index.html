@@ -169,7 +169,7 @@ main{flex:1;min-height:0;display:flex}
 <tr><td>fuel</td><td>Arrivals carry fuel (the jerrycan by the name, once below half): below 45 s they call MAYDAY, land them next. Departures have patience (the clock): when it runs out the flight is cancelled.</td></tr>
 <tr><td>wind · storms</td><td>The shift starts calm, then the wind comes and goes (top left). While it blows, planes take off and land into it: landing circles with the wind behind them close, a runway across the wind stays open. Helicopters ignore it, both ways. Storm cells drift with the wind and close the circles they cover.</td></tr>
 <tr><td>readback</td><td>A pilot sometimes mishears: the reply shows what it understood. Say it again.</td></tr>
-<tr><td>fog · night</td><td>In fog, labels only show near the airport. At night labels show only call signs.</td></tr>
+<tr><td>fog · night</td><td>In fog, labels far from the airport show only the call sign; at night every label does.</td></tr>
 </table></section>
 <section class="pg"><h2>Career</h2><table>
 <tr><td>shift</td><td>3 minutes of traffic, then the sky empties. Every plane pays <b>Fare × Mult</b>: its fare (less 1% per second past par), times 1 plus what your streak and tattoos add, times the airport's tier and your rank.</td></tr>
@@ -509,7 +509,7 @@ const NEAR_PASS_DISTANCE = fromMetres(2800),
 // WAKE_TRAIL_CONE degrees of straight behind it), is a write-up
 const WAKE_TRAIL_DISTANCE = fromMetres(4000),
   WAKE_TRAIL_CONE = 30;
-const FOG_LABEL_RADIUS = fromMetres(9000); // fog: plane labels only show this close to the airport
+const FOG_LABEL_RADIUS = fromMetres(9000); // fog: farther from the airport than this, a label shows only the call sign
 const SLOW_MOTION_PACE = 0.35; // the game's pace in a slow-motion moment (the Reflexes skills, the freeze favour)
 const SCREEN_PAUSE_SECONDS = 15; // real s one intern screen stands still with 'pause 3' (a Reflexes skill)
 // the ranks at an airport. level: how far up the ladder (a promotion offers the next level on either track); pay: times the
@@ -538,7 +538,7 @@ const INTERN_LEVEL = {traffic: 0.8}; // an intern screen's traffic, times the ai
 const AIRPORTS = {
   hollin:   {name: 'Hollin Field',         tier: 1, character: 'Grass strip, props only, calm',
              runways: [], helipads: 0, heights: 0, mix: {light: 1}, traffic: 2.2, storms: 0, wind: false, readback: 0},
-  mossbay:  {name: 'Mossbay Regional',     tier: 1, character: 'Sea fog, props and bizjets',
+  mossbay:  {name: 'Mossbay Regional',     tier: 1, character: 'Sea fog (names only far out), props and bizjets',
              runways: [], helipads: 0, heights: 0, mix: {light: 0.6, bizjet: 0.4}, traffic: 2.4, storms: 0, wind: true, readback: 0.02, fog: true},
   kesterton:{name: 'Kesterton',            tier: 2, character: 'One runway, strong crosswinds, jets',
              runways: [], helipads: 0, heights: 1, mix: {jet: 0.55, light: 0.2, bizjet: 0.15, medevac: 0.05, vip: 0.05}, traffic: 2.8, storms: 1, wind: true, windPace: 0.55, readback: 0.03},
@@ -6525,16 +6525,12 @@ function drawRadar(clear = true) {
     // urgent one is big and bold. The plane being typed always shows everything
     const weight = typedNow ? Math.max(1, labelWeight(plane)) : labelWeight(plane),
       fontSize = LABEL_FONT_SIZES[weight],
-      night = shift && shift.night && !game.practice,
+      // at night, and in fog away from the airport, a label shows only the call sign
+      night = (shift && shift.night && !game.practice) || (rules.fog && !ground && distanceFromAirport(plane) > FOG_LABEL_RADIUS && !typedNow),
       rest =
         weight === 0 || night
           ? ''
           : `${showLevel ? ' ' + lvTxt : ''}${tag}${plane.kind === 'dep' || (plane.kind !== 'arr' && !ground) ? ' → ' + shortWayUpper(plane.exitWay) : ''}${labelNumbers(plane)}`;
-    // fog: only planes near the airport show a label
-    if (rules.fog && !ground && distanceFromAirport(plane) > FOG_LABEL_RADIUS && !typedNow) {
-      plane.tooClose = 0;
-      continue;
-    }
     setFont(fontSize, typedNow || weight === 2 ? 700 : weight ? 500 : 400);
     ctx.globalAlpha = weight === 0 ? LABEL_QUIET_ALPHA * fade : fade;
     // right after the name: a waiting departure's patience, a priority arrival's deadline, else an arrival's fuel once
