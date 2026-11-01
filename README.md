@@ -14,7 +14,7 @@ Air traffic control, very realistic in spirit but highly simplified, played only
 
 **The shop.** After every shift: three pieces of kit (yours for the career, 20 kinds: Stopwatch, Thermos, Weather Radio…) and two favours, typed once in a shift: `groundstop`, `expedite heron`, `vector`, `standby`, `freeze`, `cleanup`, `double heron`, `tailwind`. Restocking costs a little.
 
-**The devil.** Rare: at the end of every 2nd week he offers three tattoo sketches for a share of the rent, drawn on your body in blood. 38 tattoos in 7 styles change the rules and the pay (every plane pays Fare × Mult); most strong ones carry a catch (Eye of the Storm compounds ×1.1 per storm while every storm grows), some a sacrifice (a strike, your eyes, your rank, your soul). The same style on both arms or both hands is 1.5× as strong, and 2 or 4 of a style add its mark.
+**The devil.** Rare: at the end of every 2nd week he offers three tattoo sketches to choose one from, free, drawn on your body in blood. 38 tattoos in 7 styles change the rules and the pay (every plane pays Fare × Mult); most strong ones carry a catch (Eye of the Storm compounds ×1.1 per storm while every storm grows), some a sacrifice (a strike, your eyes, your rank, your soul). The same style on both arms or both hands is 1.5× as strong, and 2 or 4 of a style add its mark.
 
 Extra information (what is special about an airport, its season) comes as a text from your supervisor or boss, not on the cards.
 

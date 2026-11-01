@@ -188,7 +188,7 @@ b.cost{color:var(--fg);white-space:nowrap} b.cost i.note{background:#c9d4cc;box-
 <tr><td>rent</td><td>Due every 3 shifts, 30% more each week, faster after week 5. Can't pay: <b>broke</b>, the career is over. Holding 8 weeks of rent at the end of a week: you may <b>retire</b> (the win).</td></tr>
 <tr><td>jobs</td><td>Every week other airports want you, up to the tier your reputation (A reviews) reaches. A new job starts you over at Controller. Fired: back to intern at a small airport, cash and tattoos kept.</td></tr>
 <tr><td>shop</td><td>After every shift: kit (yours for the career) and favours (one use).</td></tr>
-<tr><td>the devil</td><td>Every 2nd week: three tattoo sketches for a share of the rent. Most strong ones carry a catch, some a sacrifice (a strike, your eyes, your rank, your soul). Same style on both arms or hands: 1.5× as strong. 2 and 4 of a style add its mark.</td></tr>
+<tr><td>the devil</td><td>Every 2nd week: three tattoo sketches, choose one, free. Most strong ones carry a catch, some a sacrifice (a strike, your eyes, your rank, your soul). Same style on both arms or hands: 1.5× as strong. 2 and 4 of a style add its mark.</td></tr>
 <tr><td>skills</td><td>Milestones give skill points; between careers they buy information and comfort (path lines, warnings, pauses, interns), never pay.</td></tr>
 </table></section>
 <section class="pg"><h2 id="acdata">Aircraft</h2><div id="actable"></div></section>
@@ -586,23 +586,21 @@ const SEASONS = {
 };
 
 /* --- the devil and his tattoos ------------------------------------------------------------------------------------
-   At the end of every DEVIL_EVERY_WEEKS-th week the devil offers three sketches. Each costs a share of this week's rent (PRICE_SHARE by rarity) and
+   At the end of every DEVIL_EVERY_WEEKS-th week the devil offers three sketches: you choose one, free (DEVIL_PICKS), and
    most strong ones carry a catch: a curse (only while you wear it) or a sacrifice (for the rest of the career, 1 Blood
    each). Strength: a matching pair (the same style on both arms or both hands) works PAIR_STRENGTH times as strong;
    Fresh Ink makes the newest tattoo twice as strong, its catch too. Every number a tattoo uses is in its row. */
-const PRICE_SHARE = {kit: 0.15, u: 0.3, r: 0.6, l: 1}; // kit: a shop item's price
+const KIT_PRICE_SHARE = 0.15; // a piece of kit costs this share of this week's rent
 const RARITY_WEIGHT = {u: 50, r: 14, l: 4}; // how often each rarity is sketched
 const BLESSING_WEIGHT = 0.35; // a blessing (no catch) is sketched this many times as often as others of its rarity
 const SKETCHES = 3; // designs the devil shows each visit
 const DEVIL_EVERY_WEEKS = 2; // the devil comes at the end of every 2nd week: tattoos are rare
 /* --- the shop: after every shift. Kit (the rows of TATTOOS with rarity 'kit': yours for the rest of the career, no skin
-   needed) and favours (one use). Prices are a share of this week's rent (PRICE_SHARE.kit, FAVOURS[].price). */
+   needed) and favours (one use). Prices are a share of this week's rent (KIT_PRICE_SHARE, FAVOURS[].price). */
 const SHOP_KIT_CARDS = 3, // kit for sale after each shift
   SHOP_FAVOUR_CARDS = 2; // favours for sale after each shift
 const RESTOCK_SHARE = 0.04; // restocking the shop costs this share of the rent (Coupon: half)
-const REROLL_SHARE = 0.05, // "something else" costs this share of the rent, and this much more every time in one visit
-  REROLL_STEP = 0.05;
-const BURN_SHARE = 0.5; // burning a tattoo off costs this share of its price
+const DEVIL_PICKS = 1; // sketches you may take each visit; tattoos cost no money (burning one off is free too)
 const PAIR_STRENGTH = 1.5;
 const BODY_PLACES = ['neck', 'chest', 'back', 'leftarm', 'rightarm', 'lefthand', 'righthand'];
 const BODY_PLACE_NAMES = {neck: 'neck', chest: 'chest', back: 'back', leftarm: 'left arm', rightarm: 'right arm', lefthand: 'left hand', righthand: 'right hand'};
@@ -616,8 +614,8 @@ const STYLES = {
   clocks:    {name: 'Clocks',    what: 'holds, queues, fuel',                two: '+20 s fuel and departure patience',               four: 'holding burns no fuel'},
   lightning: {name: 'Lightning', what: 'near passes, weather',               two: 'storm cells 20% smaller',                         four: 'every near pass: +1 Mult to the next plane'},
   keys:      {name: 'Keys',      what: 'interns, favours',                   two: 'interns make 20% fewer mistakes',                 four: 'one more favour slot, a free favour every week'},
-  coins:     {name: 'Coins',     what: 'money, the career, the job board',   two: 'the performance bonus after 2 A reviews, not 3', four: 'one free "something else" every visit'},
-  horns:     {name: 'Horns',     what: 'blood and the devil\'s own',         two: 'every sacrifice counts as 2 Blood',               four: 'the devil\'s prices are halved'},
+  coins:     {name: 'Coins',     what: 'money, the career, the job board',   two: 'the performance bonus after 2 A reviews, not 3', four: 'the devil shows a fourth sketch'},
+  horns:     {name: 'Horns',     what: 'blood and the devil\'s own',         two: 'every sacrifice counts as 2 Blood',               four: 'take two sketches each visit'},
 };
 const STYLE_MARK = {waves: [10, 5], wings: [300, 1.5], clocks: [20], lightning: [0.8, 1], keys: [0.8], horns: [2, 0.5]};
 // what the devil may take: each is 1 Blood (a soul 3)
@@ -685,7 +683,7 @@ const TATTOOS = {
   wolf:         {name: 'Wolf',            style: 'coins', rarity: 'r', gives: 'two more job offers; a new job starts you as Senior I or Supervisor', catch: 'your first shift at a new job is probation: below an A and you are let go', n: {offers: 2}},
   snake:        {name: 'Silver Snake',    style: 'coins', rarity: 'u', gives: 'a promotion needs one A review, not two', catch: 'you cannot turn a promotion down', n: {}},
   overtime:     {name: 'Moon',            style: 'coins', rarity: 'u', gives: 'the middle shift of every week is a night shift: it pays ×2', catch: 'at night, labels show only call signs', n: {xPay: 1}},
-  fleamarket:   {name: 'Coupon',             style: 'coins', rarity: 'kit', gives: 'restocking the shop and the devil\'s "something else" cost half', n: {price: 0.5}},
+  fleamarket:   {name: 'Coupon',             style: 'coins', rarity: 'kit', gives: 'restocking the shop costs half', n: {price: 0.5}},
   magpie:       {name: 'Magpie',          style: 'coins', rarity: 'u', kind: 'slow', gives: '+0.1 Mult to every plane for every tattoo you wear', catch: '+3% traffic for every tattoo you wear', n: {mult: 0.1, traffic: 0.03}},
   blooddebt:    {name: 'Blood Debt',      style: 'horns', rarity: 'r', kind: 'slow', gives: '+0.25 Mult to every plane for every Blood you have given', n: {mult: 0.25}},
   echo:         {name: 'Fresh Ink',       style: 'horns', rarity: 'r', gives: 'your newest tattoo works twice as strong', catch: 'its catch is twice as strong too', n: {}},
@@ -764,7 +762,7 @@ const SKILL_TREE = [
   {name: 'Career', what: 'the start of a run', paths: [
     {name: 'Start',     nodes: [['freetattoo', 'a free piece of kit', 1], ['neckopen', 'your neck open from the start', 2], ['rentpaid', 'first week of rent paid', 3]]},
     {name: 'Comeback',  nodes: [['shortintern', 'intern phase needs one A fewer', 1], ['fastback', 'one A fewer to be promoted again after a firing', 2]]},
-    {name: 'The devil', nodes: [['freelook', 'his first "something else" of a career free', 1], ['foursketches', 'a fourth sketch at his first visit', 2]]}]},
+    {name: 'The devil', nodes: [['foursketches', 'a fourth sketch at his first visit', 1], ['twopicks', 'take two at his first visit', 2]]}]},
 ];
 // prettier-ignore
 const MILESTONES = {
@@ -7125,7 +7123,6 @@ function newCareer(daily = false) {
     bestLevel: 0,
     rankBeforeFiring: null,
     devilVisits: 0,
-    freeLookUsed: false,
     rentFree: hasSkill('rentpaid') && !daily,
     milestonesNow: [],
     stats: {planes: 0, earned: 0, airports: [], fixes: 0},
@@ -7459,16 +7456,7 @@ function buySkill(id) {
 }
 
 /* --- the devil ----------------------------------------------------------------------------------------------------------- */
-// a tattoo's price: its rarity's share of this week's rent (Horns ×4 halves it)
-const tattooPrice = id => Math.round(PRICE_SHARE[TATTOOS[id].rarity] * rentNow() * (styleMark('horns', 4) ? STYLE_MARK.horns[1] : 1) / 10) * 10;
 const favourPrice = name => Math.round(FAVOURS[name].price * rentNow() * (1 + catchStrength('static') * TATTOOS.static.n.price) / 10) * 10;
-// "something else": rising with every look in one visit, half with Fox, free once with the skill or the Coins mark
-function rerollPrice() {
-  const visit = career.devil;
-  if (hasSkill('freelook') && !career.freeLookUsed) return 0;
-  if (styleMark('coins', 4) && !visit.freeLook) return 0;
-  return Math.round(((REROLL_SHARE + REROLL_STEP * visit.rerolls) * rentNow() * (tattooStrength('fleamarket') ? TATTOOS.fleamarket.n.price : 1)) / 10) * 10;
-}
 // the devil's sketches: by rarity weight, blessings less often, nothing you wear
 function drawSketches(count) {
   const pool = Object.keys(TATTOOS).filter(id => !worn(id) && TATTOOS[id].rarity !== 'kit'),
@@ -7484,46 +7472,22 @@ function drawSketches(count) {
 }
 function openDevil() {
   career.devilVisits++;
-  const sketches = SKETCHES + (career.devilVisits === 1 && hasSkill('foursketches') ? 1 : 0);
-  career.devil = {sketches: drawSketches(sketches), rerolls: 0, favour: null, burning: false, freeLook: false};
+  const first = career.devilVisits === 1,
+    sketches = SKETCHES + (first && hasSkill('foursketches') ? 1 : 0) + (styleMark('coins', 4) ? 1 : 0),
+    picks = DEVIL_PICKS + (first && hasSkill('twopicks') ? 1 : 0) + (styleMark('horns', 4) ? 1 : 0);
+  career.devil = {sketches: drawSketches(sketches), picks, burning: false};
   screenState.choice = 'sketch:0';
 }
 const freePlaces = () => BODY_PLACES.filter(place => (!BODY_OPENS[place] || career.open[place]) && !career.sacrifices['skin:' + place] && !wornAt(place));
 function devilChoose(key) {
   const visit = career.devil;
   if (key === 'leave') return careerNext();
-  if (key === 'reroll') {
-    const price = rerollPrice();
-    if (career.cash < price) return toast(`"something else" costs ${formatMoney(price)}`, 'bad');
-    career.cash -= price;
-    if (price === 0) {
-      if (hasSkill('freelook') && !career.freeLookUsed) career.freeLookUsed = true;
-      else visit.freeLook = true;
-    } else visit.rerolls++;
-    visit.sketches = drawSketches(visit.sketches.length);
-    sound.needle();
-    return;
-  }
-  if (key === 'favour') {
-    const price = favourPrice(visit.favour);
-    if (!visit.favour) return;
-    if (career.favours.length >= favourSlots()) return toast('your favour slots are full', 'bad');
-    if (career.cash < price) return toast(`that favour costs ${formatMoney(price)}`, 'bad');
-    career.cash -= price;
-    career.favours.push(visit.favour);
-    visit.favour = null;
-    sound.pact();
-    return;
-  }
   if (key === 'burn') {
     visit.burning = !visit.burning;
     return;
   }
   if (key.startsWith('burnoff:')) {
-    const tattoo = wornAt(key.slice(8)),
-      price = Math.round(tattooPrice(tattoo.id) * BURN_SHARE);
-    if (career.cash < price) return toast(`burning it off costs ${formatMoney(price)}`, 'bad');
-    career.cash -= price;
+    const tattoo = wornAt(key.slice(8));
     career.tattoos = career.tattoos.filter(other => other !== tattoo);
     if (career.newest === tattoo.id) career.newest = [...career.tattoos].sort((a, b) => b.inkedAt - a.inkedAt)[0]?.id || null;
     visit.burning = false;
@@ -7540,10 +7504,8 @@ function devilChoose(key) {
   if (key.startsWith('sketch:')) {
     const id = visit.sketches[+key.slice(7)];
     if (!id) return;
-    const price = tattooPrice(id);
-    if (career.cash < price) return toast(`${TATTOOS[id].name} costs ${formatMoney(price)}`, 'bad');
     if (!freePlaces().length) return toast('no skin left: burn one off first', 'bad');
-    visit.buying = {id, price, index: +key.slice(7)};
+    visit.buying = {id, index: +key.slice(7)};
     startInking(id, false);
   }
 }
@@ -7559,7 +7521,7 @@ function openShop() {
   career.shop = {kit: pick(kit, SHOP_KIT_CARDS), favours: pick(favours, SHOP_FAVOUR_CARDS), restocks: career.shop?.restocks || 0};
   screenState.choice = 'next';
 }
-const kitPrice = id => Math.round((PRICE_SHARE.kit * rentNow()) / 10) * 10;
+const kitPrice = id => Math.round((KIT_PRICE_SHARE * rentNow()) / 10) * 10;
 const restockPrice = () => Math.round((RESTOCK_SHARE * rentNow() * (tattooStrength('fleamarket') ? TATTOOS.fleamarket.n.price : 1)) / 10) * 10;
 function shopChoose(key) {
   const shop = career.shop;
@@ -7644,9 +7606,9 @@ function finishInking() {
     id = inking.id,
     visit = career.devil;
   if (!inking.free) {
-    career.cash -= visit.buying.price;
     visit.sketches.splice(visit.buying.index, 1);
     visit.buying = null;
+    visit.picks--;
   }
   career.tattoos.push({id, place: inking.place, inkedAt: career.shifts});
   career.newest = id;
@@ -7656,7 +7618,7 @@ function finishInking() {
   if (!freePlaces().length && BODY_PLACES.every(place => wornAt(place))) reachMilestone('fullbody');
   for (const [engineId, engine] of Object.entries(ENGINES)) if (engine.tattoos.every(worn)) reachMilestone('engine' + engineId);
   screenState.inking = null;
-  if (inking.from === 'bonus') return careerNext();
+  if (inking.from === 'bonus' || !(visit.picks > 0)) return careerNext(); // he leaves once you have chosen
   career.phase = 'devil';
   screenState.choice = 'leave';
   saveGame();
@@ -7780,20 +7742,18 @@ function jobsHtml() {
     <div class="cards">${career.offers.map(offer).join('')}${button('stay', `<b>stay</b><small>${escapeHtml(airportNow().name)}</small>`, ' card')}</div>`;
 }
 function devilHtml() {
-  const visit = career.devil,
-    rent = rentNow();
+  const visit = career.devil;
   const sketch = (id, i) => {
     const tattoo = TATTOOS[id],
       catchText = tattoo.sac ? `takes ${SACRIFICES[tattoo.sac].name}: ${SACRIFICES[tattoo.sac].what}` : tattoo.catch;
     return button(
       'sketch:' + i,
       `${tattooSvg(id, 'sk')}<b>${tattoo.name}</b><span class="rar ${tattoo.rarity}">${STYLES[tattoo.style].name}${tattoo.kind === 'bless' ? ' · blessing' : tattoo.kind === 'slow' ? ' · slow' : ''}</span>
-       <small>${escapeHtml(tattoo.gives)}</small>${catchText ? `<small class="catch">catch: ${escapeHtml(catchText)}</small>` : ''}<em>${costHtml(tattooPrice(id))}</em>`,
+       <small>${escapeHtml(tattoo.gives)}</small>${catchText ? `<small class="catch">catch: ${escapeHtml(catchText)}</small>` : ''}`,
       ' card sketch',
     );
   };
   const extras = [
-    button('reroll', `something else <em>${rerollPrice() ? costHtml(rerollPrice()) : 'free'}</em>`),
     career.tattoos.length ? button('burn', visit.burning ? 'stop burning' : 'burn one off') : '',
     ...Object.entries(BODY_OPENS)
       .filter(([place]) => !career.open[place])
@@ -7801,7 +7761,7 @@ function devilHtml() {
     button('leave', 'walk away'),
   ].join('');
   return `<div class="devil"><div class="cols"><div>${skinHtml({burning: visit.burning})}<small>${career.blood} Blood · favours ${career.favours.join(', ') || 'none'} (${favourSlots()} slots)</small></div>
-    <div class="col"><h1 class="blood">the devil</h1><p>cash <b>${money(career.cash)}</b> · rent ${money(rent)}</p>
+    <div class="col"><h1 class="blood">the devil</h1><p>choose ${visit.picks > 1 ? visit.picks : 'one'}</p>
     <div class="cards">${visit.sketches.map(sketch).join('')}</div><div class="extras">${extras}</div>${styleLegend()}</div></div></div>`;
 }
 function styleLegend() {
