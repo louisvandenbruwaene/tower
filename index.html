@@ -73,7 +73,7 @@ main{flex:1;min-height:0;display:flex}
 #ptabs button:hover,#pnav button:hover{color:var(--fg);border-color:var(--acc)} #ptabs button.on{color:#04140b;background:var(--acc);border-color:var(--acc);font-weight:700}
 #ptabs button small{opacity:.6;margin-right:6px} #pnav{display:flex;align-items:center;gap:12px;margin-top:14px;color:var(--dim);font-size:12.5px} #pnav .keys{margin:0 auto} #help code{color:var(--gold)}
 /* the career's screens between shifts (over the radar): choices are .btn / .card with data-k, .sel is the one the arrows are on */
-#over .screen{font-size:15px;font-weight:400;text-shadow:none;text-align:left;width:980px;max-width:100%;box-sizing:border-box;line-height:1.45}
+#over .screen.skills{width:max-content;max-width:none} #over .screen{font-size:15px;font-weight:400;text-shadow:none;text-align:left;width:980px;max-width:100%;box-sizing:border-box;line-height:1.45}
 #over h1{margin:0 0 6px;font-size:30px;letter-spacing:.12em;text-transform:uppercase;color:var(--acc)} #over h1.gold{color:var(--gold)} #over h1.bad,#over .bad{color:var(--bad)} #over h1.blood{color:#e0443a;text-shadow:0 0 18px rgba(224,68,58,.5)}
 #over p{margin:6px 0} #over small{display:block;color:var(--dim);font-size:13px}
 #over .cols{display:grid;grid-template-columns:300px 1fr;gap:26px;align-items:start} #over .col{display:flex;flex-direction:column;gap:8px;min-width:0}
@@ -107,7 +107,11 @@ main{flex:1;min-height:0;display:flex}
 .patch.glow{animation:glow 1.6s ease-out backwards} @keyframes glow{0%{box-shadow:inset 0 0 18px rgba(90,50,30,.35)}25%{box-shadow:0 0 0 3px #86d48a,0 0 22px #86d48a,inset 0 0 18px rgba(90,50,30,.35)}100%{box-shadow:inset 0 0 18px rgba(90,50,30,.35)}}
 #over .ink{display:grid;place-items:center;margin:10px auto;width:320px;height:320px;border-radius:14px;background:radial-gradient(circle at 40% 35%,#e4c3a6,#c99d7f 70%,#b48467);box-shadow:inset 0 0 40px rgba(90,50,30,.4)} #over .ink .art{width:240px;height:240px}
 #over .big b.money{color:#0b2a10} #over .big i.note{width:.62em;height:.4em;background:transparent;box-shadow:inset 0 0 0 .06em #0b2a10,inset 0 0 0 .13em #86d48a,inset 0 0 0 .17em #0b2a10}
-#over .inking{text-align:center} #over .screen>div:not(.cols)>.col,#over .screen>div:not(.cols):not(.devil):not(.tree){max-width:640px;margin:0 auto}
+#over .inking{text-align:center} #over .screen>div:not(.cols)>.col,#over .screen>div:not(.cols):not(.devil):not(.tree):not(.graph){max-width:640px;margin:0 auto}
+#over .graph{position:relative;margin:12px auto} #over .graph svg{position:absolute;inset:0;overflow:visible} #over .graph path{fill:none;stroke:#2a4a39;stroke-width:2} #over .graph path.owned{stroke:#86d48a}
+#over .graph .node{position:absolute;transform:translateY(-50%)} #over .graph .node.root b,#over .graph .node.hub b{display:inline-block;padding:6px 10px;border:1px solid #2a4a39;border-radius:8px;background:#0b1a12;font-size:13px}
+#over .graph .node.hub b{width:96px;text-align:center} #over .graph .btn{width:205px;white-space:nowrap;box-sizing:border-box;padding:6px 8px;font-size:12px;line-height:1.25;display:flex;justify-content:space-between;gap:6px;opacity:.75}
+#over .graph .btn em{font-style:normal;color:var(--gold)} #over .graph .btn.open{opacity:1;border-color:#6b520c} #over .graph .btn.owned{opacity:1;background:#14301f;border-color:#86d48a} #over .graph .btn.owned em{color:#86d48a} #over .graph .btn.sel{opacity:1}
 #over .tree{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin:10px 0} #over .branch{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:8px;padding:10px}
 #over .branch>b{color:var(--acc);letter-spacing:.1em;text-transform:uppercase} #over .path{display:flex;flex-direction:column;gap:4px} #over .path .btn{padding:4px 10px;font-size:13px}
 #over .btn.owned{border-color:#2f6b4a;color:var(--acc)} #over .btn.locked{opacity:.45}
@@ -184,7 +188,7 @@ b.cost{color:var(--fg);white-space:nowrap} b.cost i.note{background:#c9d4cc;box-
 <section class="pg"><h2>Career</h2><table>
 <tr><td>shift</td><td>3 minutes of traffic, then the sky empties. Every plane pays <b>Fare × Mult</b>: its fare (less 1% per second past par), times 1 plus what your streak and tattoos add, times the airport's tier and your rank.</td></tr>
 <tr><td>review</td><td><b>A</b>: no write-up, 85% on time · <b>B</b>: one write-up at most, 60% · <b>C</b>: worse. 2 A in a row: a promotion offer. 3 A in a row at one job: a bonus, cash or a rare tattoo. 2 C in a row: let go.</td></tr>
-<tr><td>ranks</td><td>Intern (half pay, never fired, the supervisor watches) → Controller → either <b>Senior I · II · III</b> (one harder sector, more pay) or <b>Supervisor · Senior Supervisor · Chief</b> (2 · 4 · 6 intern screens: fix their mistakes).</td></tr>
+<tr><td>ranks</td><td>Intern (half pay, never fired: 3 write-ups send you home; the supervisor fixes conflicts, storms and planes heading out, for a little pay) → Controller → either <b>Senior I · II · III</b> (one harder sector, more pay) or <b>Supervisor · Senior Supervisor · Chief</b> (2 · 4 · 6 intern screens: fix their mistakes).</td></tr>
 <tr><td>rent</td><td>Due every 3 shifts, 30% more each week, faster after week 5. Can't pay: <b>broke</b>, the career is over. Holding 8 weeks of rent at the end of a week: you may <b>retire</b> (the win).</td></tr>
 <tr><td>jobs</td><td>Every week other airports want you, up to the tier your reputation (A reviews) reaches. A new job starts you over at Controller. Fired: back to intern at a small airport, cash and tattoos kept.</td></tr>
 <tr><td>shop</td><td>After every shift: kit (yours for the career) and favours (one use).</td></tr>
@@ -510,6 +514,10 @@ const TIER_PAY_STEP = 1.15; // each airport tier pays this many times the one be
 const SOUL_DUE_WEEK = 4; // the Soul Contract: the devil collects at the end of this week
 const SUPERVISOR_SAVE_SHARE = 0.15; // an intern's crash caught by the supervisor costs this share of the shift's pay
 const SUPERVISOR_SAVE_FREEZE = 1.4; // real s the radar stands still while the supervisor steps in
+const SUPERVISOR_WATCH_EVERY = 1; // game s between the supervisor's looks at an intern's radar
+const SUPERVISOR_STEP_IN_SECONDS = 12; // he steps in when two planes would touch within this many game s (or one hits a storm)
+const SUPERVISOR_EDGE_MARGIN = 45; // ... or an arrival is this close (px) to the edge and flying out
+const SUPERVISOR_STEP_IN_SHARE = 0.03; // each time he gives an order himself it costs this share of the shift's plane pay
 const SUPERVISOR_BASE_PLANES = 8; // a supervisor's salary: this many of the airport's average fares, times the rank's base and the tier's pay
 const INTERN_SCREEN_SHARE = 0.35; // a supervisor earns this share of what each intern screen's planes pay
 // near passes: two aircraft at a height they could collide at, closer than NEAR_PASS_DISTANCE without touching. Storm
@@ -746,25 +754,27 @@ const NAME_POOLS = [
 const SKILL_TREE = [
   {name: 'Perception', what: 'what you see', paths: [
     {name: 'Paths',     nodes: [['heading', 'heading line', 1], ['predict', 'predicted path, 30 s', 2], ['lineup', 'full line-up path', 3], ['exits', 'departure exit routes', 3]]},
-    {name: 'Conflicts', nodes: [['cpa', 'closest-point marker', 1], ['conflictline', 'conflict line with seconds', 2], ['conflict60', 'conflicts 60 s ahead', 3]]},
+    {name: 'Conflicts', nodes: [['cpa', 'closest-point marker', 1], ['conflictline', 'conflict line + seconds', 2], ['conflict60', 'conflicts 60 s ahead', 3]]},
     {name: 'Labels',    nodes: [['labelfuel', 'fuel on labels', 1], ['labelpatience', 'patience on labels', 2], ['labelpar', 'par timer on labels', 3]]}]},
   {name: 'Instinct', what: 'warnings', paths: [
-    {name: 'Alarms',    nodes: [['chime', 'collision chime', 1], ['maydayping', 'MAYDAY ping', 1], ['lastwarning', '"one more write-up" warning', 2]]},
-    {name: 'Forecast',  nodes: [['stormcast', 'storm forecast', 1], ['windcast', 'wind-change forecast', 2], ['nextarrival', 'next arrival shown 20 s early', 3]]}]},
+    {name: 'Alarms',    nodes: [['chime', 'collision chime', 1], ['maydayping', 'MAYDAY ping', 1], ['lastwarning', 'last write-up warning', 2]]},
+    {name: 'Forecast',  nodes: [['stormcast', 'storm forecast', 1], ['windcast', 'wind-change forecast', 2], ['nextarrival', 'next arrival 20 s early', 3]]}]},
   {name: 'Reflexes', what: 'time', paths: [
-    {name: 'Slow motion', nodes: [['slowmo3', '3 s slow-mo near a collision', 1], ['slowmo6', '6 s', 2], ['slowmomayday', 'also on a MAYDAY', 2]]},
-    {name: 'Pause',       nodes: [['pause1', 'one pause a shift, typing allowed', 1], ['pause2', 'two pauses', 2], ['pausescreen', 'pause one intern screen alone', 3]]}]},
+    {name: 'Slow motion', nodes: [['slowmo3', 'slow-mo near a crash', 1], ['slowmo6', '6 s', 2], ['slowmomayday', 'also on a MAYDAY', 2]]},
+    {name: 'Pause',       nodes: [['pause1', 'one pause a shift', 1], ['pause2', 'two pauses', 2], ['pausescreen', 'pause one intern screen', 3]]}]},
   {name: 'Radio', what: 'orders', paths: [
-    {name: 'Phrasing', nodes: [['chain', 'chained orders: heron down then s', 1], ['group', 'group orders: heron wren down', 2], ['dot', 'dot orders: . turn s goes to your last plane', 2]]},
-    {name: 'Readback', nodes: [['readbackmark', 'misheard readbacks marked', 1], ['sayagain', 'pilots say "say again?" instead of flying it', 2]]}]},
+    {name: 'Phrasing', nodes: [['chain', 'chain: heron down then s', 1], ['group', 'group: heron wren down', 2], ['dot', 'dot: . turn s', 2]]},
+    {name: 'Readback', nodes: [['readbackmark', 'misheard orders marked', 1], ['sayagain', 'pilots say "say again?"', 2]]}]},
   {name: 'Supervision', what: 'interns', paths: [
-    {name: 'Interns', nodes: [['fewer20', '20% fewer mistakes', 1], ['fewer40', '40% fewer', 2], ['callhelp', 'interns call you before a crash', 3]]},
-    {name: 'Screens', nodes: [['flash', 'a screen in trouble flashes', 1], ['grow', 'it grows while in trouble', 2], ['pip', 'picture-in-picture of a conflict', 3]]}]},
+    {name: 'Interns', nodes: [['fewer20', '20% fewer mistakes', 1], ['fewer40', '40% fewer', 2], ['callhelp', 'interns call for help', 3]]},
+    {name: 'Screens', nodes: [['flash', 'trouble screen flashes', 1], ['grow', 'trouble screen grows', 2], ['pip', 'conflict close-up', 3]]}]},
   {name: 'Career', what: 'the start of a run', paths: [
-    {name: 'Start',     nodes: [['freetattoo', 'a free piece of kit', 1], ['neckopen', 'your neck open from the start', 2], ['rentpaid', 'first week of rent paid', 3]]},
-    {name: 'Comeback',  nodes: [['shortintern', 'intern phase needs one A fewer', 1], ['fastback', 'one A fewer to be promoted again after a firing', 2]]},
-    {name: 'The devil', nodes: [['foursketches', 'a fourth sketch at his first visit', 1], ['twopicks', 'take two at his first visit', 2]]}]},
+    {name: 'Start',     nodes: [['freetattoo', 'a free piece of kit', 1], ['neckopen', 'neck open from the start', 2], ['rentpaid', 'first week of rent paid', 3]]},
+    {name: 'Comeback',  nodes: [['shortintern', 'shorter intern phase', 1], ['fastback', 'faster comeback', 2]]},
+    {name: 'The devil', nodes: [['foursketches', 'devil: a 4th sketch', 1], ['twopicks', 'devil: take two', 2]]}]},
 ];
+// how the skill tree is drawn (CSS px): row height, where the branches and the first skills sit, the step between skills
+const SKILL_GRAPH = {rowHeight: 44, branchX: 90, firstX: 250, step: 230, nodeWidth: {root: 54, hub: 120, skill: 205}};
 // prettier-ignore
 const MILESTONES = {
   firstlanding: ['First landing', 1], firstdeparture: ['First departure', 1], firstshift: ['First shift', 1], firstrent: ['First rent paid', 1],
@@ -788,6 +798,8 @@ const SUPERVISOR_TEXTS = {
   solo:      ['you\'re on your own from tomorrow. don\'t make me come back.'],
   fired:     ['heard you got fired. desk by the window is free. again.'],
   tattoo:    ['what\'s that on your arm?'],
+  sentHome:  ['that\'s three. go home, I\'ll take it from here.'],
+  stepIn:    ['I\'ve got {plane}. watch it.', '{plane} was heading for trouble. fixed.', 'took {plane} off your hands. look ahead.'],
 };
 // each tattoo's drawing: strokes in a 100 × 100 box, drawn one after another by the devil ('c x y r' is a circle)
 // prettier-ignore
@@ -1846,7 +1858,7 @@ function spawnRandomPlane() {
   );
 }
 // a write-up: a red ring and the reason, shown where it happened and listed after the shift. It ends the streak (and wipes
-// Tally Marks and Skull); a supervisor's limit (writeUpLimit) gets you fired, an intern is never fired. weight: how many it
+// Tally Marks and Skull); a supervisor's limit (writeUpLimit) gets you fired, an intern is sent home (the shift ends). weight: how many it
 // counts as (a late priority flight with Eagle counts 2). In practice nothing counts
 function strike(message, x, y, label, weight = 1, plane = null) {
   if (game.over) return;
@@ -1877,9 +1889,13 @@ function strike(message, x, y, label, weight = 1, plane = null) {
   career.marks = 0;
   career.skull = 0;
   if (tattooStrength('thorns')) shift.multAllBy.thorns = (shift.multAllBy.thorns || 0) + tattooStrength('thorns') * TATTOOS.thorns.n.mult * count;
-  if (career.rank === 'intern') return;
   const left = writeUpLimit() - shift.writeUps;
-  if (left <= 0) fire(`${shift.writeUps} write-ups in one shift`);
+  // full write-ups end the shift: you are fired, an intern is sent home (a C review)
+  if (left <= 0 && career.rank === 'intern') {
+    shift.sentHome = `${shift.writeUps} write-ups: the supervisor sent you home`;
+    supervisorText('sentHome');
+    endShift();
+  } else if (left <= 0) fire(`${shift.writeUps} write-ups in one shift`);
   else if (left === 1 && hasSkill('lastwarning')) toast('one more write-up and you are fired', 'bad');
 }
 // a crash: two aircraft collided, a plane flew into a storm or a mountain, or ran out of fuel. It gets you fired, unless
@@ -1932,6 +1948,36 @@ function supervisorSaves(kind, planes) {
   shift.log.push('the supervisor stepped in');
   game.streak = 0;
   supervisorText(kind === 'collision' ? 'crash' : kind === 'fuel' ? 'fuel' : 'storm');
+}
+// an intern's supervisor watches your radar: when two planes would touch within SUPERVISOR_STEP_IN_SECONDS, one is
+// about to fly into a storm or closed airspace, or an arrival is about to leave your area, he gives the careful controller's order (decide) for it himself, says so
+// in a text, and it costs a little pay and the A review. A crash he did not see coming is still caught (supervisorSaves)
+function supervisorWatch(seconds) {
+  if ((game.supervisorWatchIn = (game.supervisorWatchIn ?? 0) - seconds) > 0) return;
+  game.supervisorWatchIn = SUPERVISOR_WATCH_EVERY;
+  const air = game.planes.filter(plane => !onGround(plane) && !plane.cleared),
+    urgent = new Set();
+  for (const a of air)
+    for (const b of air) if (a !== b && meetsAt(a, b, a.targetLevel, b.targetLevel, SUPERVISOR_STEP_IN_SECONDS) !== null) urgent.add(a.name);
+  for (const plane of air) if (stormAhead(plane)) urgent.add(plane.name);
+  for (const plane of air)
+    if (plane.kind === 'arr' && plane.state === 'fly' && distanceFromAirport(plane) > areaRadius - SUPERVISOR_EDGE_MARGIN &&
+        Math.cos(plane.targetHeading - Math.atan2(plane.y - AIRPORT_Y, plane.x - AIRPORT_X)) > 0)
+      urgent.add(plane.name);
+  if (!urgent.size) return;
+  const decision = decide();
+  if (!decision || !['separate', 'storm', 'edge'].includes(decision[2])) return;
+  const name = decision[0][0];
+  executeOrder(decision[0]);
+  shift.stepIns = (shift.stepIns || 0) + 1;
+  shift.log.push(`the supervisor took ${name}`);
+  game.streak = 0;
+  const plane = planeNamed(name);
+  if (plane) {
+    game.effects.push({x: plane.x, y: plane.y, age: 0, colour: '#f2c94c', radius: 40});
+    popChips({x: plane.x, y: plane.y - 28, chips: [{kind: 'coin', text: 'supervisor: ' + decision[0].slice(1).join(' ')}], size: 13, life: 2.4});
+  }
+  supervisorText('stepIn', name);
 }
 // on an intern's screen only the intern's mistakes cost anything: trouble with a plane it has not forgotten, it sorts out
 // itself (a crash it dodges, a write-up it talks its way out of)
@@ -2945,6 +2991,7 @@ function advanceWorld(seconds) {
   checkZones(airborne);
   if (rules.wakeTrail) checkWakeTrail(airborne);
   if (game.intern) internTick(seconds);
+  else if (game.rookie && career && !game.practice && !game.admin && !game.tutorial && !game.over && !shift.over) supervisorWatch(seconds);
   if (game.admin) sweepTick();
   for (const effect of game.effects) effect.age += seconds;
   game.effects = game.effects.filter(effect => effect.age < (effect.life || 1.2));
@@ -3803,7 +3850,7 @@ function decide() {
             return [
               levelCmd(plane, level),
               `${plane.name} and ${option.name} are heading for the same spot at the same level. ${plane.name} goes ${LEVEL_NAMES[level]}, so one passes over the other.`,
-            , 'separate'];
+            'separate'];
         const nearEdge = distanceFromAirport(plane) > areaRadius - 2 * turnRadius(plane, holdSpeed(plane)) - 25; // its circle would be pulled far inward to stay in your area
         if (
           plane.kind === 'arr' &&
@@ -3815,7 +3862,7 @@ function decide() {
           return [
             [plane.name, 'hold'],
             `${plane.name} would get too close to ${option.name}. It circles on the spot until the way is clear.`,
-          , 'separate'];
+          'separate'];
       }
     }
   // storms: turn away to the nearest heading that misses them
@@ -3844,7 +3891,7 @@ function decide() {
       return [
         [plane.name, 'turn', toward(plane)],
         `${plane.name} is heading out of your area. Turn it ${shortWayUpper(toward(plane))}, back toward the airport.`,
-      , 'edge'];
+      'edge'];
   }
   // 2. the next arrival comes down and lands
   if (next) {
@@ -3859,7 +3906,7 @@ function decide() {
       return [
         levelCmd(plane, MISSED_LEVEL),
         `${plane.name} is next to land, but the runway is still in use. Bring it down to mid for now.`,
-      , 'down'];
+      'down'];
     if (
       landing &&
       plane.state === 'fly' &&
@@ -3883,12 +3930,12 @@ function decide() {
       return [
         [plane.name, 'turn', wayToCircle(plane)],
         `${plane.name} is next to land. Point it at the ${nearestCircle(plane)} landing circle: landing is only possible inside one${Object.keys(CIRCLES).every(circleOpen) ? '' : ' that is open (no storm over it, approaches into the wind)'}.`,
-      , 'aim'];
+      'aim'];
     if (!landing && plane.targetLevel === 0 && k && circleOpen(k) && once(plane, 'land', 1))
       return [
         [plane.name, 'land'],
         `${plane.name} is inside the landing circle. Clear it to land: it turns onto the runway by itself.`,
-      , 'land'];
+      'land'];
   }
   // 3. everyone else waits, circling near the airport on a free level
   for (const plane of arrs) {
@@ -3898,12 +3945,12 @@ function decide() {
         return [
           [plane.name, 'hold'],
           `Only one plane lands at a time and ${next.name} is first. ${plane.name} circles here, ${LEVEL_NAMES[hl]}, until its turn.`,
-        , 'hold'];
+        'hold'];
       if (hl !== undefined && hl !== plane.targetLevel && once(plane, 'stack', 6))
         return [
           levelCmd(plane, hl),
           `${plane.name} must wait for ${next.name}, but its level is taken near the airport. Move it to ${LEVEL_NAMES[hl]} first.`,
-        , 'stack'];
+        'stack'];
     }
     if (
       plane.state === 'fly' &&
@@ -3915,7 +3962,7 @@ function decide() {
       return [
         [plane.name, 'turn', toward(plane)],
         `${plane.name} is not pointing at the airport. Turn it ${shortWayUpper(toward(plane))}.`,
-      , 'aim'];
+      'aim'];
   }
   // helicopters: an arrival flies itself to a free pad; one waiting on its pad lifts off its way once the sky is clear
   for (const plane of game.planes.filter(plane => plane.type.heli && mindful(plane))) {
@@ -3939,7 +3986,7 @@ function decide() {
       return [
         [plane.name, 'takeoff', way],
         `The runway is free. ${plane.name} wants to leave ${shortWayUpper(plane.exitWay)}: take off ${shortWayUpper(way)}, ${windBlowing() ? 'into the wind' : 'the runway direction closest to it'}.`,
-      , 'takeoff'];
+      'takeoff'];
     if (
       (free(plane) || plane.state === 'roll') &&
       !isHeading(plane, plane.exitWay) &&
@@ -3949,7 +3996,7 @@ function decide() {
       return [
         [plane.name, 'turn', plane.exitWay],
         `${plane.name} is on its way out. Turn it ${shortWayUpper(plane.exitWay)}, so it leaves the circle on the ${shortWayUpper(plane.exitWay)} side.`,
-      , 'out'];
+      'out'];
   }
   return null;
 }
@@ -7062,9 +7109,9 @@ function toast(text, kind = '') {
   toastEl.appendChild(note);
   setTimeout(() => note.remove(), 4200);
 }
-function supervisorText(key) {
+function supervisorText(key, plane = '') {
   const texts = SUPERVISOR_TEXTS[key];
-  if (texts) textMessage('SUPERVISOR', texts[(Math.random() * texts.length) | 0]);
+  if (texts) textMessage('SUPERVISOR', texts[(Math.random() * texts.length) | 0].replace('{plane}', plane));
 }
 // a text on your phone, from the supervisor or the boss: where extra information goes, never on the cards
 function textMessage(from, text, delay = 0) {
@@ -7156,6 +7203,7 @@ function finishShift() {
   add('Lighthouse', s('foglamp') * TATTOOS.foglamp.n.share * shift.weatherEvents * (shift.planePay || 0), 'foglamp');
   if (!shift.writeUps && !shift.fired) add('Gold Leaf', s('goldenpen') * TATTOOS.goldenpen.n.xPay * (shift.pay + lines.reduce((sum, line) => sum + line.amount, 0)), 'goldenpen');
   if (shift.saves) add(`the supervisor stepped in ×${shift.saves}`, -SUPERVISOR_SAVE_SHARE * shift.saves * (shift.planePay || 0), 'supervisor');
+  if (shift.stepIns) add(`the supervisor's orders ×${shift.stepIns}`, -SUPERVISOR_STEP_IN_SHARE * shift.stepIns * (shift.planePay || 0), 'supervisor');
   shift.lines = lines;
   shift.total = Math.round(shift.pay + lines.reduce((sum, line) => sum + line.amount, 0));
   career.cash += shift.total;
@@ -7167,9 +7215,9 @@ function finishShift() {
   // the review: on time and write-ups (a supervisor may have one per 2 screens and still get an A)
   const share = shift.handled ? shift.onTime / shift.handled : 1,
     allowed = rank.screens > 1 ? rank.screens / 2 : 0;
-  shift.grade = shift.fired
+  shift.grade = shift.fired || shift.sentHome
     ? 'C'
-    : shift.writeUps <= allowed && share >= REVIEW_A_ON_TIME && !shift.saves
+    : shift.writeUps <= allowed && share >= REVIEW_A_ON_TIME && !shift.saves && !shift.stepIns
       ? 'A'
       : shift.writeUps <= allowed + 1 && share >= REVIEW_B_ON_TIME
         ? 'B'
@@ -7681,7 +7729,7 @@ function reviewHtml() {
       .map(([id, amount], i) => `<span style="animation-delay:${0.25 * i}s"><b>${escapeHtml(contributionName(id))}</b> ${amount >= 0 ? '+' : ''}${money(amount)}</span>`)
       .join('')}</div>
     <div class="grade ${gradeShown ? 'on' : ''} g${shift.grade}">${shift.fired ? 'fired' : shift.grade}</div>
-    <small>${shift.fired ? escapeHtml(shift.fired) : gradeText()}</small>
+    <small>${shift.fired ? escapeHtml(shift.fired) : shift.sentHome ? escapeHtml(shift.sentHome) : gradeText()}</small>
     <div class="cash">cash <b>${money(career.cash)}</b> · rent ${money(rentNow())}</div>
     ${button('next', 'Enter')}</div></div>`;
 }
@@ -7803,21 +7851,49 @@ function cvHtml() {
     <small>${meta.points} skill points · best: ${meta.bestWeeks} weeks${best}</small>${dailies ? `<small>today's daily: ${dailies}</small>` : ''}
     <div class="cards">${button('skills', '<b>skill tree</b><small>spend skill points</small>', ' card')}${button('career', '<b>new career</b>', ' card gold')}${button('daily', `<b>daily career</b><small>${todayDate()} · the same for everyone, no skills</small>`, ' card')}</div></div></div>`;
 }
+// the skill tree as a graph, left to right: you, the six branches, then each path as a chain of skills. A skill shows
+// once the one before it is yours (the first of a path always shows), so deeper ones stay hidden until then
 function skillsHtml() {
-  return `<h1>skill tree</h1><p><b>${meta.points}</b> skill points · from milestones only · information and comfort, never pay</p><div class="tree">${SKILL_TREE.map(
-    branch => `<div class="branch"><b>${branch.name}</b><small>${branch.what}</small>${branch.paths
-      .map(
-        path =>
-          `<div class="path"><small>${path.name}</small>${path.nodes
-            .map(([id, text, cost], i) => {
-              const owned = meta.skills[id],
-                open = i === 0 || meta.skills[path.nodes[i - 1][0]];
-              return button('skill:' + id, `${escapeHtml(text)} <em>${owned ? '✓' : cost}</em>`, owned ? ' owned' : open ? '' : ' locked');
-            })
-            .join('')}</div>`,
-      )
-      .join('')}</div>`,
-  ).join('')}</div><div class="cards">${button('back', '<b>back</b>', ' card')}${button('career', '<b>new career</b>', ' card gold')}</div>`;
+  const {rowHeight, branchX, firstX, step, nodeWidth} = SKILL_GRAPH;
+  let row = 0;
+  const lines = [],
+    nodes = [];
+  const curve = (x1, y1, x2, y2, owned) =>
+    lines.push(`<path class="${owned ? 'owned' : ''}" d="M${x1} ${y1}C${(x1 + x2) / 2} ${y1} ${(x1 + x2) / 2} ${y2} ${x2} ${y2}"/>`);
+  const hubs = SKILL_TREE.map(branch => {
+    const top = row;
+    for (const path of branch.paths) {
+      const y = (row + 0.5) * rowHeight;
+      let x = 0,
+        before = true;
+      for (const [i, [id, text, cost]] of path.nodes.entries()) {
+        if (!before) break; // the one before is not yours: this one and all after it stay hidden
+        const owned = !!meta.skills[id],
+          left = firstX + i * step;
+        if (i > 0) curve(x, y, left, y, owned);
+        nodes.push(
+          `<div class="node" style="left:${left}px;top:${y}px">${button('skill:' + id, `${escapeHtml(text)}<em>${owned ? '✓' : cost}</em>`, owned ? ' owned' : meta.points >= cost ? ' open' : '')}</div>`,
+        );
+        x = left + nodeWidth.skill;
+        before = owned;
+      }
+      row++;
+    }
+    return {branch, y: ((top + row) / 2) * rowHeight, top, rows: row - top, firsts: branch.paths.map(path => !!meta.skills[path.nodes[0][0]])};
+  });
+  for (const hub of hubs) {
+    curve(nodeWidth.root, (row / 2) * rowHeight, branchX, hub.y, true);
+    for (let k = 0; k < hub.rows; k++) curve(branchX + nodeWidth.hub, hub.y, firstX, (hub.top + k + 0.5) * rowHeight, hub.firsts[k]);
+  }
+  const width = firstX + (Math.max(...SKILL_TREE.flatMap(branch => branch.paths.map(path => path.nodes.length))) - 1) * step + nodeWidth.skill,
+    height = row * rowHeight;
+  return `<h1>skill tree</h1><p><b>${meta.points}</b> skill points</p>
+    <div class="graph" style="width:${width}px;height:${height}px">
+      <svg width="${width}" height="${height}">${lines.join('')}</svg>
+      <div class="node root" style="left:0;top:${height / 2}px"><b>you</b></div>
+      ${hubs.map(hub => `<div class="node hub" style="left:${branchX}px;top:${hub.y}px"><b>${hub.branch.name}</b></div>`).join('')}
+      ${nodes.join('')}
+    </div><div class="cards">${button('back', '<b>back</b>', ' card')}${button('career', '<b>new career</b>', ' card gold')}</div>`;
 }
 
 /* --- the body and the tattoos, drawn ----------------------------------------------------------------------------------- */
