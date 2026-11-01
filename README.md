@@ -6,30 +6,33 @@ No install, no account: open the link, click into the prompt and type.
 
 [![Tower Power: a radar with arrivals, a departure taxiing out and a typed order](screenshot.png)](https://louisvandenbruwaene.github.io/tower/)
 
-Air traffic control, very realistic in spirit but highly simplified, played only by typing words. Your area is the radar circle. Arrivals (blue) come in high; bring them down low and fly them into one of the two landing circles off the runway ends, then land: they turn onto the runway by themselves. Departures (gold) each want to leave in one of 8 directions: take them off east or west down the runway, then turn them so they leave the circle through their own slice. Two aircraft whose icons touch less than 400 ft apart in height (a collision, two strikes), a departure leaving through the wrong slice, or an arrival leaving your area: strike. Three strikes end the shift; each strike is named where it happened and listed on the shift-over screen.
+Air traffic control, very realistic in spirit but highly simplified, played only by typing words, as a roguelike **career**. You fly 3-minute shifts at an airport and pay rent every week, rent that grows 30% a week (and faster after week 5). Can't pay: **broke**, the career is over. Hold 8 weeks of rent at the end of a week and you may **retire**: the win. A normal career is about an hour, a speedrun 20 minutes, and inflation ends even the best one within about two and a half hours.
+
+**The radar.** Arrivals (blue) come in high: bring them down low, into a landing circle off a runway end, and land them. Departures (gold) take off and leave through their own slice of the circle. A crash (two aircraft touching less than 400 ft apart, a storm cell, a mountain below mid, an empty tank) gets you **fired**; so do too many **write-ups** in one shift (a wrong exit, a lost arrival, a cancelled departure, a late priority flight, closed airspace).
+
+**The job.** Every shift gets a review (A, B or C). Two A reviews bring a promotion: either a harder sector of your own (Senior I, II, III) or intern screens to supervise (Supervisor 2, Senior Supervisor 4, Chief 6 screens in a grid), where the interns make realistic mistakes (forgetting a plane, reacting late, a slip of the tongue) that you fix by typing to their planes. Three A reviews pay a performance bonus, cash or a rare tattoo. Every week the job board offers other airports, up to the tier your reputation reaches: ten of them, from a grass strip to Meridian Hub, each with its own runways, traffic, weather, closed airspace and a season. Fired means back to intern at a small airport, cash and tattoos kept.
+
+**The devil.** After every shift he offers three tattoo sketches for a share of the rent, drawn on your body in blood. 58 tattoos in 7 styles change the rules and the pay (every plane pays Fare × Mult); most strong ones carry a catch (Eye of the Storm compounds ×1.1 per storm while every storm grows), some a sacrifice (a strike, your eyes, your rank, your soul). The same style on both arms or both hands is 1.5× as strong, and 2 or 4 of a style add its mark. He also sells favours, typed once in a shift: `groundstop`, `expedite heron`, `vector`, `standby`, `freeze`, `cleanup`, `double heron`, `tailwind`.
+
+**Between careers.** Milestones (your first MEDEVAC, a streak of 25, Chief with 6 screens, retiring within 30 minutes…) give skill points for a skill tree that buys information and comfort, never pay: path lines, conflict markers, warnings, slow motion, pauses, chained and group orders, interns who call for help. `daily` plays today's career, seeded the same for everyone, without skills.
 
 Every command is `plane action [direction]`, in any capitals:
 
 ```
 heron turn s              # n ne e se s sw w nw
 heron turn l              # sl sr = 45°, l r = 90°, hl hr = 135°
-
 heron descend             # down to low (descend mid, descend 4 or descend 4000 stop higher)
 heron ascend              # up as high as it goes (ascend mid stops at mid)
-heron hold                # circle on the spot until a turn (or land, inside a landing circle)
-heron hold kilo           # fly to a holding fix (alpha bravo kilo zulu; november sierra with nav) and circle there
-heron land                # only inside an open landing circle: it turns onto the runway there
-wren takeoff e             # e or w (left out when the wind allows one way only); it taxis out, waits for a free runway, climbs to mid and flies straight on
-owl land                  # a helicopter: flies itself to the nearest free helipad at low and sets down (owl land india: that pad)
-kite takeoff              # a helicopter on its pad: lifts straight up to low and hovers there until you turn it (kite turn ne); kite takeoff ne flies that way once up, wind or not
-buy nav                   # after a shift: spend tokens on upgrades (tanks patience height nav runway helipad), or use the arrow keys
-daily                     # today's seeded shift, the same for everyone
-speed                     # time runs 1×, 2×, 4×, 8× and back (or the 1× button); speed 4 picks one
-sound                     # sound effects on/off (or the ♪ button); sound off, sound on
-aircraft                  # the data sheet: every aircraft type's real model, weights, speeds, turn, climb, runway, fuel
+heron hold                # circle on the spot (hold kilo: at the fix KILO)
+heron land                # inside an open landing circle: it turns onto the runway there
+wren takeoff e            # taxi out, take off east, climb to mid and fly straight on
+owl land                  # a helicopter: to the nearest free helipad
+groundstop                # a favour the devil owes you (typed in full)
+pause                     # with the Pause skills: time stops, the radar stays (Esc: the plain pause)
+speed · sound · aircraft · tutorial · help
 ```
 
-A unique start of a word is enough, faded text in the prompt is a suggestion (→ takes it all, Tab one word), and typos are fixed at once (nt = north), the reply showing what was understood. Shortcuts work too: `heron n` or `heron left` turns, `heron down` / `heron up` change level, `wren e` takes off east, `take off` and `south west` may be two words. A short tutorial (a landing, a departure, a hold) sits behind the **tutorial** button next to the speed button, never forced: it nudges on a first visit, and `tutorial` / `skip` work typed too. You start straight in the shift, its first five planes in slow motion, then full speed. Every rule is on from the start: aircraft types (prop, jet, bizjet, heavy, each with its own speed, turn rate and pictogram, and wake turbulence behind a heavy), fuel and MAYDAYs, wind that comes and goes and, while it blows, sets the runway direction, readback errors and drifting storm cells. The shift never ends (the traffic stops growing after 15 minutes): the score is money: every plane pays its fare (a prop $400, a jet $1,000, a private jet $4,000), less 1% per second of delay, plus 10% per plane in a streak; priority flights (VIP private jets, MEDEVAC air ambulances) must go first both ways, and military jets show up now and then; three strikes pay a token per $1,000, spent on upgrades for later shifts, bought in small steps at 10, 20, 50, 100, 200 tokens: tanks (more fuel), patience (departures wait longer), height (levels every 1,000 ft up to 10,000), nav (a wider area, two more holding fixes, then departures and arrivals flying themselves) and runway (tighter, then perfect timing between departures and arrivals, then a parallel runway and two crossing each other between the two like an X (crossing runways share their tarmac); the view zooms out to fit) and helipad (helipads HOTEL, OSCAR, INDIA north of the airport: helicopters join the traffic, $2,500 a flight each way; each one lands, turns around on its pad and departs again, never more helicopters than pads; they fly at low only, so keep them clear of low arrivals). A shift earning $10,000 unlocks `hard`, a game of its own with its own save: no autopilot, no timing help, `land` only works for a plane you have flown onto the runway's line yourself (low, facing the runway, at most 450 m off the centreline, runway free), and `hold alpha` only once it is at ALPHA. After 10 planes, overflights from the neighbouring sector join in. Waiting is shown on the radar: a bar for level changes, a dashed line for turns, an amber runway while it is busy. What is in and what is still to come is listed in [IDEAS.md](IDEAS.md). One self-contained HTML file, no build step: open [`index.html`](index.html).
+A unique start of a word is enough, faded text in the prompt is a suggestion (→ takes it all, Tab one word), typos are fixed at once (nt = north), and shortcuts work (`heron n`, `heron down`, `wren e`). Every screen of a supervisor has its own call signs (birds, trees, rivers, stars, stones, fish), so an order goes to the right screen by itself. A short tutorial sits behind the **tutorial** button, between shifts. One self-contained HTML file, no build step: open [`index.html`](index.html).
 
 ## Play on this Mac
 
@@ -38,10 +41,10 @@ A unique start of a word is enough, faded text in the prompt is a suggestion (�
 ./app/make_icon.sh     # only needed after editing app/icon.html
 ```
 
-Dev: `index.html#dev` exposes `window.G` (S, step, exec, run, startShift…) for headless tests; `tools/bot.js` is a test bot (decide()).
+Dev: `index.html#dev` exposes `window.G` (the state, the shift, the career, `step` for every screen, `exec`, `run`, `decide` for the built-in controller, `choose` for the career screens) for headless tests. Typing `admin fly` opens a sandbox; `career cash 50000`, `career tattoo jumbo`, `career rank super6` and the like set up a career to test.
 
 ## The code
 
 **What:** the whole game is the script in `index.html`: the simulation (traffic, weather, planes that turn, climb and land at realistic rates), reading what you type, and drawing the radar.
 **Why one file:** no build step and no libraries; open it and it runs, in a browser or in the Mac app.
-**How it is laid out:** sixteen numbered sections, listed at the top of the script; search for `§ 1` … `§ 16`. **§ 1 SETTINGS holds every number and piece of content that decides how the game plays** (speeds, distances, aircraft types, call signs, traffic, weather, money, the airport layout, upgrades and prices), in real units with a comment each: change the game there, nothing below hard-codes a game value. § 2 converts them to game units, § 3–§ 10 are the simulation and the orders, § 11–§ 13 the prompt, tutorial and admin, § 14–§ 15 drawing and the screen, § 16 starts it all.
+**How it is laid out:** numbered sections, listed at the top of the script; search for `§ 1` … `§ 16`. **§ 1 SETTINGS holds every number and piece of content that decides how the game plays** (speeds, distances, aircraft types, traffic, weather, money, the airports, ranks, rent, seasons, the 58 tattoos with their numbers and drawings, favours, interns, the skill tree, milestones), in real units with a comment each: change the game there. § 2 converts them to game units, § 3–§ 10 are the simulation (§ 4 the career's saves and the worlds, one per radar screen; § 6b the tattoos and Fare × Mult; § 9b the interns), § 11–§ 13 the prompt, tutorial and admin, § 14–§ 15 drawing and the screens between shifts (the review, jobs, the devil), § 16 starts it all.
