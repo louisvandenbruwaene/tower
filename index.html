@@ -129,7 +129,7 @@ b.cost{color:var(--fg);white-space:nowrap} b.cost i.note{background:#c9d4cc;box-
 <main>
 <div id="view"><canvas id="cv"></canvas>
 <div id="tl" class="corner"><span id="brand">TOWER POWER</span><b id="lvl"></b></div>
-<div id="tr" class="corner"><button id="tut" class="rb" title="a short guided first landing, departure and hold">tutorial</button><button id="ff" class="rb" title="game speed: 1× 2× 4×"></button><button id="snd" class="rb" title="sound on/off"></button><button id="qm" class="rb" title="help">?</button></div>
+<div id="tr" class="corner"><button id="bankrupt" class="rb" title="end this career now">declare bankruptcy</button><button id="tut" class="rb" title="a short guided first landing, departure and hold">tutorial</button><button id="ff" class="rb" title="game speed: 1× 2× 4×"></button><button id="snd" class="rb" title="sound on/off"></button><button id="qm" class="rb" title="help">?</button></div>
 <div id="br" class="corner"><span id="todo"></span></div><div id="banner"></div><div id="toast"></div><div id="over"></div></div>
 <section id="term">
 <div class="srow"><span class="lbl">write-ups</span><span id="strikes"></span></div>
@@ -600,6 +600,7 @@ const DEVIL_EVERY_WEEKS = 2; // the devil comes at the end of every 2nd week: ta
 const SHOP_KIT_CARDS = 3, // kit for sale after each shift
   SHOP_FAVOUR_CARDS = 2; // favours for sale after each shift
 const RESTOCK_SHARE = 0.04; // restocking the shop costs this share of the rent (Coupon: half)
+const BANKRUPT_CONFIRM_SECONDS = 3; // 'declare bankruptcy' asks 'sure?' and waits this long for the second click
 const DEVIL_PICKS = 1; // sketches you may take each visit; tattoos cost no money (burning one off is free too)
 const PAIR_STRENGTH = 1.5;
 const BODY_PLACES = ['neck', 'chest', 'back', 'leftarm', 'rightarm', 'lefthand', 'righthand'];
@@ -7782,7 +7783,7 @@ function inkingHtml() {
 }
 function cvHtml() {
   const how = career.ended,
-    title = how === 'retired' ? 'retired' : how === 'soul' ? 'the devil collected' : 'broke',
+    title = how === 'retired' ? 'retired' : how === 'soul' ? 'the devil collected' : how === 'bankrupt' ? 'bankrupt' : 'broke',
     rows = [
       ['time', formatTime(career.playSeconds)],
       ['weeks', career.week - 1],
@@ -7878,6 +7879,7 @@ function animateInking() {
 function updatePanels() {
   const careerShift = career && !game.practice && !game.admin && !game.tutorial;
   writeHtml(tutorialButton, game.tutorial ? 'leave tutorial' : 'tutorial');
+  bankruptButton.style.display = career && !career.ended && !game.tutorial && !game.admin ? '' : 'none';
   const clock = careerShift ? Math.max(0, SHIFT_SECONDS - worlds[0].game.time) : 0;
   writeHtml(
     elementById('lvl'),
@@ -7937,6 +7939,7 @@ function moveChoice(key) {
 }
 // the tutorial is a button next to the speed button: never forced
 const tutorialButton = document.getElementById('tut');
+const bankruptButton = document.getElementById('bankrupt');
 // back to the career (at the start, after the tutorial or admin): its shift, or the screen it was on between shifts, over
 // a quiet radar of its airport. A shift cut off by closing the game is played again; a review lost with it is skipped
 function resumeCareer() {
@@ -8096,6 +8099,22 @@ overlay.addEventListener('mousedown', event => {
 });
 requestAnimationFrame(animationFrame);
 if (!storage('tower-tut') && meta.careers <= 1) tutorialButton.classList.add('new');
+// declare bankruptcy: the second click within BANKRUPT_CONFIRM_SECONDS ends the career, in a shift or between shifts
+bankruptButton.addEventListener('click', event => {
+  event.stopPropagation();
+  if (!career || career.ended || game.tutorial || game.admin) return;
+  if (!(bankruptButton.armedUntil > performance.now())) {
+    bankruptButton.armedUntil = performance.now() + BANKRUPT_CONFIRM_SECONDS * 1000;
+    bankruptButton.textContent = 'sure? click again';
+    setTimeout(() => (bankruptButton.textContent = 'declare bankruptcy'), BANKRUPT_CONFIRM_SECONDS * 1000);
+    return;
+  }
+  bankruptButton.armedUntil = 0;
+  bankruptButton.textContent = 'declare bankruptcy';
+  endCareer('bankrupt');
+  resumeCareer(); // a quiet radar under the CV
+  commandInput.focus();
+});
 tutorialButton.addEventListener('click', event => {
   event.stopPropagation();
   game.tutorial ? endTutorial() : startTutorial();
