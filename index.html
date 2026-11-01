@@ -84,8 +84,8 @@ main{flex:1;min-height:0;display:flex}
 #over .card.plain{cursor:default;padding:8px 12px;border:2px solid var(--line);border-radius:8px;background:#0a1711} #over .card .season{color:var(--blue)} #over .pair{display:flex;gap:8px;margin-top:4px}
 #over .tally{display:grid;grid-template-columns:auto 1fr;gap:2px 20px;font-size:14px} #over .tally span:nth-child(odd){color:var(--dim)} #over .x{font-style:normal;color:var(--bad)}
 #over .big{display:inline-block;font-size:56px;font-weight:800;color:#0b2a10;background:#86d48a;padding:2px 24px;border-radius:6px;width:max-content}
-#over .contrib{display:flex;flex-wrap:wrap;gap:6px} #over .contrib span{font-size:13px;padding:2px 8px;border-radius:5px;background:#2a0d0b;border:1px solid #6b1d17;animation:pop .5s backwards}
-#over .contrib b{color:#ff9a8a;font-weight:600}
+#over .contrib{display:flex;flex-wrap:wrap;gap:6px} #over .contrib span{font-size:13px;padding:2px 8px;border-radius:5px;background:#0e2a17;border:1px solid #2f6b4a;animation:pop .5s backwards}
+#over .contrib>span>b:first-child{color:var(--fg);font-weight:600}
 @keyframes pop{0%{transform:scale(.4);opacity:0}70%{transform:scale(1.15)}100%{transform:none;opacity:1}}
 #over .grade{font-size:44px;font-weight:800;opacity:0;transform:scale(2.5);transition:all .35s cubic-bezier(.3,1.6,.5,1)} #over .grade.on{opacity:1;transform:none}
 #over .grade.gA{color:#86d48a} #over .grade.gB{color:var(--gold)} #over .grade.gC{color:var(--bad)} #over .cash{color:var(--dim);font-size:14px} #over .cash b{color:var(--fg)}
@@ -93,26 +93,35 @@ main{flex:1;min-height:0;display:flex}
 #over .sketch{align-items:flex-start} #over .sketch .art{width:64px;height:64px} #over .sketch .art path{stroke:#c9a184;stroke-width:4} #over .rar{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
 #over .rar.u{color:var(--blue)} #over .rar.r{color:var(--gold)} #over .rar.l{color:#ff7ab8} #over .catch{color:#ff8a7e}
 #over .extras{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px} #over .legend{display:flex;flex-direction:column;gap:2px;font-size:12.5px;color:var(--dim);margin-top:8px} #over .legend .on b{color:var(--gold)}
-#over .ink{display:grid;place-items:center;margin:10px auto;width:300px;height:300px;border-radius:50%;background:radial-gradient(#d9b79a,#a9806a)} #over .ink .art{width:220px;height:220px}
 .art path{fill:none;stroke:#2a1414;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
 .art.drawing path{stroke:#b3120a;transition:stroke 1.4s ease} .art.drawing.dry path{stroke:#2a1414}
 .art .drop{fill:#b3120a;animation:drip 1s ease-in forwards} @keyframes drip{to{transform:translateY(var(--fall));opacity:.3}}
-.body{width:100%;max-width:300px} .body .skin{fill:#c9a184;stroke:#7a5a46;stroke-width:1.2} .body .skin.back{fill:#b8927a}
-.body .label,.body text{fill:#5a3e30;font:600 8px var(--mono);text-anchor:middle} .body .empty{fill:none;stroke:rgba(90,62,48,.35);stroke-dasharray:2 3}
-.body .free{fill:rgba(179,18,10,.08);stroke:#b3120a;stroke-dasharray:3 3} .body .locked{fill:rgba(40,20,20,.25);stroke:rgba(40,20,20,.4)}
-.body .tattoo path{fill:none;stroke:#241010;stroke-width:5;stroke-linecap:round;stroke-linejoin:round} .body .tattoo.fresh path{stroke:#7a0c08}
-.body .spot{cursor:pointer} .body .ring{fill:none;stroke:#ff6b5e;stroke-width:2.5}
-.body .glow{animation:glow 1.6s ease-out backwards} @keyframes glow{0%{filter:none}25%{filter:drop-shadow(0 0 6px #ff3b2e) drop-shadow(0 0 12px #ff3b2e)}100%{filter:none}}
+.skin{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.patch{position:relative;grid-column:span 3;height:104px;border-radius:10px;background:radial-gradient(circle at 40% 35%,#e4c3a6,#c99d7f 70%,#b48467);box-shadow:inset 0 0 18px rgba(90,50,30,.35);display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
+.patch small{position:absolute;top:5px;left:8px;font-size:10.5px!important;color:rgba(70,40,25,.75)!important;letter-spacing:.06em;text-transform:uppercase}
+.patch.small{grid-column:span 2} .patch svg{height:66%;width:auto;overflow:visible} .patch>b{position:absolute;bottom:5px;font-size:11px;color:rgba(50,20,12,.85);font-weight:600}
+.patch .tattoo path{fill:none;stroke:#241010;stroke-width:4.2;stroke-linecap:round;stroke-linejoin:round} .patch .tattoo.fresh path{stroke:#8a0f08}
+.patch.locked{background:#3a2a24;box-shadow:inset 0 0 0 2px #5a1a16} .patch.locked small{color:#a07a6a!important} .patch.locked>b{position:static;color:#ff8a7e;font-size:12px}
+.patch.pick{cursor:pointer;outline:2px dashed rgba(179,18,10,.55);outline-offset:-6px} .patch.sel{outline:3px solid #ff6b5e;outline-offset:-3px}
+.patch.paired::after{content:'pair ×1.5';position:absolute;top:5px;right:8px;font-size:10px;color:#7a0c08;font-weight:700}
+.patch.glow{animation:glow 1.6s ease-out backwards} @keyframes glow{0%{box-shadow:inset 0 0 18px rgba(90,50,30,.35)}25%{box-shadow:0 0 0 3px #86d48a,0 0 22px #86d48a,inset 0 0 18px rgba(90,50,30,.35)}100%{box-shadow:inset 0 0 18px rgba(90,50,30,.35)}}
+#over .ink{display:grid;place-items:center;margin:10px auto;width:320px;height:320px;border-radius:14px;background:radial-gradient(circle at 40% 35%,#e4c3a6,#c99d7f 70%,#b48467);box-shadow:inset 0 0 40px rgba(90,50,30,.4)} #over .ink .art{width:240px;height:240px}
+#over .big b.money{color:#0b2a10} #over .big i.note{width:.62em;height:.4em;background:transparent;box-shadow:inset 0 0 0 .06em #0b2a10,inset 0 0 0 .13em #86d48a,inset 0 0 0 .17em #0b2a10}
+#over .inking{text-align:center} #over .screen>div:not(.cols)>.col,#over .screen>div:not(.cols):not(.devil):not(.tree){max-width:640px;margin:0 auto}
 #over .tree{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin:10px 0} #over .branch{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:8px;padding:10px}
 #over .branch>b{color:var(--acc);letter-spacing:.1em;text-transform:uppercase} #over .path{display:flex;flex-direction:column;gap:4px} #over .path .btn{padding:4px 10px;font-size:13px}
 #over .btn.owned{border-color:#2f6b4a;color:var(--acc)} #over .btn.locked{opacity:.45}
 #over.hide{background:#020805;backdrop-filter:none}
 /* notes over the radar: milestones, warnings, the supervisor's texts, the devil */
-#toast{position:absolute;left:16px;bottom:16px;display:flex;flex-direction:column;gap:8px;z-index:2;pointer-events:none;max-width:min(420px,60%)}
+#toast{position:absolute;right:16px;bottom:42px;display:flex;flex-direction:column;align-items:flex-end;gap:8px;z-index:3;pointer-events:none;max-width:min(400px,55%)}
 #toast .note{padding:8px 12px;border-radius:10px;background:rgba(14,32,24,.94);border:1px solid var(--chipon);font-size:13px;animation:pop .35s}
 #toast .note.gold{border-color:#6b520c;color:var(--gold)} #toast .note.bad{border-color:#6b1d17;color:#ff8a7e} #toast .note.blood{border-color:#5a1a16;color:#ff6b5e;background:rgba(30,6,5,.94)}
 #toast .sms{background:#1b2733;border-color:#2f4458;border-radius:14px 14px 14px 4px} #toast .sms b{display:block;font-size:10.5px;letter-spacing:.14em;color:var(--blue);margin-bottom:2px}
-#todo .fav{color:#ff8a7e} #strikes small{color:var(--dim);font-size:11px;margin-left:6px}
+#todo .fav{color:#ff8a7e}
+/* money: a small green banknote before the amount; rewards green, a loss red, a price plain */
+i.note{display:inline-block;width:1.05em;height:.66em;margin:0 .22em 0 .05em;vertical-align:-.04em;border-radius:.1em;background:#86d48a;box-shadow:inset 0 0 0 .09em #2b6131,inset 0 0 0 .2em #86d48a,inset 0 0 0 .26em rgba(43,97,49,.55)}
+b.money{color:#86d48a;font-weight:700;white-space:nowrap} b.money.minus{color:var(--bad)} b.money.minus i.note{background:var(--bad);box-shadow:inset 0 0 0 .09em #6b1d17}
+b.cost{color:var(--fg);white-space:nowrap} b.cost i.note{background:#c9d4cc;box-shadow:inset 0 0 0 .09em #59655d,inset 0 0 0 .2em #c9d4cc,inset 0 0 0 .26em rgba(89,101,93,.55)} #strikes small{color:var(--dim);font-size:11px;margin-left:6px}
 @media (max-width:760px){#over .cols{grid-template-columns:1fr}}
 @media (max-width:760px){main{flex-direction:column}#term{width:auto;height:50%;overflow:hidden}#brand{display:none}}   /* narrow: the corners keep the numbers and buttons */
 </style></head><body>
@@ -173,7 +182,7 @@ main{flex:1;min-height:0;display:flex}
 </table></section>
 <section class="pg"><h2>Career</h2><table>
 <tr><td>shift</td><td>3 minutes of traffic, then the sky empties. Every plane pays <b>Fare × Mult</b>: its fare (less 1% per second past par), times 1 plus what your streak and tattoos add, times the airport's tier and your rank.</td></tr>
-<tr><td>review</td><td><b>A</b>: no write-up, 90% on time · <b>B</b>: one write-up at most, 70% · <b>C</b>: worse. 2 A in a row: a promotion offer. 3 A in a row at one job: a bonus, cash or a rare tattoo. 2 C in a row: let go.</td></tr>
+<tr><td>review</td><td><b>A</b>: no write-up, 85% on time · <b>B</b>: one write-up at most, 60% · <b>C</b>: worse. 2 A in a row: a promotion offer. 3 A in a row at one job: a bonus, cash or a rare tattoo. 2 C in a row: let go.</td></tr>
 <tr><td>ranks</td><td>Intern (half pay, never fired, the supervisor watches) → Controller → either <b>Senior I · II · III</b> (one harder sector, more pay) or <b>Supervisor · Senior Supervisor · Chief</b> (2 · 4 · 6 intern screens: fix their mistakes).</td></tr>
 <tr><td>rent</td><td>Due every 3 shifts, 30% more each week, faster after week 5. Can't pay: <b>broke</b>, the career is over. Holding 8 weeks of rent at the end of a week: you may <b>retire</b> (the win).</td></tr>
 <tr><td>jobs</td><td>Every week other airports want you, up to the tier your reputation (A reviews) reaches. A new job starts you over at Controller. Fired: back to intern at a small airport, cash and tattoos kept.</td></tr>
@@ -487,8 +496,8 @@ const RENT_RISE = 0.3, // rent grows 30% a week …
 const RETIRE_WEEKS_OF_RENT = 8; // at the end of a week, holding this many weeks of the current rent, you may retire (the win)
 const INTERN_CAREERS = 3; // your first careers start as an intern (and every firing sends you back to intern)
 const ON_TIME_GRACE = 10; // game s past par a plane may take and still count as on time for the review
-const REVIEW_A_ON_TIME = 0.9, // an A review: no write-up and this share of planes on time
-  REVIEW_B_ON_TIME = 0.7; // a B: at most one write-up and this share on time; worse is a C
+const REVIEW_A_ON_TIME = 0.85, // an A review: no write-up and this share of planes on time
+  REVIEW_B_ON_TIME = 0.6; // a B: at most one write-up and this share on time; worse is a C
 const WRITE_UPS_TO_FIRE = 3; // write-ups in one shift that get you fired (a supervisor: one more per 2 screens)
 const PROMOTION_AS = 2, // A reviews in a row that bring a promotion offer
   BONUS_AS = 3, // A reviews in a row at one job that pay the performance bonus
@@ -511,6 +520,8 @@ const WAKE_TRAIL_DISTANCE = fromMetres(4000),
   WAKE_TRAIL_CONE = 30;
 const FOG_LABEL_RADIUS = fromMetres(9000); // fog: farther from the airport than this, a label shows only the call sign
 const SLOW_MOTION_PACE = 0.35; // the game's pace in a slow-motion moment (the Reflexes skills, the freeze favour)
+const GRID_BAND_TOP = 46,
+  GRID_BAND_BOTTOM = 34; // CSS px a supervisor's grid of screens leaves free at the top and bottom, for the corners
 const SCREEN_PAUSE_SECONDS = 15; // real s one intern screen stands still with 'pause 3' (a Reflexes skill)
 // the ranks at an airport. level: how far up the ladder (a promotion offers the next level on either track); pay: times the
 // fares; traffic, priority, par, storms, readback: the sector's difficulty. A supervisor has no sector of their own: their
@@ -537,9 +548,9 @@ const INTERN_LEVEL = {traffic: 0.8}; // an intern screen's traffic, times the ai
 // prettier-ignore
 const AIRPORTS = {
   hollin:   {name: 'Hollin Field',         tier: 1, character: 'Grass strip, props only, calm',
-             runways: [], helipads: 0, heights: 0, mix: {light: 1}, traffic: 2.2, storms: 0, wind: false, readback: 0},
+             runways: [], helipads: 0, heights: 0, mix: {light: 1}, traffic: 2.7, storms: 0, wind: false, readback: 0},
   mossbay:  {name: 'Mossbay Regional',     tier: 1, character: 'Sea fog (names only far out), props and bizjets',
-             runways: [], helipads: 0, heights: 0, mix: {light: 0.6, bizjet: 0.4}, traffic: 2.4, storms: 0, wind: true, readback: 0.02, fog: true},
+             runways: [], helipads: 0, heights: 0, mix: {light: 0.6, bizjet: 0.4}, traffic: 2.9, storms: 0, wind: true, readback: 0.02, fog: true},
   kesterton:{name: 'Kesterton',            tier: 2, character: 'One runway, strong crosswinds, jets',
              runways: [], helipads: 0, heights: 1, mix: {jet: 0.55, light: 0.2, bizjet: 0.15, medevac: 0.05, vip: 0.05}, traffic: 2.8, storms: 1, wind: true, windPace: 0.55, readback: 0.03},
   larkspur: {name: 'Larkspur Heliport',    tier: 2, character: 'Three pads and a short runway',
@@ -593,7 +604,7 @@ const BODY_OPENS = {neck: 'ears', back: 'name'}; // closed places, and the sacri
 // prettier-ignore
 const STYLES = {
   waves:     {name: 'Waves',     what: 'streaks, pace, departures',          two: 'every 10th plane in a streak pays ×2',            four: 'every 5th plane in a streak pays ×2'},
-  wings:     {name: 'Wings',     what: 'heavies, priority, helicopters',     two: 'heavies, priority and helicopters +$300',         four: 'they pay ×1.5'},
+  wings:     {name: 'Wings',     what: 'heavies, priority, helicopters',     two: 'heavies, priority and helicopters +¤300',         four: 'they pay ×1.5'},
   clocks:    {name: 'Clocks',    what: 'holds, queues, fuel',                two: '+20 s fuel and departure patience',               four: 'holding burns no fuel'},
   lightning: {name: 'Lightning', what: 'near passes, weather',               two: 'storm cells 20% smaller',                         four: 'every near pass: +1 Mult to the next plane'},
   keys:      {name: 'Keys',      what: 'interns, favours',                   two: 'interns make 20% fewer mistakes',                 four: 'one more favour slot, a free favour every week'},
@@ -617,34 +628,34 @@ const SACRIFICES = {
 const TATTOOS = {
   logbook:      {name: 'Tally Marks',     style: 'waves', rarity: 'u', kind: 'slow', gives: 'a mark for every plane handled without a write-up: ×0.05 Mult each, for the whole career; a write-up wipes them', catch: 'par 1 s shorter for every 10 marks', n: {xMultPerMark: 0.05, parSecondsPer10: 1}},
   headset:      {name: 'Four-Leaf',       style: 'waves', rarity: 'u', kind: 'bless', gives: 'the first write-up of every shift is forgiven: it does not count, the streak goes on', n: {forgiven: 1}},
-  cleansheet:   {name: 'Clean Slate',     style: 'waves', rarity: 'c', gives: 'end of shift: +$100 for every plane in your best streak', n: {perPlane: 100}},
+  cleansheet:   {name: 'Clean Slate',     style: 'waves', rarity: 'c', gives: 'end of shift: +¤100 for every plane in your best streak', n: {perPlane: 100}},
   goldenpen:    {name: 'Gold Leaf',       style: 'waves', rarity: 'r', sac: 'strike', gives: 'a shift with no write-ups pays ×2', n: {xPay: 1}},
   stopwatch:    {name: 'Swift',           style: 'waves', rarity: 'c', gives: 'a plane finished under par: +0.5 Mult', n: {mult: 0.5}},
-  shortfinal:   {name: 'Arrow',           style: 'waves', rarity: 'u', gives: '+$40 for every second a plane finishes under par', catch: 'a late plane loses 2% of its fare a second, not 1%', n: {perSecond: 40, latePercent: 1}},
+  shortfinal:   {name: 'Arrow',           style: 'waves', rarity: 'u', gives: '+¤40 for every second a plane finishes under par', catch: 'a late plane loses 2% of its fare a second, not 1%', n: {perSecond: 40, latePercent: 1}},
   express:      {name: 'Comet',           style: 'waves', rarity: 'u', gives: 'a departure rolling within 10 s of reaching the runway: ×1.5 Mult', catch: 'departures have half their patience', n: {seconds: 10, xMult: 0.5, patience: 0.5}},
   rushhour:     {name: 'Stampede',        style: 'waves', rarity: 'r', kind: 'slow', gives: 'every fare ×1.5, and +×0.1 more after every shift', catch: 'traffic +20%, and +10% more after every shift', n: {fare: 0.5, farePerShift: 0.1, traffic: 0.2, trafficPerShift: 0.1}},
   greenlight:   {name: 'Sparrow',         style: 'waves', rarity: 'c', gives: 'departures +0.5 Mult (helicopter lift-offs too)', n: {mult: 0.5}},
-  dancer:       {name: 'Two Swallows',    style: 'waves', rarity: 'u', gives: 'a departure rolling within 5 s after a landing on the same runway: +$500', catch: 'departures roll the moment you say so, even onto a busy runway', n: {seconds: 5, cash: 500}},
+  dancer:       {name: 'Two Swallows',    style: 'waves', rarity: 'u', gives: 'a departure rolling within 5 s after a landing on the same runway: +¤500', catch: 'departures roll the moment you say so, even onto a busy runway', n: {seconds: 5, cash: 500}},
   wakerider:    {name: 'Whale',           style: 'wings', rarity: 'c', gives: 'heavies and freighters +0.75 Mult', n: {mult: 0.75}},
-  freight:      {name: 'Anchor',          style: 'wings', rarity: 'c', gives: 'every 4th new plane is a freighter; freighters +$400', n: {every: 4, cash: 400}},
+  freight:      {name: 'Anchor',          style: 'wings', rarity: 'c', gives: 'every 4th new plane is a freighter; freighters +¤400', n: {every: 4, cash: 400}},
   jumbo:        {name: 'Albatross',       style: 'wings', rarity: 'r', gives: 'when a plane lands: ×1.25 Mult for every heavy or freighter in the air', catch: 'the wake rest after a heavy is doubled', n: {xPerHeavy: 0.25, wake: 1}},
   wakechart:    {name: 'Wake',            style: 'wings', rarity: 'u', gives: 'the wake rest after a heavy is halved; each heavy departure: +0.5 Mult to the next 3 planes', catch: 'a plane closer than 4 km behind a heavy in the air is a write-up', n: {wake: 0.5, mult: 0.5, planes: 3}},
-  redcarpet:    {name: 'Crown',           style: 'wings', rarity: 'c', gives: 'VIPs +$1,500', n: {cash: 1500}},
+  redcarpet:    {name: 'Crown',           style: 'wings', rarity: 'c', gives: 'VIPs +¤1,500', n: {cash: 1500}},
   siren:        {name: 'Red Cross',       style: 'wings', rarity: 'c', gives: 'a MEDEVAC in half its deadline: +1 Mult to the next 3 planes', n: {mult: 1, planes: 3}},
   brass:        {name: 'Eagle',           style: 'wings', rarity: 'u', gives: 'priority flights and military jets come twice as often', catch: 'a late priority flight is 2 write-ups', n: {often: 1}},
   scramble:     {name: 'Fighter',         style: 'wings', rarity: 'u', gives: 'two military jets never collide; each one handled: +×0.1 Mult for the rest of the shift', catch: 'military jets fly 20% faster and cannot be held', n: {xMult: 0.1, speed: 0.2}},
-  rotorclub:    {name: 'Dragonfly',       style: 'wings', rarity: 'c', gives: 'helicopters +$800', n: {cash: 800}},
+  rotorclub:    {name: 'Dragonfly',       style: 'wings', rarity: 'c', gives: 'helicopters +¤800', n: {cash: 800}},
   turnaround:   {name: 'Hummingbird',     style: 'wings', rarity: 'u', gives: 'helicopter turnaround on the pad 40 s → 10 s', catch: 'twice as many helicopters', n: {seconds: 10, often: 1}},
   hoverhum:     {name: 'Moth',            style: 'wings', rarity: 'u', gives: 'every helicopter lift-off: +0.25 Mult to every plane for the rest of the shift', catch: 'helicopters cannot be held', n: {mult: 0.25}},
-  patient:      {name: 'Ouroboros',       style: 'clocks', rarity: 'c', gives: '+$100 for every full lap a plane flies in a hold (up to 10)', n: {cash: 100, laps: 10}},
+  patient:      {name: 'Ouroboros',       style: 'clocks', rarity: 'c', gives: '+¤100 for every full lap a plane flies in a hold (up to 10)', n: {cash: 100, laps: 10}},
   stack:        {name: 'Spiral',          style: 'clocks', rarity: 'u', gives: 'when a plane lands: +0.25 Mult for every plane holding', catch: 'arrivals come in one level lower', n: {mult: 0.25}},
   sparefix:     {name: 'Compass',         style: 'clocks', rarity: 'u', kind: 'bless', gives: 'one more holding fix, GOLF, close to the airport', n: {}},
   thermos:      {name: 'Camel',           style: 'clocks', rarity: 'c', gives: 'planes in a hold burn fuel 50% slower', n: {burn: 0.5}},
   lastdrop:     {name: 'Last Drop',       style: 'clocks', rarity: 'u', gives: 'a plane landing with under 20 s of fuel: ×3 its pay', catch: 'a MAYDAY no longer goes before priority flights', n: {seconds: 20, xPay: 2}},
-  fuelgauge:    {name: 'Gauge',           style: 'clocks', rarity: 'c', kind: 'bless', gives: 'fuel left in seconds on every label; a MAYDAY landing pays +$1,000', n: {cash: 1000}},
+  fuelgauge:    {name: 'Gauge',           style: 'clocks', rarity: 'c', kind: 'bless', gives: 'fuel left in seconds on every label; a MAYDAY landing pays +¤1,000', n: {cash: 1000}},
   fumes:        {name: 'Empty Bottle',    style: 'clocks', rarity: 'r', gives: 'every arrival fare ×1.5', catch: 'arrivals come in with half their fuel', n: {fare: 0.5, fuel: 0.5}},
-  gateagent:    {name: 'Hourglass',       style: 'clocks', rarity: 'c', gives: 'departures wait 30 s longer; one that waited over 30 s pays +$300', n: {seconds: 30, cash: 300}},
-  thrill:       {name: 'Razor',           style: 'lightning', rarity: 'c', gives: '+$200 for every near pass', n: {cash: 200}},
+  gateagent:    {name: 'Hourglass',       style: 'clocks', rarity: 'c', gives: 'departures wait 30 s longer; one that waited over 30 s pays +¤300', n: {seconds: 30, cash: 300}},
+  thrill:       {name: 'Razor',           style: 'lightning', rarity: 'c', gives: '+¤200 for every near pass', n: {cash: 200}},
   adrenaline:   {name: 'Heartline',       style: 'lightning', rarity: 'u', gives: 'every near pass or storm brush this shift: +0.25 Mult to every plane after it', catch: 'red warnings come at half the distance', n: {mult: 0.25, warning: 0.5}},
   nerves:       {name: 'Iron Spine',      style: 'lightning', rarity: 'u', gives: 'near passes count from 30% farther', catch: 'no red warnings: planes never turn red', n: {reach: 0.3}},
   daredevil:    {name: 'Skull',           style: 'lightning', rarity: 'r', sac: 'strike', gives: '×0.2 Mult for every near pass, for the whole career; a write-up wipes it', n: {xMult: 0.2}},
@@ -654,7 +665,7 @@ const TATTOOS = {
   foglamp:      {name: 'Lighthouse',      style: 'lightning', rarity: 'c', gives: 'every storm cell or wind change this shift: +5% pay at the end', n: {share: 0.05}},
   eye:          {name: 'Eye of the Storm', style: 'lightning', rarity: 'l', gives: 'every storm cell that passes: ×1.1 Mult on everything for the rest of the shift, compounding', catch: 'every storm cell is 15% bigger than the one before', n: {xMult: 0.1, grow: 0.15}},
   mentor:       {name: 'Old Key',         style: 'keys', rarity: 'u', kind: 'bless', gives: 'intern screens pay +25%; their mistakes are flagged, 3 s sooner', n: {pay: 0.25, seconds: 3}},
-  clipboard:    {name: 'Quill',           style: 'keys', rarity: 'c', gives: '+$300 for every intern mistake you fix', n: {cash: 300}},
+  clipboard:    {name: 'Quill',           style: 'keys', rarity: 'c', gives: '+¤300 for every intern mistake you fix', n: {cash: 300}},
   redpen:       {name: 'Scar',            style: 'keys', rarity: 'u', gives: 'every intern mistake fixed this shift: +×0.1 Mult on every screen', catch: 'interns make 25% more mistakes', n: {xMult: 0.1, mistakes: 0.25}},
   starintern:   {name: 'Third Eye',       style: 'keys', rarity: 'r', sac: 'eyes', gives: 'tattoos that grow (Tally Marks, Skull, Moth, Scar…) grow from every screen, not only the first', n: {}},
   corneroffice: {name: 'Throne',          style: 'keys', rarity: 'r', gives: '×1.25 pay on every screen for each screen beyond the first', catch: 'you get 5 to 8 s to fix an intern\'s mistake, not 8 to 12', n: {xPerScreen: 0.25, window: 3.5}},
@@ -1290,8 +1301,12 @@ let game,
   RUNWAYS,
   CIRCLES,
   trafficRandom = Math.random;
-// an amount as money: 12345 -> $12,345
-const formatMoney = amount => (amount < 0 ? '-$' : '$') + Math.round(Math.abs(amount)).toLocaleString('en-US');
+// an amount as money: 12345 -> ¤12,345. The mark ¤ is drawn as a green banknote wherever money shows (moneyHtml, the
+// radar's chips); a cost is a plain banknote (costHtml)
+const formatMoney = amount => (amount < 0 ? '-¤' : '¤') + Math.round(Math.abs(amount)).toLocaleString('en-US');
+const MONEY_ICON = '<i class="note"></i>';
+const moneyHtml = html => html.replace(/(-?)¤([\d,]+)/g, (_, minus, digits) => `<b class="money${minus ? ' minus' : ''}">${minus}${MONEY_ICON}${digits}</b>`);
+const costHtml = amount => `<b class="cost">${MONEY_ICON}${Math.round(amount).toLocaleString('en-US')}</b>`;
 
 /* --- what is saved ----------------------------------------------------------------------------------------------------
    meta: what lasts between careers (skill points and the skills bought, milestones reached, best results).
@@ -1988,7 +2003,6 @@ function showPayment(plane, colour, paid, before) {
   const chips = [
     {kind: 'cash', text: formatMoney(paid.pay)},
     paid.mult > 1.001 && {kind: 'streak', text: `×${paid.mult < 10 ? paid.mult.toFixed(2) : Math.round(paid.mult)}`},
-    game.streak > 1 && {kind: 'coin', text: `streak ${game.streak}`},
   ].filter(Boolean);
   popChips({x, y: y - 22, chips, size: 15 + Math.min(11, paid.pay / 500)});
   sound.chips(chips.length, game.streak);
@@ -2861,6 +2875,7 @@ function weather(seconds) {
   if (game.nextStorm && game.time >= game.nextStormAt) {
     game.storms.push(game.nextStorm);
     game.nextStorm = null;
+    game.nextStormAt = game.time + STORM_GAP; // the next one comes a while later, never on top of this one
     onStormArrives();
   }
   for (const storm of game.storms) {
@@ -4298,7 +4313,7 @@ function executeOrder(words) {
 // Esc: the plain pause. In a career shift it hides the radar and takes no orders (no planning while time stands still);
 // a tactical pause (the Pause skills, typed 'pause') ends with it too
 function togglePause() {
-  if (game.over) return;
+  if (game.over || (career && career.phase !== 'shift' && !game.practice && !game.admin && !game.tutorial)) return;
   if (shift.tactical) shift.tactical = false;
   else game.paused = !game.paused;
 }
@@ -4434,6 +4449,7 @@ const levelBar = plane => {
 };
 // the hint line: what a plane needs next, with the order to type. With nothing typed, about the most urgent plane
 function hintFor(name) {
+  if (worlds.length > 1 && !name && !game.over) return 'type any plane on any screen: its call sign finds the screen';
   if (game.over)
     return game.practice || !overScreenUp() ? '' : 'arrows choose, Enter takes it (or click)';
   const plane = planeNamed(name);
@@ -4593,7 +4609,8 @@ const shortWayUpper = word => (SHORT_WORD[word] ? SHORT_WORD[word].toUpperCase()
 // '!' = error (red)
 function showReply(text) {
   const isError = text[0] === '!';
-  replyEl.textContent = isError ? text.slice(1) : text;
+  replyEl.raw = isError ? text.slice(1) : text;
+  replyEl.innerHTML = moneyHtml(escapeHtml(replyEl.raw));
   replyEl.className = isError ? 'bad' : '';
 }
 // edit distance (with swapped neighbours) for typos
@@ -4704,7 +4721,12 @@ function ghostCompletion() {
   return part && typing.suggestions.length ? typing.suggestions[typing.chosen].slice(part.length) : '';
 }
 // after every key: the suggestions for the word being typed (only orders that would work), the ghost text, the hint line
+// (a supervisor's prompt reads in the world of the plane being typed, so suggestions and the hint are about its screen)
 function refreshSuggestions() {
+  if (worlds.length > 1 && !game.over) return inWorld(worldForTyped(commandInput.value.trim()), suggestionsHere);
+  suggestionsHere();
+}
+function suggestionsHere() {
   const {done, part} = typedParts();
   const read = readWords(done);
   typing.suggestions =
@@ -4728,7 +4750,7 @@ function refreshSuggestions() {
           .map((suggestion, i) => `<i class="${i === typing.chosen ? 'on' : ''}">${suggestion}</i>`)
           .join('')
       : '';
-  hintEl.textContent = helpShown() ? '' : hintFor(typedPlaneName());
+  hintEl.innerHTML = helpShown() ? '' : moneyHtml(escapeHtml(hintFor(typedPlaneName())));
 }
 // the plane the prompt is about: what its first word most likely means, if that is a plane's name
 function typedPlaneName() {
@@ -4819,13 +4841,13 @@ const recentEl = document.getElementById('hist');
 function logOrder(typed) {
   typing.recent = [
     ...(typing.recent || []),
-    {command: typed, reply: replyEl.textContent, bad: replyEl.className === 'bad'},
+    {command: typed, reply: replyEl.raw || '', bad: replyEl.className === 'bad'},
   ].slice(-5);
   showReply('');
   recentEl.innerHTML = typing.recent
     .map(
       (entry, i) =>
-        `<div class="h${entry.bad ? ' bad' : ''}" style="opacity:${(0.25 + (0.6 * (i + 1)) / typing.recent.length).toFixed(2)}"><div class="c">${escapeHtml(entry.command)}</div>${entry.reply ? `<div class="r">${escapeHtml(entry.reply)}</div>` : ''}</div>`,
+        `<div class="h${entry.bad ? ' bad' : ''}" style="opacity:${(0.25 + (0.6 * (i + 1)) / typing.recent.length).toFixed(2)}"><div class="c">${escapeHtml(entry.command)}</div>${entry.reply ? `<div class="r">${moneyHtml(escapeHtml(entry.reply))}</div>` : ''}</div>`,
     )
     .join('');
 }
@@ -5937,7 +5959,7 @@ const CHIP_COLOURS = {
 // how wide a chip is drawn at a size
 function chipWidth(chip, size) {
   setFont(size, '800');
-  return ctx.measureText(chip.text).width + size * 0.9 + (chip.kind === 'coin' ? size * 0.9 : 0);
+  return ctx.measureText(chip.text.replace('¤', '')).width + size * 0.9 + (chip.kind === 'coin' ? size * 0.9 : 0);
 }
 // one chip: a shadow, the chip (a banknote with an inner border for money, a coin for tokens) and its text
 function drawChip(chip, size) {
@@ -5975,7 +5997,7 @@ function drawChip(chip, size) {
     textX = size * 0.45;
   }
   ctx.fillStyle = foreground;
-  ctx.fillText(chip.text, textX, size * 0.05);
+  ctx.fillText(chip.text.replace('¤', ''), textX, size * 0.05);
 }
 // a little spray of green banknotes jumping out of a plane that paid: each flies out, up and down again, spinning
 const banknotes = () => (game.banknotes ||= []);
@@ -6922,23 +6944,27 @@ function drawScreens() {
   }
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  const [columns, rows] = screenGrid(worlds.length),
+  // the grid leaves the top and bottom bands to the corners (the airport and rank, the buttons, the pay)
+  const ratio = devicePixelRatio || 1,
+    bandTop = GRID_BAND_TOP * ratio,
+    bandBottom = GRID_BAND_BOTTOM * ratio,
+    [columns, rows] = screenGrid(worlds.length),
     cellWidth = canvas.width / columns,
-    cellHeight = canvas.height / rows,
+    cellHeight = (canvas.height - bandTop - bandBottom) / rows,
     full = Math.min(canvas.width / viewWidth(), canvas.height / viewHeight());
   const grown = hasSkill('grow') ? worlds.find(world => world.game.trouble && world.game.time - world.game.trouble < 6) : null;
   const order = grown ? [...worlds.filter(world => world !== grown), grown] : worlds;
   for (const world of order) {
     let left = (world.index % columns) * cellWidth,
-      top = Math.floor(world.index / columns) * cellHeight,
+      top = bandTop + Math.floor(world.index / columns) * cellHeight,
       width = cellWidth,
       height = cellHeight;
     if (world === grown) {
       // a screen in trouble grows over its neighbours, staying inside the canvas
       width = Math.min(canvas.width, cellWidth * 1.6);
-      height = Math.min(canvas.height, cellHeight * 1.6);
+      height = Math.min(canvas.height - bandTop - bandBottom, cellHeight * 1.6);
       left = Math.max(0, Math.min(canvas.width - width, left - (width - cellWidth) / 2));
-      top = Math.max(0, Math.min(canvas.height - height, top - (height - cellHeight) / 2));
+      top = Math.max(bandTop, Math.min(canvas.height - bandBottom - height, top - (height - cellHeight) / 2));
     }
     inWorld(world, () => {
       viewScale = Math.min(width / viewWidth(), height / viewHeight()) * 0.97;
@@ -7015,7 +7041,7 @@ const toastEl = document.getElementById('toast');
 function toast(text, kind = '') {
   const note = document.createElement('div');
   note.className = 'note ' + kind;
-  note.textContent = text;
+  note.innerHTML = moneyHtml(escapeHtml(text));
   toastEl.appendChild(note);
   setTimeout(() => note.remove(), 4200);
 }
@@ -7598,7 +7624,7 @@ function reviewHtml() {
       ...shift.log.map(label => ['<i class="x">✕</i>', `<i class="x">${escapeHtml(label)}</i>`]),
     ];
   const glowing = Object.fromEntries(contributions.map(([id], i) => [id, i]));
-  return `<div class="cols"><div>${bodySvg({glowing})}</div><div class="col">
+  return `<div class="${career.tattoos.length ? 'cols' : ''}">${career.tattoos.length ? `<div>${skinHtml({glowing, onlyInked: true})}</div>` : ''}<div class="col">
     <small>${escapeHtml(airportNow().name)} · ${rankNow().name} · week ${career.week}, shift ${career.shiftOfWeek}</small>
     <b class="big">${money(shownTotal)}</b>
     <div class="tally">${rows.map(([label, value]) => `<span>${label}</span><span>${value}</span>`).join('')}</div>
@@ -7685,20 +7711,20 @@ function devilHtml() {
     return button(
       'sketch:' + i,
       `${tattooSvg(id, 'sk')}<b>${tattoo.name}</b><span class="rar ${tattoo.rarity}">${STYLES[tattoo.style].name}${tattoo.kind === 'bless' ? ' · blessing' : tattoo.kind === 'slow' ? ' · slow' : ''}</span>
-       <small>${escapeHtml(tattoo.gives)}</small>${catchText ? `<small class="catch">catch: ${escapeHtml(catchText)}</small>` : ''}<em>${money(tattooPrice(id))}</em>`,
+       <small>${escapeHtml(tattoo.gives)}</small>${catchText ? `<small class="catch">catch: ${escapeHtml(catchText)}</small>` : ''}<em>${costHtml(tattooPrice(id))}</em>`,
       ' card sketch',
     );
   };
   const extras = [
-    button('reroll', `something else <em>${rerollPrice() ? money(rerollPrice()) : 'free'}</em>`),
-    visit.favour ? button('favour', `favour: ${visit.favour} <em>${money(favourPrice(visit.favour))}</em><small>${FAVOURS[visit.favour].what}</small>`) : '',
+    button('reroll', `something else <em>${rerollPrice() ? costHtml(rerollPrice()) : 'free'}</em>`),
+    visit.favour ? button('favour', `favour: ${visit.favour} <em>${costHtml(favourPrice(visit.favour))}</em><small>${FAVOURS[visit.favour].what}</small>`) : '',
     career.tattoos.length ? button('burn', visit.burning ? 'stop burning' : 'burn one off') : '',
     ...Object.entries(BODY_OPENS)
       .filter(([place]) => !career.open[place])
       .map(([place, key]) => button('open:' + place, `open your ${place} <em class="catch">${SACRIFICES[key].name}</em>`)),
     button('leave', 'walk away: next shift'),
   ].join('');
-  return `<div class="devil"><div class="cols"><div>${bodySvg({burning: visit.burning})}<small>${career.blood} Blood · favours ${career.favours.join(', ') || 'none'} (${favourSlots()} slots)</small></div>
+  return `<div class="devil"><div class="cols"><div>${skinHtml({burning: visit.burning})}<small>${career.blood} Blood · favours ${career.favours.join(', ') || 'none'} (${favourSlots()} slots)</small></div>
     <div class="col"><h1 class="blood">the devil</h1><p>Cash <b>${money(career.cash)}</b> · rent next week ${money(rent)}${career.cash < rent ? ' <b class="bad">(not covered)</b>' : ` (${(career.cash / rent).toFixed(1)} weeks covered)`}</p>
     <div class="cards">${visit.sketches.map(sketch).join('')}</div><div class="extras">${extras}</div>${styleLegend()}</div></div></div>`;
 }
@@ -7713,8 +7739,8 @@ function inkingHtml() {
   const inking = screenState.inking,
     tattoo = TATTOOS[inking.id];
   if (inking.startedAt)
-    return `<div class="devil"><h1 class="blood">${tattoo.name}</h1><div class="ink">${tattooSvg(inking.id, 'drawing')}</div><small>on your ${BODY_PLACE_NAMES[inking.place]}</small></div>`;
-  return `<div class="devil"><div class="cols"><div>${bodySvg({choosing: true})}</div><div class="col"><h1 class="blood">where?</h1>
+    return `<div class="devil inking"><h1 class="blood">${tattoo.name}</h1><div class="ink">${tattooSvg(inking.id, 'drawing')}</div><small>on your ${BODY_PLACE_NAMES[inking.place]}</small></div>`;
+  return `<div class="devil"><div class="cols"><div>${skinHtml({choosing: true})}</div><div class="col"><h1 class="blood">where?</h1>
     <p><b>${tattoo.name}</b> (${STYLES[tattoo.style].name}). The same style on both arms or both hands: each works ${PAIR_STRENGTH}× as strong.</p>
     <div class="extras">${freePlaces().map(place => button('place:' + place, BODY_PLACE_NAMES[place])).join('')}${inking.free ? '' : button('cancel', 'not now')}</div></div></div></div>`;
 }
@@ -7735,7 +7761,7 @@ function cvHtml() {
     dailies = loadJson('tower-daily-' + todayDate(), [])
       .map(run => `${run.how === 'retired' ? 'retired ' + formatTime(run.seconds) : run.how + ' week ' + run.week}`)
       .join(' · ');
-  return `<div class="cols"><div>${bodySvg({})}</div><div class="col"><h1 class="${how === 'retired' ? 'gold' : 'bad'}">${title}</h1><small>${career.daily ? 'daily career ' + todayDate() : 'career ' + career.number}</small>
+  return `<div class="${career.tattoos.length ? 'cols' : ''}">${career.tattoos.length ? `<div>${skinHtml({onlyInked: true})}</div>` : ''}<div class="col"><h1 class="${how === 'retired' ? 'gold' : 'bad'}">${title}</h1><small>${career.daily ? 'daily career ' + todayDate() : 'career ' + career.number}</small>
     <div class="tally">${rows.map(([label, value]) => `<span>${label}</span><span>${escapeHtml(String(value))}</span>`).join('')}</div>
     <small>${meta.points} skill points · best: ${meta.bestWeeks} weeks${best}</small>${dailies ? `<small>today's daily: ${dailies}</small>` : ''}
     <div class="cards">${button('skills', '<b>skill tree</b><small>spend skill points</small>', ' card')}${button('career', '<b>new career</b>', ' card gold')}${button('daily', `<b>daily career</b><small>${todayDate()} · the same for everyone, no skills</small>`, ' card')}</div></div></div>`;
@@ -7758,29 +7784,27 @@ function skillsHtml() {
 }
 
 /* --- the body and the tattoos, drawn ----------------------------------------------------------------------------------- */
-// where each place is on the body drawing (front: neck, chest, arms, hands; the small figure: the back)
-// prettier-ignore
-const BODY_SPOTS = {neck: [90, 74, 20], chest: [90, 122, 38], leftarm: [44, 140, 30], rightarm: [136, 140, 30], lefthand: [30, 214, 22], righthand: [150, 214, 22], back: [212, 128, 30]};
+// your skin: one patch per place, each a close-up of the tattoo on it (or bare skin, or closed until a sacrifice opens
+// it). choosing: the free places can be picked; burning: the inked ones can; glowing: tattoos that paid this shift, in order
 const INK_SECONDS = 2.4; // real s the devil takes to draw a tattoo
-function bodySvg({glowing = {}, burning = false, choosing = false}) {
-  const place = spot => {
-    const [x, y, size] = BODY_SPOTS[spot],
-      tattoo = wornAt(spot),
-      locked = BODY_OPENS[spot] && !career.open[spot],
-      key = choosing ? 'place:' + spot : burning && tattoo ? 'burnoff:' + spot : null,
-      selected = key && screenState.choice === key,
-      glow = tattoo && glowing[tattoo.id] !== undefined ? ` style="animation-delay:${0.25 * glowing[tattoo.id]}s" class="glow"` : '';
-    const inner = tattoo
-      ? `<g transform="translate(${x - size / 2} ${y - size / 2}) scale(${size / 100})"${glow}>${tattooPaths(tattoo.id, tattoo.id === career.newest && worn('echo') ? 'fresh' : '')}</g>`
-      : `<circle cx="${x}" cy="${y}" r="${size / 2.4}" class="${locked ? 'locked' : choosing ? 'free' : 'empty'}"/>`;
-    return `<g${key ? ` data-k="${key}" class="spot${selected ? ' sel' : ''}"` : ''}>${inner}${selected ? `<circle cx="${x}" cy="${y}" r="${size / 1.6}" class="ring"/>` : ''}${locked ? `<text x="${x}" y="${y + 3}">${SACRIFICES[BODY_OPENS[spot]].name}</text>` : ''}</g>`;
+function skinHtml({glowing = {}, burning = false, choosing = false, onlyInked = false}) {
+  const patch = place => {
+    const tattoo = wornAt(place),
+      locked = BODY_OPENS[place] && !career.open[place],
+      key = choosing && !tattoo && !locked ? 'place:' + place : burning && tattoo ? 'burnoff:' + place : null,
+      glow = tattoo && glowing[tattoo.id] !== undefined ? ` style="animation-delay:${0.25 * glowing[tattoo.id]}s"` : '',
+      classes = ['patch', ['neck', 'chest', 'back'].includes(place) && !onlyInked ? 'small' : '', locked ? 'locked' : '', key ? 'pick' : '', key && screenState.choice === key ? 'sel' : '', glow ? 'glow' : '', tattoo && pairedHere(tattoo) ? 'paired' : ''];
+    const inside = tattoo
+      ? `<svg viewBox="-5 -5 110 110">${tattooPaths(tattoo.id, tattoo.id === career.newest && worn('echo') ? 'fresh' : '')}</svg><b>${TATTOOS[tattoo.id].name}</b>`
+      : locked
+        ? `<b>${SACRIFICES[BODY_OPENS[place]].name}</b>`
+        : '';
+    return `<div class="${classes.filter(Boolean).join(' ')}"${key ? ` data-k="${key}"` : ''}${glow}><small>${BODY_PLACE_NAMES[place]}</small>${inside}</div>`;
   };
-  return `<svg class="body" viewBox="0 0 250 300">
-    <path class="skin" d="M90 18a20 22 0 1 1 -.1 0zM78 62h24v14l30 8q16 4 18 22l8 84q2 14-8 16l-6-2-10-80-4 0v150h-22l-4-110-4 0-4 110h-22v-150l-4 0-10 80-6 2q-10-2-8-16l8-84q2-18 18-22l30-8z"/>
-    <path class="skin back" d="M212 60a14 15 0 1 1 -.1 0zM204 88h16l18 6q8 3 8 14v70h-12v80h-14l-4-70-4 70h-14v-80h-12v-70q0-11 8-14z"/>
-    <text x="212" y="285" class="label">back</text>
-    ${BODY_PLACES.map(place).join('')}</svg>`;
+  const places = onlyInked ? BODY_PLACES.filter(wornAt) : BODY_PLACES;
+  return places.length ? `<div class="skin">${places.map(patch).join('')}</div>` : '';
 }
+const pairedHere = tattoo => inPair(tattoo);
 // one tattoo's strokes as SVG paths ('c x y r' is a circle)
 const circlePath = (x, y, r) => `M${x - r} ${y}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0`;
 const artPath = stroke => (stroke.startsWith('c ') ? circlePath(...stroke.slice(2).split(' ').map(Number)) : stroke);
@@ -7825,21 +7849,23 @@ function updatePanels() {
       ? 'tutorial'
       : game.admin
         ? `admin${game.sweep ? ` · sweep ${game.sweep.log.length + 1}/${game.sweep.log.length + game.sweep.list.length + 1}` : ''}`
-        : careerShift
+        : careerShift && career.phase !== 'shift'
+          ? `${airportNow().name} · ${rankNow().name} · week ${career.week} · between shifts · career ${formatTime(career.playSeconds)}`
+          : careerShift
           ? `${airportNow().name} · ${rankNow().name} · week ${career.week} · shift ${Math.min(SHIFTS_PER_WEEK, career.shiftOfWeek + 1)}/${SHIFTS_PER_WEEK} · ${clock > 0 ? formatTime(clock) : 'handover'}${shift.night ? ' · night' : ''}${career.daily ? ' · daily' : ''} · career ${formatTime(career.playSeconds)}`
           : 'practice',
   );
   const streak = game.streak > 1 && !game.over ? ` · <b style="background:#ff7a45;color:#04140b">×${game.streak} streak</b>` : '';
   writeHtml(
     elementById('todo'),
-    !careerShift
+    moneyHtml(!careerShift
       ? ''
-      : `shift <b style="${bumpStyle(bumpedAt.score, '#86d48a')}">${formatMoney(shown.score)}</b>${streak} · cash ${formatMoney(career.cash)} · rent ${formatMoney(rentNow())}${career.favours.length ? ` · <span class="fav">${career.favours.join(' ')}</span>` : ''}${shift.groundstop > 0 ? ` · groundstop ${Math.ceil(shift.groundstop)}` : ''}`,
+      : `shift <b style="${bumpStyle(bumpedAt.score, '#86d48a')}">${formatMoney(shown.score)}</b>${streak} · cash ${formatMoney(career.cash)} · rent ${formatMoney(rentNow())} ${career.phase === 'shift' ? `after ${SHIFTS_PER_WEEK - career.shiftOfWeek === 1 ? 'this shift' : `${SHIFTS_PER_WEEK - career.shiftOfWeek} shifts`}` : ''}${career.favours.length ? ` · <span class="fav">${career.favours.join(' ')}</span>` : ''}${shift.groundstop > 0 ? ` · groundstop ${Math.ceil(shift.groundstop)}` : ''}`),
   );
   const limit = careerShift && career.rank !== 'intern' ? writeUpLimit() : WRITE_UPS_TO_FIRE;
   writeHtml(elementById('strikes'), [...Array(limit)].map((_, i) => `<i class="${i < shift.writeUps ? 'on' : ''}"></i>`).join('') + (careerShift && career.rank === 'intern' ? '<small> intern: never fired</small>' : ''));
   const focus = typedPlaneName(),
-    ready = allPlanes().filter(({plane}) => plane.state === 'ready');
+    ready = game.over ? [] : allPlanes().filter(({plane}) => plane.state === 'ready'); // between shifts the list is empty
   writeHtml(
     elementById('ready'),
     ready
@@ -7859,7 +7885,7 @@ function updatePanels() {
     if (first) screenState.choice = first.dataset.k;
   }
   const html = game.paused ? 'paused<br><small>esc</small>' : betweenShifts ? careerHtml() : 'shift over<br><small>Enter</small>';
-  if (writeHtml(overlay, `<div class="screen ${career?.phase || ''}">${html}</div>`)) {
+  if (writeHtml(overlay, moneyHtml(`<div class="screen ${career?.phase || ''}">${html}</div>`))) {
     fitToWindow(overlay.firstChild, 40);
     animateInking();
   }
@@ -8015,6 +8041,7 @@ addEventListener('keydown', sound.init, true);
 addEventListener('mousedown', sound.init, true);
 resumeCareer();
 document.getElementById('actable').innerHTML = aircraftSheet();
+for (const page of HELP_PAGES) page.innerHTML = moneyHtml(page.innerHTML); // amounts in the help card as banknotes
 addEventListener('resize', resize);
 resize();
 addEventListener('resize', () => {
