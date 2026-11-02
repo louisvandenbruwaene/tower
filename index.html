@@ -9,14 +9,15 @@ html,body{margin:0;height:100%;color:var(--fg);font:15px var(--mono);overflow:hi
 body{display:flex;flex-direction:column;background:radial-gradient(ellipse 70% 80% at 38% 50%,#0b2016 0%,var(--bg) 75%)}
 /* the corners of the radar, beside the round area: the game's name and mode top left, the buttons top right, money and tokens bottom right */
 .corner{position:absolute;z-index:1;display:flex;gap:12px;align-items:center;pointer-events:none} .corner button{pointer-events:auto}
-#tl{top:14px;left:16px} #tr{top:12px;right:16px;gap:6px} #br{bottom:12px;right:16px}
+#tl{top:14px;left:16px} #tr{top:12px;right:16px;gap:6px} #br{bottom:12px;right:16px} #bl{bottom:12px;left:16px}
 #brand{font-weight:700;font-size:13px;letter-spacing:.3em;color:var(--acc);text-shadow:0 0 14px rgba(126,224,168,.5)}
 #brand::before{content:'';display:inline-block;width:8px;height:8px;margin-right:11px;border-radius:50%;background:var(--acc);box-shadow:0 0 10px var(--acc);vertical-align:1px;animation:blink 2s infinite}
 @keyframes blink{50%{opacity:.35}}
 #lvl{font-weight:500;font-size:13px;padding:3px 12px;border:1px solid var(--chipon);border-radius:99px;background:var(--chip)}
 #todo{color:var(--dim);font-size:13px} #todo .tok{color:var(--fg)} #todo b{font-weight:600;color:var(--fg);border-radius:3px;padding:0 3px}
 .coin{display:inline-block;width:.78em;height:.78em;border-radius:50%;background:var(--gold);box-shadow:inset 0 0 0 .14em #a87f12,0 .1em 0 #3a2c06;vertical-align:-.06em;margin-right:.3em}
-#ff,#tut{width:auto;padding:0 8px;border-radius:13px;font-size:12px}
+#ff,#tut,#bankrupt{width:auto;padding:0 8px;border-radius:13px;font-size:12px;white-space:nowrap}
+#bankrupt{color:#e08a7e}
 #tut.new{color:#04140b;background:var(--gold);border-color:var(--gold);animation:nudge 1.6s ease-in-out infinite}   /* a first visit: the tutorial is here, if you want it */
 @keyframes nudge{0%,100%{transform:none}10%{transform:translateY(-3px) rotate(-3deg)}20%{transform:none}}
 .rb{width:26px;height:26px;padding:0;border-radius:50%;border:1px solid var(--chipon);background:var(--chip);color:var(--acc);font:600 14px var(--mono);cursor:pointer}
@@ -133,8 +134,8 @@ b.cost{color:var(--fg);white-space:nowrap} b.cost i.note{background:#c9d4cc;box-
 <main>
 <div id="view"><canvas id="cv"></canvas>
 <div id="tl" class="corner"><span id="brand">TOWER POWER</span><b id="lvl"></b></div>
-<div id="tr" class="corner"><button id="bankrupt" class="rb" title="end this career now">declare bankruptcy</button><button id="tut" class="rb" title="a short guided first landing, departure and hold">tutorial</button><button id="ff" class="rb" title="game speed: 1× 2× 4×"></button><button id="snd" class="rb" title="sound on/off"></button><button id="qm" class="rb" title="help">?</button></div>
-<div id="br" class="corner"><span id="todo"></span></div><div id="banner"></div><div id="toast"></div><div id="over"></div></div>
+<div id="tr" class="corner"><button id="tut" class="rb" title="a short guided first landing, departure and hold">tutorial</button><button id="ff" class="rb" title="game speed: 1× 2× 4×"></button><button id="snd" class="rb" title="sound on/off"></button><button id="qm" class="rb" title="help">?</button></div>
+<div id="br" class="corner"><span id="todo"></span></div><div id="bl" class="corner"><button id="bankrupt" class="rb" title="end this career now">declare bankruptcy</button></div><div id="banner"></div><div id="toast"></div><div id="over"></div></div>
 <section id="term">
 <div class="srow"><span class="lbl">write-ups</span><span id="strikes"></span></div>
 <div id="guide"><div class="tpl"><span>plane</span> <em>action</em> <u>&lt;direction&gt;</u></div>
@@ -7598,6 +7599,7 @@ function shopChoose(key) {
     career.favours.push(id);
     shop.favours[+index] = null;
   }
+  screenState.choice = 'next';
   sound.tab();
   saveGame();
 }
@@ -7622,6 +7624,7 @@ function startInking(id, free) {
     return careerNext();
   }
   screenState.inking = {id, free, place: null, startedAt: 0, from: career.phase};
+  career.inking = {id, free, from: career.phase}; // saved: a reload comes back to choosing the place
   career.phase = 'inking';
   // suggest a place that makes a matching pair
   const pairPlace = BODY_PAIRS.flatMap(([first, second]) => {
@@ -7639,6 +7642,7 @@ function inkingChoose(key) {
   if (key === 'cancel' && !inking.free) {
     career.phase = inking.from;
     screenState.inking = null;
+    career.inking = null;
     screenState.choice = 'sketch:0';
     return;
   }
@@ -7667,6 +7671,7 @@ function finishInking() {
   if (!freePlaces().length && BODY_PLACES.every(place => wornAt(place))) reachMilestone('fullbody');
   for (const [engineId, engine] of Object.entries(ENGINES)) if (engine.tattoos.every(worn)) reachMilestone('engine' + engineId);
   screenState.inking = null;
+  career.inking = null;
   if (inking.from === 'bonus' || !(visit.picks > 0)) return careerNext(); // he leaves once you have chosen
   career.phase = 'devil';
   screenState.choice = 'leave';
@@ -7994,8 +7999,9 @@ function updatePanels() {
   overlay.style.display = show ? 'grid' : 'none';
   overlay.classList.toggle('hide', !!(game.paused && careerShift));
   if (!show) return;
+  // a lost selection (a bought card, a reload) falls back to 'next' when there is one, so Enter never buys by accident
   if (!screenState.choice || !overlay.querySelector(`[data-k="${screenState.choice}"]`)) {
-    const first = overlay.querySelector('[data-k]');
+    const first = overlay.querySelector('[data-k="next"]') || overlay.querySelector('[data-k]');
     if (first) screenState.choice = first.dataset.k;
   }
   const html = game.paused ? 'paused<br><small>esc</small>' : betweenShifts ? careerHtml() : 'shift over<br><small>Enter</small>';
@@ -8029,7 +8035,12 @@ function resumeCareer() {
   worlds = [buildWorld(careerRules(false), {})];
   enterWorld(worlds[0]);
   afterShiftStart();
-  if (career.phase === 'inking') career.phase = 'devil';
+  if (career.phase === 'inking') {
+    if (career.inking) {
+      screenState.inking = {...career.inking, place: null, startedAt: 0};
+      screenState.choice = 'place:' + freePlaces()[0];
+    } else career.phase = 'devil';
+  }
   if (career.phase === 'review') careerNext();
   if (career.phase === 'devil' && !career.devil) openDevil();
 }
