@@ -77,6 +77,8 @@ main{flex:1;min-height:0;display:flex}
 #over .screen.skills{width:max-content;max-width:none} #over .screen{font-size:15px;font-weight:400;text-shadow:none;text-align:left;width:980px;max-width:100%;box-sizing:border-box;line-height:1.45}
 #over h1{margin:0 0 6px;font-size:30px;letter-spacing:.12em;text-transform:uppercase;color:var(--acc)} #over h1.gold{color:var(--gold)} #over h1.bad,#over .bad{color:var(--bad)} #over h1.blood{color:#e0443a;text-shadow:0 0 18px rgba(224,68,58,.5)}
 #over p{margin:6px 0} #over small{display:block;color:var(--dim);font-size:13px}
+#over .screen:not(.skills)>:is(h1,p,small){max-width:640px;margin-left:auto;margin-right:auto}   /* a plain screen: title and text on the cards' column */
+#over .tally+.cards,#over .extras{margin-top:14px} #over .screen .tally span:nth-child(odd){text-align:left} #over .card>em{float:none;margin:auto 0 0;padding-top:4px}   /* a card's price at its foot, in line across a row */
 #over .cols{display:grid;grid-template-columns:300px 1fr;gap:26px;align-items:start} #over .col{display:flex;flex-direction:column;gap:8px;min-width:0}
 #over .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:8px}
 #over .btn{cursor:pointer;padding:8px 12px;border:2px solid var(--line);border-radius:8px;background:#0a1711;box-shadow:0 3px 0 #020805}
@@ -108,7 +110,7 @@ main{flex:1;min-height:0;display:flex}
 .patch.glow{animation:glow 1.6s ease-out backwards} @keyframes glow{0%{box-shadow:inset 0 0 18px rgba(90,50,30,.35)}25%{box-shadow:0 0 0 3px #86d48a,0 0 22px #86d48a,inset 0 0 18px rgba(90,50,30,.35)}100%{box-shadow:inset 0 0 18px rgba(90,50,30,.35)}}
 #over .ink{display:grid;place-items:center;margin:10px auto;width:320px;height:320px;border-radius:14px;background:radial-gradient(circle at 40% 35%,#e4c3a6,#c99d7f 70%,#b48467);box-shadow:inset 0 0 40px rgba(90,50,30,.4)} #over .ink .art{width:240px;height:240px}
 #over .big b.money{color:#0b2a10} #over .big i.note{width:.62em;height:.4em;background:transparent;box-shadow:inset 0 0 0 .06em #0b2a10,inset 0 0 0 .13em #86d48a,inset 0 0 0 .17em #0b2a10}
-#over .inking{text-align:center} #over .screen>div:not(.cols)>.col,#over .screen>div:not(.cols):not(.devil):not(.tree):not(.graph){max-width:640px;margin:0 auto}
+#over .inking{text-align:center} #over .screen>div:not(.cols)>.col,#over .screen>div:not(.cols):not(.devil):not(.tree):not(.graph){max-width:640px;margin-left:auto;margin-right:auto}
 #over .graph{position:relative;margin:12px auto} #over .graph svg{position:absolute;inset:0;overflow:visible} #over .graph path{fill:none;stroke:#2a4a39;stroke-width:2} #over .graph path.owned{stroke:#86d48a}
 #over .graph .node{position:absolute;transform:translateY(-50%)} #over .graph .node.root b,#over .graph .node.hub b{display:inline-block;padding:6px 10px;border:1px solid #2a4a39;border-radius:8px;background:#0b1a12;font-size:13px}
 #over .graph .node.hub b{width:96px;text-align:center} #over .graph .btn{width:205px;white-space:nowrap;box-sizing:border-box;padding:6px 8px;font-size:12px;line-height:1.25;display:flex;justify-content:space-between;gap:6px;opacity:.75}
@@ -122,6 +124,7 @@ main{flex:1;min-height:0;display:flex}
 #toast .note{padding:8px 12px;border-radius:10px;background:rgba(14,32,24,.94);border:1px solid var(--chipon);font-size:13px;animation:pop .35s}
 #toast .note.gold{border-color:#6b520c;color:var(--gold)} #toast .note.bad{border-color:#6b1d17;color:#ff8a7e} #toast .note.blood{border-color:#5a1a16;color:#ff6b5e;background:rgba(30,6,5,.94)}
 #toast .sms{background:#1b2733;border-color:#2f4458;border-radius:14px 14px 14px 4px} #toast .sms b{display:block;font-size:10.5px;letter-spacing:.14em;color:var(--blue);margin-bottom:2px}
+#term #toast{position:static;align-items:stretch;max-width:none;margin:0 0 8px} #term #toast:empty{display:none}   /* between shifts the notes sit in the terminal, clear of the screens */
 #todo .fav{color:#ff8a7e}
 /* money: a small green banknote before the amount; rewards green, a loss red, a price plain */
 i.note{display:inline-block;position:relative;width:1.05em;height:.66em;margin:0 .22em 0 .05em;vertical-align:-.04em;border-radius:.1em;background:#86d48a;box-shadow:inset 0 0 0 .09em #2b6131,inset 0 0 0 .2em #86d48a,inset 0 0 0 .26em rgba(43,97,49,.55)}
@@ -399,6 +402,11 @@ const TRAIL_EVERY = 0.7,
   TRAIL_DOTS = 9; // game s between two dots of a plane's trail, and how many dots it keeps
 const LABEL_FONT_SIZES = [10.5, 12.5, 14.5],
   LABEL_QUIET_ALPHA = 0.5; // plane labels: font size for one that needs nothing / an order / is urgent, and how faded the first is
+// where a plane's label may sit, tried in this order until one overlaps no other label or plane: [right (1) or left (-1)
+// of the plane, px above (-) or below (+) it]. A label keeps last frame's place while that is still free, so it never jumps
+const LABEL_SLOTS = [[1, -20], [1, 20], [-1, -20], [-1, 20], [1, -40], [1, 40], [-1, -40], [-1, 40]],
+  LABEL_SIDE_GAP = 18, // px from the plane to the near edge of its label's text
+  LABEL_PLANE_CLEARANCE = 9; // px around another plane's pictogram that no label may cover
 const RUNWAY_DRAW_WIDTH = 5,
   TAXIWAY_DRAW_WIDTH = 4; // px: runways and taxiways drawn this wide (wider than real, to be seen)
 const DRAW_SIZE_GROUND = 0.022,
@@ -4312,8 +4320,8 @@ function executeOrder(words) {
     // no way given: fine when the wind leaves only one, else ask
     const possibleWays = takeoffWays().filter(way => !tailwindFor(degreesToRadians(HEADINGS[way])));
     if (!argument && possibleWays.length === 1) argument = possibleWays[0];
-    if (!argument)
-      return `!${name} takeoff which way? ${possibleWays.map(shortWayUpper).join(' · ')} (${name} wants to leave ${shortWayUpper(plane.exitWay)})`;
+    if (!argument || !takeoffWays().includes(argument))
+      return `!${name} takeoff which way? ${possibleWays.map(shortWayUpper).join(' · ')} (${name} wants to leave ${shortWayUpper(plane.exitWay)}: it turns once airborne)`;
     if (tailwindFor(degreesToRadians(HEADINGS[argument])))
       return `!the wind is from the ${windWord()}: take off into it or across it, not ${shortWayUpper(argument)}`;
     // taxis to the runway end, waits there until the runway is free, rolls, then flies straight on, climbing to mid, until you turn it
@@ -6127,8 +6135,11 @@ function drawPops() {
     const widths = pop.chips.map(chip => chipWidth(chip, pop.size)),
       gap = pop.size * 0.35,
       total = widths.reduce((sum, width) => sum + width, 0) + gap * (count - 1);
+    // the row of chips stays inside the radar's width, so it never spills onto a neighbouring screen
+    const reach = Math.max(0, areaRadius - total / 2),
+      rowX = Math.max(AIRPORT_X - reach, Math.min(AIRPORT_X + reach, pop.x));
     ctx.save();
-    ctx.translate(pop.x, pop.y - pop.rise * Math.max(0, 1 - Math.exp(-(age - 0.3) * 2)));
+    ctx.translate(rowX, pop.y - pop.rise * Math.max(0, 1 - Math.exp(-(age - 0.3) * 2)));
     ctx.globalAlpha = Math.max(0, Math.min(1, (endAge - age) / 0.45));
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -6473,11 +6484,12 @@ function drawRadar(clear = true) {
       ctx.fillText(
         `land & take off heading ${windWord()}`,
         screenCornerX() + screenPx(16),
-        screenCornerY() + screenPx(72),
+        screenCornerY() + screenPx((worlds.length > 1 ? 42 : 54) + 18),
       );
     ctx.textAlign = 'center';
   }
   if (game.showPaths) drawPaths();
+  placedLabels.length = 0;
   for (const plane of game.planes) {
     if (plane.state === 'ready' || plane.atGate) continue;
     const level = Math.round(plane.level),
@@ -6639,15 +6651,17 @@ function drawRadar(clear = true) {
       gaugeWidth = gauge ? 15 : 0;
     const labelAlpha = ctx.globalAlpha,
       zoom = textZoom(),
-      labelX = plane.x + 18 * zoom,
-      labelY = plane.y - 20 * zoom,
       boxHalf = ((fontSize + 6.5) / 2) * zoom,
-      labelWidth = nameWidth + gaugeWidth + ctx.measureText(rest).width;
+      labelWidth = nameWidth + gaugeWidth + ctx.measureText(rest).width,
+      [side, above] = placeLabel(plane, labelWidth, boxHalf, zoom),
+      labelX = side > 0 ? plane.x + LABEL_SIDE_GAP * zoom : plane.x - LABEL_SIDE_GAP * zoom - labelWidth,
+      labelY = plane.y + above * zoom;
+    // the leader line runs from the plane to the label's nearest corner
     ctx.strokeStyle = colour;
     ctx.globalAlpha = 0.5 * labelAlpha;
     ctx.beginPath();
-    ctx.moveTo(plane.x + 6 * zoom, plane.y - 6 * zoom);
-    ctx.lineTo(labelX - 4 * zoom, labelY + 6 * zoom);
+    ctx.moveTo(plane.x + side * 6 * zoom, plane.y + Math.sign(above) * 6 * zoom);
+    ctx.lineTo(side > 0 ? labelX - 4 * zoom : labelX + labelWidth + 4 * zoom, labelY - Math.sign(above) * 6 * zoom);
     ctx.stroke();
     ctx.globalAlpha = labelAlpha;
     ctx.fillStyle = plane.mayday && game.time % 1 < 0.5 ? 'rgba(80,14,10,.85)' : 'rgba(4,11,8,.72)';
@@ -6814,6 +6828,35 @@ function labelNumbers(plane) {
 // how much a plane's label matters now: 2 urgent (MAYDAY, out of patience, too close, a priority flight not yet landing or
 // gone), 0 nothing to do for you (landing, cleared, rolling out, taxiing in, parked, a helicopter on its way to its pad or
 // lifting off with a way, a departure or overflight already heading out its way), 1 the rest: it needs an order
+// the labels already drawn this frame, as boxes {left, top, right, bottom}: the next label is placed clear of them
+const placedLabels = [];
+// a free place for a plane's label (one of LABEL_SLOTS, as [side, px above or below]): clear of the labels drawn before it
+// and of every plane on the radar; last frame's place while it is free, else the first free one, else the usual one
+function placeLabel(plane, labelWidth, boxHalf, zoom) {
+  const boxAt = ([side, above]) => {
+    const left = side > 0 ? plane.x + (LABEL_SIDE_GAP - 5) * zoom : plane.x - (LABEL_SIDE_GAP - 5) * zoom - labelWidth - 10,
+      centreY = plane.y + above * zoom;
+    return {left, right: left + labelWidth + 10, top: centreY - boxHalf, bottom: centreY + boxHalf};
+  };
+  const clearance = LABEL_PLANE_CLEARANCE * zoom,
+    free = box =>
+      !placedLabels.some(other => box.left < other.right && box.right > other.left && box.top < other.bottom && box.bottom > other.top) &&
+      !game.planes.some(
+        other =>
+          other !== plane &&
+          other.state !== 'ready' &&
+          !other.atGate &&
+          other.x > box.left - clearance &&
+          other.x < box.right + clearance &&
+          other.y > box.top - clearance &&
+          other.y < box.bottom + clearance,
+      );
+  const slots = plane.labelSlot ? [plane.labelSlot, ...LABEL_SLOTS] : LABEL_SLOTS,
+    slot = slots.find(candidate => free(boxAt(candidate))) || LABEL_SLOTS[0];
+  plane.labelSlot = slot;
+  placedLabels.push(boxAt(slot));
+  return slot;
+}
 function labelWeight(plane) {
   if (plane.mayday || plane.impatient || plane.tooClose) return 2;
   if (plane.type.priority && !['final', 'rollout', 'taxiin'].includes(plane.state) && !plane.cleared) return 2;
@@ -7102,7 +7145,9 @@ function drawScreenFrame(world, left, top, width, height) {
 }
 
 /* --- notes on the radar: toasts and the supervisor's texts ----------------------------------------------------------- */
-const toastEl = document.getElementById('toast');
+const toastEl = document.getElementById('toast'),
+  terminalEl = document.getElementById('term'),
+  viewEl = document.getElementById('view');
 function toast(text, kind = '') {
   const note = document.createElement('div');
   note.className = 'note ' + kind;
@@ -7250,6 +7295,7 @@ function finishShift() {
   const queue = [];
   if (shift.fired) {
     applyFiring();
+    career.firedFor = shift.fired; // saved: the fired screen still says why after a reload
     queue.push('fired');
   }
   else {
@@ -7743,7 +7789,7 @@ function gradeText() {
   return shift.grade === 'A' ? `${career.aStreak} A in a row` : shift.grade === 'C' && career.rank !== 'intern' ? `${career.cStreak}/${CS_TO_FIRE} C` : '';
 }
 function firedHtml() {
-  return `<h1 class="bad">fired</h1><p>${escapeHtml(shift.fired)}</p>
+  return `<h1 class="bad">fired</h1><p>${escapeHtml(shift.fired || career.firedFor || '')}</p>
     <div class="cards">${FIRST_AIRPORTS.map(id => button(id, `<b>${AIRPORTS[id].name}</b><small>as intern</small>`, ' card')).join('')}</div>`;
 }
 function bonusHtml() {
@@ -7997,6 +8043,9 @@ function updatePanels() {
   const betweenShifts = career && career.phase !== 'shift' && !game.practice && !game.admin && !game.tutorial && (career.phase !== 'review' || overScreenUp());
   const show = betweenShifts || game.paused || (game.over && (game.practice || game.admin) && overScreenUp());
   overlay.style.display = show ? 'grid' : 'none';
+  // the notes go where they cover nothing: over the radar during a shift, in the terminal above the hint between shifts
+  if (show && toastEl.parentElement !== terminalEl) terminalEl.insertBefore(toastEl, hintEl);
+  if (!show && toastEl.parentElement !== viewEl) viewEl.insertBefore(toastEl, overlay);
   overlay.classList.toggle('hide', !!(game.paused && careerShift));
   if (!show) return;
   // a lost selection (a bought card, a reload) falls back to 'next' when there is one, so Enter never buys by accident
