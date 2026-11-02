@@ -113,7 +113,7 @@ main{flex:1;min-height:0;display:flex}
 #over .inking{text-align:center} #over .screen>div:not(.cols)>.col,#over .screen>div:not(.cols):not(.devil):not(.tree):not(.graph){max-width:640px;margin-left:auto;margin-right:auto}
 #over .graph{position:relative;margin:12px auto} #over .graph svg{position:absolute;inset:0;overflow:visible} #over .graph path{fill:none;stroke:#2a4a39;stroke-width:2} #over .graph path.owned{stroke:#86d48a}
 #over .graph .node{position:absolute;transform:translateY(-50%)} #over .graph .node.root b,#over .graph .node.hub b{display:inline-block;padding:6px 10px;border:1px solid #2a4a39;border-radius:8px;background:#0b1a12;font-size:13px}
-#over .graph .node.hub b{width:96px;text-align:center} #over .graph .btn{width:205px;white-space:nowrap;box-sizing:border-box;padding:6px 8px;font-size:12px;line-height:1.25;display:flex;justify-content:space-between;gap:6px;opacity:.75}
+#over .graph .node.hub b{width:96px;text-align:center} #over .graph .btn{width:100%;white-space:nowrap;box-sizing:border-box;padding:6px 8px;font-size:12px;line-height:1.25;display:flex;justify-content:space-between;gap:6px;opacity:.75}
 #over .graph .btn em{font-style:normal;color:var(--gold)} #over .graph .btn.open{opacity:1;border-color:#6b520c} #over .graph .btn.owned{opacity:1;background:#14301f;border-color:#86d48a} #over .graph .btn.owned em{color:#86d48a} #over .graph .btn.sel{opacity:1}
 #over .tree{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin:10px 0} #over .branch{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:8px;padding:10px}
 #over .branch>b{color:var(--acc);letter-spacing:.1em;text-transform:uppercase} #over .path{display:flex;flex-direction:column;gap:4px} #over .path .btn{padding:4px 10px;font-size:13px}
@@ -121,10 +121,11 @@ main{flex:1;min-height:0;display:flex}
 #over.hide{background:#020805;backdrop-filter:none}
 /* notes over the radar: milestones, warnings, the supervisor's texts, the devil */
 #toast{position:absolute;right:16px;bottom:42px;display:flex;flex-direction:column;align-items:flex-end;gap:8px;z-index:3;pointer-events:none;max-width:min(400px,55%)}
+#toast .note:nth-last-child(n+4){display:none}   /* at most the three newest notes */
 #toast .note{padding:8px 12px;border-radius:10px;background:rgba(14,32,24,.94);border:1px solid var(--chipon);font-size:13px;animation:pop .35s}
 #toast .note.gold{border-color:#6b520c;color:var(--gold)} #toast .note.bad{border-color:#6b1d17;color:#ff8a7e} #toast .note.blood{border-color:#5a1a16;color:#ff6b5e;background:rgba(30,6,5,.94)}
 #toast .sms{background:#1b2733;border-color:#2f4458;border-radius:14px 14px 14px 4px} #toast .sms b{display:block;font-size:10.5px;letter-spacing:.14em;color:var(--blue);margin-bottom:2px}
-#term #toast{position:static;align-items:stretch;max-width:none;margin:0 0 8px} #term #toast:empty{display:none}   /* between shifts the notes sit in the terminal, clear of the screens */
+#term #toast{position:static;align-items:stretch;max-width:none;margin:0 0 8px} #term #toast:empty{display:none} #term #toast .note:nth-last-child(n+3){display:none}   /* only the two newest, so the prompt keeps its place */   /* between shifts the notes sit in the terminal, clear of the screens */
 #todo .fav{color:#ff8a7e}
 /* money: a small green banknote before the amount; rewards green, a loss red, a price plain */
 i.note{display:inline-block;position:relative;width:1.05em;height:.66em;margin:0 .22em 0 .05em;vertical-align:-.04em;border-radius:.1em;background:#86d48a;box-shadow:inset 0 0 0 .09em #2b6131,inset 0 0 0 .2em #86d48a,inset 0 0 0 .26em rgba(43,97,49,.55)}
@@ -132,7 +133,7 @@ i.note::after{content:'$';position:absolute;inset:0;display:grid;place-items:cen
 b.money{color:#86d48a;font-weight:700;white-space:nowrap} b.money.minus{color:var(--bad)} b.money.minus i.note{background:var(--bad);box-shadow:inset 0 0 0 .09em #6b1d17}
 b.cost{color:var(--fg);white-space:nowrap} b.cost i.note{background:#c9d4cc;box-shadow:inset 0 0 0 .09em #59655d,inset 0 0 0 .2em #c9d4cc,inset 0 0 0 .26em rgba(89,101,93,.55)} #strikes small{color:var(--dim);font-size:11px;margin-left:6px}
 @media (max-width:760px){#over .cols{grid-template-columns:1fr}}
-@media (max-width:760px){main{flex-direction:column}#term{width:auto;height:50%;overflow:hidden}#brand{display:none}}   /* narrow: the corners keep the numbers and buttons */
+@media (max-width:760px){main{flex-direction:column}#term{width:auto;height:50%;overflow:hidden}#brand{display:none}#guide{display:none}}   /* narrow: the corners keep the numbers and buttons; the order guide gives way to the prompt (it is on the ? card) */
 </style></head><body>
 <main>
 <div id="view"><canvas id="cv"></canvas>
@@ -783,7 +784,7 @@ const SKILL_TREE = [
     {name: 'The devil', nodes: [['foursketches', 'devil: a 4th sketch', 1], ['twopicks', 'devil: take two', 2]]}]},
 ];
 // how the skill tree is drawn (CSS px): row height, where the branches and the first skills sit, the step between skills
-const SKILL_GRAPH = {rowHeight: 44, branchX: 90, firstX: 250, step: 230, nodeWidth: {root: 54, hub: 120, skill: 205}};
+const SKILL_GRAPH = {rowHeight: 44, branchX: 90, firstX: 250, step: 250, nodeWidth: {root: 54, hub: 120, skill: 225}};
 // prettier-ignore
 const MILESTONES = {
   firstlanding: ['First landing', 1], firstdeparture: ['First departure', 1], firstshift: ['First shift', 1], firstrent: ['First rent paid', 1],
@@ -7923,7 +7924,7 @@ function skillsHtml() {
           left = firstX + i * step;
         if (i > 0) curve(x, y, left, y, owned);
         nodes.push(
-          `<div class="node" style="left:${left}px;top:${y}px">${button('skill:' + id, `${escapeHtml(text)}<em>${owned ? '✓' : cost}</em>`, owned ? ' owned' : meta.points >= cost ? ' open' : '')}</div>`,
+          `<div class="node" style="left:${left}px;top:${y}px;width:${nodeWidth.skill}px">${button('skill:' + id, `${escapeHtml(text)}<em>${owned ? '✓' : cost}</em>`, owned ? ' owned' : meta.points >= cost ? ' open' : '')}</div>`,
         );
         x = left + nodeWidth.skill;
         before = owned;
