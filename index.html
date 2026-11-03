@@ -4518,7 +4518,7 @@ function useFavour(name, planeName) {
       payForPlane(plane, '#7ee0a8', `${plane.name} landed at once (expedite)`);
     }
   }
-  return `the devil kept his word: ${favour.what}${times > 1 ? ', twice' : ''}`;
+  return `${name}: ${favour.what}${times > 1 ? ', twice' : ''}`;
 }
 // Enter with an empty prompt: leave the tutorial at its end; between shifts, take the choice the arrows are on
 function onEmptyEnter() {
@@ -4833,7 +4833,10 @@ function readWords(typedWords) {
     // in the middle of a shift a command that ends it counts only typed in full; anything shorter means something else
     if (MUST_TYPE_IN_FULL.includes(meant) && meant !== typed && !understood.length && !game.over && !game.practice) {
       meant = meaningOf(typed, choices.filter(choice => !MUST_TYPE_IN_FULL.includes(choice)));
-      if (!meant) return {err: `!${typed}? (to end this shift, type ${meaningOf(typed, choices)} in full)`};
+      if (!meant) {
+        const full = meaningOf(typed, choices);
+        return {err: FAVOURS[full] ? `!${typed}? (a favour is typed in full: ${full})` : `!${typed}? (to end this shift, type ${full} in full)`};
+      }
     }
     if (!meant) return {err: `!${typed}? ${validOptions(understood).slice(0, 8).map(shortWayUpper).join(' · ')}`};
     understood.push(meant);
