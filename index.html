@@ -14,7 +14,7 @@ body{display:flex;flex-direction:column;background:radial-gradient(ellipse 70% 8
 #brand::before{content:'';display:inline-block;width:8px;height:8px;margin-right:11px;border-radius:50%;background:var(--acc);box-shadow:0 0 10px var(--acc);vertical-align:1px;animation:blink 2s infinite}
 @keyframes blink{50%{opacity:.35}}
 #lvl{font-weight:500;font-size:13px;padding:3px 12px;border:1px solid var(--chipon);border-radius:99px;background:var(--chip)}
-#todo{color:var(--dim);font-size:13px;background:rgba(4,11,8,.82);border:1px solid var(--line);border-radius:99px;padding:3px 12px}#todo:empty{display:none} #todo .tok{color:var(--fg)} #todo b{font-weight:600;color:var(--fg);border-radius:3px;padding:0 3px}
+.rb.off{opacity:.35} #todo{color:var(--dim);font-size:13px;background:rgba(4,11,8,.82);border:1px solid var(--line);border-radius:99px;padding:3px 12px}#todo:empty{display:none} #todo .tok{color:var(--fg)} #todo b{font-weight:600;color:var(--fg);border-radius:3px;padding:0 3px}
 .coin{display:inline-block;width:.78em;height:.78em;border-radius:50%;background:var(--gold);box-shadow:inset 0 0 0 .14em #a87f12,0 .1em 0 #3a2c06;vertical-align:-.06em;margin-right:.3em}
 #ff,#tut,#bankrupt{width:auto;padding:0 8px;border-radius:13px;font-size:12px;white-space:nowrap}
 #bankrupt{color:#e08a7e}
@@ -4252,7 +4252,8 @@ function executeOrder(words) {
     return '';
   }
   if (first === 'tutorial') {
-    if (career && career.phase === 'shift' && !shift.over) return '!the tutorial opens between shifts';
+    // between shifts, or in a career's very first shift (it starts again afterwards), so the first visit's nudge works
+    if (career && career.phase === 'shift' && !shift.over && career.shifts > 0) return '!the tutorial opens between shifts';
     startTutorial();
     return 'tutorial: follow the banner over the radar · skip leaves it';
   }
@@ -8174,6 +8175,7 @@ function animateInking() {
 function updatePanels() {
   const careerShift = career && !game.practice && !game.admin && !game.tutorial;
   writeHtml(tutorialButton, game.tutorial ? 'leave tutorial' : 'tutorial');
+  tutorialButton.classList.toggle('off', !game.tutorial && !!career && career.phase === 'shift' && !shift.over && career.shifts > 0); // not mid-shift
   bankruptButton.style.display = career && !career.ended && career.shifts > 0 && !game.tutorial && !game.admin ? '' : 'none'; // not in a career's first shift
   const clock = careerShift ? Math.max(0, SHIFT_SECONDS - worlds[0].game.time) : 0;
   const nameChanged = writeHtml(
@@ -8429,7 +8431,8 @@ bankruptButton.addEventListener('click', event => {
 });
 tutorialButton.addEventListener('click', event => {
   event.stopPropagation();
-  game.tutorial ? endTutorial() : startTutorial();
+  if (game.tutorial) endTutorial();
+  else showReply(executeOrder(['tutorial'])); // the typed command's rule: not in the middle of a shift (it would restart it)
   commandInput.focus();
 });
 // for headless tests: index.html#dev exposes the game (the state, a step of every screen, orders, the career)
