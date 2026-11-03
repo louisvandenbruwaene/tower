@@ -4813,8 +4813,9 @@ function joinWords(typedWords) {
   }
   return joined;
 }
-// the actions a plane can be given, as typed after its name
+// the actions a plane can be given, as typed after its name, and the answer when one is typed without a plane
 const ORDER_WORDS = ['turn', 'descend', 'ascend', 'takeoff', 'hold', 'land', 'abort'];
+const whichPlane = action => `!which plane? the plane comes first: ${game.planes.find(plane => !onGround(plane))?.name || 'heron'} ${action}`;
 // reads typed words as an order: each word becomes the option it most likely means, where options depend on the words
 // before it (a plane name, then that plane's actions, then that action's arguments). Returns {words} or {err: the message}
 function readWords(typedWords) {
@@ -4831,8 +4832,7 @@ function readWords(typedWords) {
       ORDER_WORDS.includes(typed) ||
       (typed.length >= 2 && ORDER_WORDS.some(word => word.startsWith(typed)) && !choices.some(choice => choice.startsWith(typed)));
     if (!understood.length && !planeNamed(typed) && orderWordMeant) {
-      const example = game.planes.find(plane => !onGround(plane))?.name || 'heron';
-      return {err: `!which plane? the plane comes first: ${example} ${ORDER_WORDS.find(word => word.startsWith(typed))}`};
+      return {err: whichPlane(ORDER_WORDS.find(word => word === typed) || ORDER_WORDS.find(word => word.startsWith(typed)))};
     }
     let meant = meaningOf(typed, choices);
     const shortcut = !meant && understood.length === 1 && planeNamed(understood[0]) && shortcutAfterName(typed, choices);
@@ -4849,7 +4849,7 @@ function readWords(typedWords) {
       }
     }
     if (!meant && !understood.length && meaningOf(typed, ORDER_WORDS)) // a typo of an action typed first (lnd)
-      return {err: `!which plane? the plane comes first: ${game.planes.find(plane => !onGround(plane))?.name || 'heron'} ${meaningOf(typed, ORDER_WORDS)}`};
+      return {err: whichPlane(meaningOf(typed, ORDER_WORDS))};
     const helicopter = understood.length === 1 && planeNamed(understood[0])?.type.heli;
     if (!meant && helicopter && meaningOf(typed, ['ascend', 'descend']))
       return {err: `!${understood[0]} is a helicopter: it flies at low only`};
