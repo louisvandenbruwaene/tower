@@ -8112,7 +8112,7 @@ function animateInking() {
 function updatePanels() {
   const careerShift = career && !game.practice && !game.admin && !game.tutorial;
   writeHtml(tutorialButton, game.tutorial ? 'leave tutorial' : 'tutorial');
-  bankruptButton.style.display = career && !career.ended && !game.tutorial && !game.admin ? '' : 'none';
+  bankruptButton.style.display = career && !career.ended && career.shifts > 0 && !game.tutorial && !game.admin ? '' : 'none'; // not in a career's first shift
   const clock = careerShift ? Math.max(0, SHIFT_SECONDS - worlds[0].game.time) : 0;
   const nameChanged = writeHtml(
     elementById('lvl'),
