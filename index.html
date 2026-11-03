@@ -14,7 +14,7 @@ body{display:flex;flex-direction:column;background:radial-gradient(ellipse 70% 8
 #brand::before{content:'';display:inline-block;width:8px;height:8px;margin-right:11px;border-radius:50%;background:var(--acc);box-shadow:0 0 10px var(--acc);vertical-align:1px;animation:blink 2s infinite}
 @keyframes blink{50%{opacity:.35}}
 #lvl{font-weight:500;font-size:13px;padding:3px 12px;border:1px solid var(--chipon);border-radius:99px;background:var(--chip)}
-#todo{color:var(--dim);font-size:13px} #todo .tok{color:var(--fg)} #todo b{font-weight:600;color:var(--fg);border-radius:3px;padding:0 3px}
+#todo{color:var(--dim);font-size:13px;background:rgba(4,11,8,.82);border:1px solid var(--line);border-radius:99px;padding:3px 12px}#todo:empty{display:none} #todo .tok{color:var(--fg)} #todo b{font-weight:600;color:var(--fg);border-radius:3px;padding:0 3px}
 .coin{display:inline-block;width:.78em;height:.78em;border-radius:50%;background:var(--gold);box-shadow:inset 0 0 0 .14em #a87f12,0 .1em 0 #3a2c06;vertical-align:-.06em;margin-right:.3em}
 #ff,#tut,#bankrupt{width:auto;padding:0 8px;border-radius:13px;font-size:12px;white-space:nowrap}
 #bankrupt{color:#e08a7e}
@@ -408,6 +408,8 @@ const LABEL_FONT_SIZES = [10.5, 12.5, 14.5],
 const LABEL_SLOTS = [[1, -20], [1, 20], [-1, -20], [-1, 20], [1, -40], [1, 40], [-1, -40], [-1, 40]],
   LABEL_SIDE_GAP = 18, // px from the plane to the near edge of its label's text
   LABEL_PLANE_CLEARANCE = 9; // px around another plane's pictogram that no label may cover
+// runways: asphalt, its outline and the white paint of stripes and centreline (flat colours, no glow)
+const RUNWAY_COLOURS = {asphalt: '#28332e', edge: 'rgba(190,215,200,.22)', paint: 'rgba(235,242,238,.7)'};
 const RUNWAY_DRAW_WIDTH = 5,
   TAXIWAY_DRAW_WIDTH = 4; // px: runways and taxiways drawn this wide (wider than real, to be seen)
 const DRAW_SIZE_GROUND = 0.022,
@@ -4814,6 +4816,9 @@ function suggestionsHere() {
     else if (adminArguments && adminArguments[i - 1])
       typing.suggestions = adminArguments[i - 1].filter(option => option.startsWith(part));
   }
+  // the word Enter would read comes first, so the faded text shows what happens (turn s: south, not southeast)
+  const meant = part && meaningOf(part, typing.suggestions);
+  if (meant) typing.suggestions = [meant, ...typing.suggestions.filter(option => option !== meant)];
   if (typing.chosen >= typing.suggestions.length) typing.chosen = 0;
   typing.ghost = ghostCompletion();
   ghostEl.innerHTML = `<span class="t">${escapeHtml(commandInput.value)}</span>${escapeHtml(typing.ghost)}`;
@@ -6389,7 +6394,7 @@ function drawRadar(clear = true) {
       ctx.lineTo(AIRPORT_X + x, bottom);
       ctx.stroke();
     };
-  ctx.strokeStyle = 'rgba(120,140,130,.16)';
+  ctx.strokeStyle = 'rgba(120,140,130,.26)';
   ctx.lineWidth = TAXIWAY_DRAW_WIDTH;
   ctx.lineJoin = 'round';
   lane(laneX, laneY);
@@ -6437,14 +6442,26 @@ function drawRadar(clear = true) {
     ctx.translate(runway.x, runway.y);
     ctx.rotate(runway.forwardHeading);
     const halfWidth = RUNWAY_DRAW_WIDTH / 2;
-    ctx.fillStyle = '#16201c';
+    ctx.fillStyle = RUNWAY_COLOURS.asphalt;
     ctx.fillRect(-RUNWAY_HALF_LENGTH - 1, -halfWidth, RUNWAY_HALF_LENGTH * 2 + 2, RUNWAY_DRAW_WIDTH);
-    ctx.setLineDash([2, 2]);
-    ctx.strokeStyle = 'rgba(230,240,235,.45)';
-    ctx.lineWidth = 0.6;
+    ctx.strokeStyle = RUNWAY_COLOURS.edge;
+    ctx.lineWidth = 0.5;
+    ctx.strokeRect(-RUNWAY_HALF_LENGTH - 1, -halfWidth, RUNWAY_HALF_LENGTH * 2 + 2, RUNWAY_DRAW_WIDTH);
+    // threshold stripes at both ends (where planes touch down), then the dashed centreline between them
+    ctx.strokeStyle = RUNWAY_COLOURS.paint;
+    ctx.lineWidth = 0.45;
     ctx.beginPath();
-    ctx.moveTo(-RUNWAY_HALF_LENGTH + 3, 0);
-    ctx.lineTo(RUNWAY_HALF_LENGTH - 3, 0);
+    for (const end of [-1, 1])
+      for (let stripe = -1.5; stripe <= 1.5; stripe += 1) {
+        ctx.moveTo(end * (RUNWAY_HALF_LENGTH - 0.6), stripe * halfWidth * 0.5);
+        ctx.lineTo(end * (RUNWAY_HALF_LENGTH - 4.2), stripe * halfWidth * 0.5);
+      }
+    ctx.stroke();
+    ctx.setLineDash([2.4, 2]);
+    ctx.lineWidth = 0.55;
+    ctx.beginPath();
+    ctx.moveTo(-RUNWAY_HALF_LENGTH + 6, 0);
+    ctx.lineTo(RUNWAY_HALF_LENGTH - 6, 0);
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.lineWidth = 1;
@@ -7796,7 +7813,20 @@ function reviewHtml() {
 }
 const contributionName = id => (TATTOOS[id] ? TATTOOS[id].name : STYLES[id] ? STYLES[id].name + ' mark' : {streak: 'streak', salary: 'salary', supervisor: 'supervisor', double: 'double favour'}[id] || id);
 function gradeText() {
-  return shift.grade === 'A' ? `${career.aStreak} A in a row` : shift.grade === 'C' && career.rank !== 'intern' ? `${career.cStreak}/${CS_TO_FIRE} C` : '';
+  if (shift.grade === 'A') return `${career.aStreak} A in a row`;
+  const streak = shift.grade === 'C' && career.rank !== 'intern' ? ` · ${career.cStreak}/${CS_TO_FIRE} C` : '';
+  return gradeMissed() + streak;
+}
+// what kept this review from the grade above it, in a few words (the same rules as finishShift's review)
+function gradeMissed() {
+  const allowed = rankNow().screens > 1 ? rankNow().screens / 2 : 0,
+    next = shift.grade === 'B' ? 'A' : 'B',
+    needShare = next === 'A' ? REVIEW_A_ON_TIME : REVIEW_B_ON_TIME,
+    needWriteUps = next === 'A' ? allowed : allowed + 1;
+  if (shift.writeUps > needWriteUps) return `${next} allows ${needWriteUps ? `${needWriteUps} write-up${needWriteUps > 1 ? 's' : ''}` : 'no write-up'}`;
+  if (shift.onTimeShare < needShare) return `${next} needs ${Math.round(needShare * 100)}% on time`;
+  if (next === 'A' && (shift.saves || shift.stepIns)) return 'A needs no help from the supervisor';
+  return '';
 }
 function firedHtml() {
   return `<h1 class="bad">fired</h1><p>${escapeHtml(shift.fired || career.firedFor || '')}</p>
