@@ -17,7 +17,7 @@ The game is deliberately simplified: named levels instead of real heights, eight
 - **Priority flights**: VIP private jets and MEDEVAC air ambulances go first both ways, with a deadline. Military fighters now and then.
 - **Tuning in one place**: every number sits in the TUNING block at the top of index.html.
 - **Career**: 3-minute shifts, A/B/C reviews, promotions on two tracks (a harder sector, or 2 · 4 · 6 intern screens), a weekly job board of ten airports with seasons, rent rising 30% a week, broke ends it, retiring wins, fired sends you back to intern.
-- **The devil**: 58 tattoos in 7 styles, most strong ones with a catch or a sacrifice, matching pairs, style marks, Blood, favours; drawn on your body in blood.
+- **The devil**: 38 tattoos in 7 styles (plus 20 pieces of shop kit), most strong ones with a catch or a sacrifice, matching pairs, style marks, Blood, favours; drawn on your body in blood.
 - **Skill tree**: milestones buy information and comfort between careers (path lines, conflict markers, warnings, slow motion, pauses, radio skills, intern help).
 - **Helicopters**: airports with helipads have up to three (HOTEL, OSCAR, INDIA) north of the airport. Helicopters fly at low only, `land` sends one straight to a free pad where it hovers in and sets down, `takeoff` lifts one straight up off its pad to hover at low until it is turned. A helicopter keeps its pad from landing until it has left again (it turns around there, then departs), so there are never more helicopters than pads; they pay $2,500 a flight.
 - **Daily career**: seeded by the date (traffic, sketches, job offers), no skills, timed like a speedrun. Today's results are kept locally (no online leaderboard yet).

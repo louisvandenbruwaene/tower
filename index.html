@@ -133,7 +133,8 @@ i.note::after{content:'$';position:absolute;inset:0;display:grid;place-items:cen
 b.money{color:#86d48a;font-weight:700;white-space:nowrap} b.money.minus{color:var(--bad)} b.money.minus i.note{background:var(--bad);box-shadow:inset 0 0 0 .09em #6b1d17}
 b.cost{color:var(--fg);white-space:nowrap} b.cost i.note{background:#c9d4cc;box-shadow:inset 0 0 0 .09em #59655d,inset 0 0 0 .2em #c9d4cc,inset 0 0 0 .26em rgba(89,101,93,.55)} #strikes small{color:var(--dim);font-size:11px;margin-left:6px}
 @media (max-width:760px){#over .cols{grid-template-columns:1fr}}
-@media (max-width:760px){main{flex-direction:column}#term{width:auto;height:50%;overflow:hidden}#brand{display:none}#guide{display:none}}   /* narrow: the corners keep the numbers and buttons; the order guide gives way to the prompt (it is on the ? card) */
+body.stacked main{flex-direction:column} body.stacked #term{width:auto;height:50%;overflow:hidden} body.stacked #brand,body.stacked #guide{display:none}   /* stacked (narrow or tall window): the terminal under the radar; the order guide gives way to the prompt (it is on the ? card) */
+body.compact #brand{display:none} body.compact #tr{top:48px} body.compact #bl{bottom:auto;top:84px;left:auto;right:16px}   /* a narrow radar column: the buttons drop under the shift's name, bankruptcy under them */
 </style></head><body>
 <main>
 <div id="view"><canvas id="cv"></canvas>
@@ -411,6 +412,7 @@ const LABEL_SLOTS = [[1, -20], [1, 20], [-1, -20], [-1, 20], [1, -40], [1, 40], 
   LABEL_SIDE_GAP = 18, // px from the plane to the near edge of its label's text
   LABEL_PLANE_CLEARANCE = 9; // px around another plane's pictogram that no label may cover
 // runways: asphalt, its outline and the white paint of stripes and centreline (flat colours, no glow)
+const COMPACT_VIEW_WIDTH = 620; // px: a radar column narrower than this gets the compact corners (buttons under the shift's name)
 const RUNWAY_COLOURS = {asphalt: '#28332e', edge: 'rgba(190,215,200,.22)', paint: 'rgba(235,242,238,.7)'};
 const RUNWAY_DRAW_WIDTH = 5,
   TAXIWAY_DRAW_WIDTH = 4; // px: runways and taxiways drawn this wide (wider than real, to be seen)
@@ -5656,8 +5658,21 @@ let viewScale = 1,
   cellLeft = 0, // the top-left corner of the screen being drawn, in canvas px (a supervisor's grid has several)
   cellTop = 0,
   cellTextBoost = 1; // text grows a little in a small screen, to stay readable
+// compact corners when the radar column is narrow or the shift's name would run into the buttons (checked again whenever
+// the name changes)
+function fitCorners() {
+  document.body.classList.remove('compact');
+  const nameRight = document.getElementById('tl').getBoundingClientRect().right,
+    buttonsLeft = document.getElementById('tr').getBoundingClientRect().left;
+  document.body.classList.toggle('compact', viewEl.clientWidth < COMPACT_VIEW_WIDTH || nameRight + 12 > buttonsLeft);
+}
 // fits the view to the canvas: the area and its compass letters fill the smaller side, centred
 function resize() {
+  // stack the terminal under the radar when that leaves the radar more room (radar side = the view's smaller side);
+  // a narrow radar column moves the corner buttons out of the shift's name
+  const terminalWidth = 370;
+  document.body.classList.toggle('stacked', innerWidth <= 760 || Math.min(innerWidth, innerHeight / 2) > Math.min(innerWidth - terminalWidth, innerHeight));
+  fitCorners();
   const box = canvas.getBoundingClientRect(),
     pixelRatio = devicePixelRatio || 1;
   canvas.width = box.width * pixelRatio;
@@ -8087,7 +8102,7 @@ function updatePanels() {
   writeHtml(tutorialButton, game.tutorial ? 'leave tutorial' : 'tutorial');
   bankruptButton.style.display = career && !career.ended && !game.tutorial && !game.admin ? '' : 'none';
   const clock = careerShift ? Math.max(0, SHIFT_SECONDS - worlds[0].game.time) : 0;
-  writeHtml(
+  const nameChanged = writeHtml(
     elementById('lvl'),
     game.tutorial
       ? 'tutorial'
@@ -8101,6 +8116,7 @@ function updatePanels() {
           ? `${airportNow().name} · week ${career.week} · ${Math.min(SHIFTS_PER_WEEK, career.shiftOfWeek + 1)}/${SHIFTS_PER_WEEK} · ${clock > 0 ? formatTime(clock) : 'handover'}`
           : 'practice',
   );
+  if (nameChanged) fitCorners();
   const streak = game.streak > 1 && !game.over ? ` · <b style="background:#ff7a45;color:#04140b">×${game.streak} streak</b>` : '';
   writeHtml(
     elementById('todo'),
