@@ -5080,7 +5080,7 @@ const TUTORIAL_STEPS = [
   {
     end: true,
     say: () =>
-      `That is the job. The shift adds fuel, wind (take off and land into it), storms, aircraft types and overflights, and three strikes end it. ${commandText('help')} lists every command.<br><b>Press Enter to start your first shift.</b>`,
+      `That is the job. The shift adds fuel, wind (take off and land into it), storms, aircraft types and overflights. A crash gets you fired, and so do ${WRITE_UPS_TO_FIRE} write-ups in one shift. ${commandText('help')} lists every command.<br><b>Press Enter to start your first shift.</b>`,
     done: () => false,
   },
 ];
@@ -5127,6 +5127,15 @@ function endTutorial() {
   bannerEl.style.display = 'none';
   resumeCareer();
 }
+// a step counts as done when it is, or when the player already got further in the same section (two arrivals landed
+// without a hold, a departure turned before takeoff): the tutorial never waits for a step that can no longer happen
+function tutorialStepPassed(tutorial) {
+  for (let i = tutorial.step; i < TUTORIAL_STEPS.length && !TUTORIAL_STEPS[i].end; i++) {
+    if (i > tutorial.step && TUTORIAL_STEPS[i].setup) break;
+    if (TUTORIAL_STEPS[i].done(tutorial.planes)) return true;
+  }
+  return false;
+}
 // each tick of the tutorial: no strikes count; a lost plane restarts its section; a finished step moves on after a short pause
 function tutorialTick(seconds) {
   const tutorial = game.tutorial;
@@ -5147,7 +5156,7 @@ function tutorialTick(seconds) {
     }
     return;
   }
-  if (TUTORIAL_STEPS[tutorial.step].done(tutorial.planes)) {
+  if (tutorialStepPassed(tutorial)) {
     sound.ok();
     tutorial.pause = TUTORIAL_STEP_PAUSE;
   }
