@@ -352,6 +352,7 @@ const SPAWN_EDGE_INSET = 6; // px: new planes appear this far inside the edge of
 const ARRIVAL_AIM_SPREAD_DEG = 40; // a new arrival heads at the airport, up to half this many degrees off either way
 const OVERFLIGHT_AIM_SPREAD = 200; // px: an overflight aims at a point up to half this far from the airport centre, either way
 const SPAWN_TRIES = 40; // how many random edge points to try for a new plane before taking the roomiest of them
+const EDGE_WARNING_SECONDS = 12; // game s: a plane that would leave your area this soon where it costs a write-up gets an urgent label
 const SPAWN_CLEAR_DISTANCE = 180, // px: a new plane prefers an edge point at least this far from every plane in the air
   SPAWN_LOOK_AHEAD_SECONDS = 20, // ... now and over this many seconds, both flying straight on (else the roomiest point)
   SPAWN_INBOUND_KT = 250; // the speed that look-ahead assumes for the new plane, flying straight at the airport
@@ -3514,6 +3515,19 @@ function moveAhead(plane, seconds) {
         : `${plane.name} flew out of your area`;
     strike(why, plane.x, plane.y, plane.kind !== 'arr' ? `${plane.name} wrong side` : `${plane.name} lost`, 1, plane);
   }
+}
+// flying straight on, will this plane leave your area within EDGE_WARNING_SECONDS where it costs a write-up (an arrival
+// anywhere, a departure or overflight outside its slice)? Its label turns urgent
+function leavingWrongly(plane) {
+  if (plane.state !== 'fly' || plane.cleared || onGround(plane) || plane.speed <= 0) return false;
+  const alongX = Math.cos(plane.heading),
+    alongY = Math.sin(plane.heading),
+    fromX = plane.x - AIRPORT_X,
+    fromY = plane.y - AIRPORT_Y,
+    along = fromX * alongX + fromY * alongY,
+    toEdge = -along + Math.sqrt(Math.max(0, along * along - (fromX * fromX + fromY * fromY - areaRadius * areaRadius)));
+  if (toEdge / plane.speed > EDGE_WARNING_SECONDS) return false;
+  return plane.kind === 'arr' || compassWordFor(fromX + alongX * toEdge, fromY + alongY * toEdge) !== plane.exitWay;
 }
 // a departure in the first part of its takeoff run is still below 600 m, under even the low level: nothing can hit it
 const belowTraffic = plane =>
@@ -6977,7 +6991,7 @@ function placeLabel(plane, labelWidth, boxHalf, zoom) {
   return slot;
 }
 function labelWeight(plane) {
-  if (plane.mayday || plane.impatient || plane.tooClose) return 2;
+  if (plane.mayday || plane.impatient || plane.tooClose || leavingWrongly(plane)) return 2;
   if (plane.type.priority && !['final', 'rollout', 'taxiin'].includes(plane.state) && !plane.cleared) return 2;
   if (plane.cleared || ['final', 'rollout', 'taxiin', 'parked', 'padland', 'topad'].includes(plane.state)) return 0;
   if (plane.kind !== 'arr' && plane.state !== 'onpad' && plane.state !== 'hover' && plane.state !== 'ready') {
