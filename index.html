@@ -8317,6 +8317,10 @@ document.getElementById('actable').innerHTML = aircraftSheet();
 for (const page of HELP_PAGES) page.innerHTML = moneyHtml(page.innerHTML); // amounts in the help card as banknotes
 addEventListener('resize', resize);
 resize();
+// leaving the window (another app, another tab) pauses a running shift: the typing would go elsewhere anyway
+addEventListener('blur', () => {
+  if (!game.paused && !game.over && !game.admin && !helpShown()) togglePause();
+});
 addEventListener('resize', () => {
   overlay.lastHtml = null; // refit the overlay to the new size on the next frame
   if (helpShown()) fitToWindow(helpEl.querySelector('.card:not([style*="none"])'));
