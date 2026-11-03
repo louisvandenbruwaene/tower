@@ -165,7 +165,7 @@ body.compact #brand{display:none} body.compact #tr{top:48px} body.compact #bl{bo
 <tr><td>heron descend</td><td>down to low · <b>heron descend mid</b> stops at mid · a level by name or number: <b>heron descend 4</b> = 4,000 ft</td></tr>
 <tr><td>heron ascend</td><td>up as high as it goes · <b>heron ascend mid</b> stops at mid</td></tr>
 <tr><td>heron hold</td><td>circle on the spot until you give it a turn, or <b>land</b> inside a landing circle · <b>heron hold kilo</b> flies to the fix KILO (also ALPHA, BRAVO, ZULU; NOVEMBER and SIERRA at big airports) and circles it, right turns, slowed down. Holds always stay inside your area</td></tr>
-<tr><td>heron land</td><td>only inside an open landing circle (also ends a hold). Above <b>low</b> it circles there until you <b>descend</b> it; at low it lines up by itself and lands, arriving at most 15° off the runway heading. With the runway busy it circles until it is free (four times round at most, then it goes around)</td></tr>
+<tr><td>heron land</td><td>only inside an open landing circle (also ends a hold); a turn or hold afterwards cancels it. Above <b>low</b> it circles there until you <b>descend</b> it; at low it lines up by itself and lands, arriving at most 15° off the runway heading. With the runway busy it circles until it is free (four times round at most, then it goes around)</td></tr>
 <tr><td>wren takeoff e</td><td>a departure in the <b>ready</b> list taxis to that runway end, waits until the runway is free, takes off that way, climbs to mid and flies straight on until you turn it (you may turn it while it taxis). The guide on the right lists the ways your runways take off. When the wind leaves one way only, <b>wren takeoff</b> is enough</td></tr>
 <tr><td>heron abort</td><td>ends a hold (straight on) or a landing: it goes around, climbing to mid</td></tr>
 <tr><td>tutorial · speed</td><td>a guided first landing, departure and hold, between shifts (<b>skip</b> leaves it) · time 1×, 2×, 4×, 8× (<b>speed 4</b> picks one; both also buttons top right)</td></tr>
@@ -4173,6 +4173,17 @@ function orderLevel(plane, level) {
   plane.levelFrom = plane.level;
   plane.targetLevel = level;
 }
+// a turn or hold given to a plane cleared to land (not yet on final) takes it off its landing: it flies what it was told,
+// and needs land again. Returns whether it was cleared
+const CLEARANCE_CANCELLED = ' · landing cancelled, land again when ready';
+function cancelClearance(plane) {
+  if (!plane.cleared) return false;
+  plane.cleared = false;
+  plane.inCircle = null;
+  plane.orbitSide = 0;
+  plane.autoCircle = null;
+  return true;
+}
 // turns a plane toward a compass word or by a relative turn (from where it is heading, or from its last order). A turn
 // ends a hold, a helicopter's flight to its pad and its hover
 function steerTo(plane, direction) {
@@ -4237,6 +4248,7 @@ function executeOrder(words) {
     const misheard = argument in HEADINGS && pilotMishears();
     if (misheard && hasSkill('sayagain')) return `!${name}: say again?`;
     const direction = misheard ? neighbourWay(argument) : argument;
+    const wasCleared = cancelClearance(plane);
     steerTo(plane, direction);
     const side =
       normaliseAngle(plane.targetHeading - (onGround(plane) || plane.state === 'roll' ? plane.targetHeading : plane.heading)) < 0
@@ -4249,7 +4261,7 @@ function executeOrder(words) {
           ? '' // already on that heading
           : side + ' ';
     const afterDeparture = plane.state === 'roll' || onGround(plane) ? ' after departure' : '';
-    return `${misheard && hasSkill('readbackmark') ? '!⚠ misheard: ' : ''}${name}: ${turnText}${headingText(plane.targetHeading)}${afterDeparture}`;
+    return `${misheard && hasSkill('readbackmark') ? '!⚠ misheard: ' : ''}${name}: ${turnText}${headingText(plane.targetHeading)}${afterDeparture}${wasCleared ? CLEARANCE_CANCELLED : ''}`;
   }
   if (action === 'ascend' || action === 'descend') {
     const climbing = action === 'ascend';
@@ -4268,16 +4280,16 @@ function executeOrder(words) {
   if (action === 'hold') {
     if (argument && game.hard && !isNearFix(plane, argument))
       return `!${name} must be at ${argument.toUpperCase()} to hold there: fly it there first (${distanceText(Math.hypot(FIXES[argument].x - plane.x, FIXES[argument].y - plane.y))} away)`;
+    const wasCleared = cancelClearance(plane);
     if (argument) {
       plane.state = 'tofix';
       plane.holdFix = argument;
-      plane.cleared = false;
-      return `${name}: direct ${argument.toUpperCase()}, hold there, right turns`;
+      return `${name}: direct ${argument.toUpperCase()}, hold there, right turns${wasCleared ? CLEARANCE_CANCELLED : ''}`;
     }
     plane.state = 'hold';
     plane.holdFix = null;
     plane.holdCentre = spotHoldCentre(plane);
-    return `${name}: orbiting right here, until you turn it (or land, inside a landing circle)`;
+    return `${name}: orbiting right here, until you turn it (or land, inside a landing circle)${wasCleared ? CLEARANCE_CANCELLED : ''}`;
   }
   if (plane.type.heli && action === 'land') {
     // straight to a helipad (the one named, else the nearest free one), staying at low; it hovers in and sets down there
