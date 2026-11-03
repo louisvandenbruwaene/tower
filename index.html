@@ -6838,6 +6838,22 @@ function drawZonesAndForecasts() {
     ctx.fill();
     ctx.stroke();
     ctx.setLineDash([]);
+    if (!mountain) {
+      // restricted: diagonal hatching inside the circle, as on a chart, so it never reads as a storm cell
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(zone.x, zone.y, zone.r, 0, 7);
+      ctx.clip();
+      ctx.strokeStyle = 'rgba(255,107,94,.16)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (let offset = -2 * zone.r; offset <= 2 * zone.r; offset += 9) {
+        ctx.moveTo(zone.x + offset - zone.r, zone.y + zone.r);
+        ctx.lineTo(zone.x + offset + zone.r, zone.y - zone.r);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
     if (mountain)
       for (let i = -1; i <= 1; i++) {
         const peakX = zone.x + i * zone.r * 0.4,
