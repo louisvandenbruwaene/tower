@@ -307,7 +307,7 @@ const TRAFFIC_GAP = 14; // game s between planes while exactly the expected numb
 const TRAFFIC_BUSY = 1.8; // each active plane above the expected number makes the gap this many times longer (below: shorter)
 const STREAK_PCT = 10,
   STREAK_MAX = 6; // every plane handled in a row without a strike pays 10% more, up to the 6th (+50%)
-const MILESTONE = 5000; // every $5,000 a big number lands on the radar
+const MILESTONE = 5000; // the first big number that lands on the radar ($5,000), then 10k, 25k, 50k, 100k, 250k...: rare at any pay
 // priority flights (VIP, MEDEVAC) go first both ways: an arrival must land within PRIO_ARR game s of appearing, a departure
 // must be rolling within PRIO_DEP. Late: a strike and a quarter of the fare. While one waits, the others may not use the
 // runway before it (a MAYDAY still may)
@@ -2085,6 +2085,12 @@ function payForPlane(plane, colour, message, keepOnScreen) {
   showReply(`${message} · +${formatMoney(paid.pay)}${paid.mult > 1.001 ? ` (×${paid.mult.toFixed(2)})` : ''}`);
   showPayment(plane, colour, paid, before);
 }
+// the highest milestone at or below a shift's pay: MILESTONE × 1, 2, 5, 10, 20, 50... (5k, 10k, 25k, 50k...), 0 below the first
+function milestoneReached(pay) {
+  let reached = 0;
+  for (let step = MILESTONE, i = 0; step <= pay; step *= i++ % 3 === 1 ? 2.5 : 2) reached = step;
+  return reached;
+}
 // how a payment looks and sounds: the till, a spray of bills and the chips where the plane was (kept inside the radar):
 // the fare, the Mult, and every MILESTONE of the shift's pay a big bill
 function showPayment(plane, colour, paid, before) {
@@ -2096,7 +2102,7 @@ function showPayment(plane, colour, paid, before) {
   sprayBanknotes(x, y, 4 + Math.min(10, (paid.pay / 400) | 0));
   if (game.tutorial) return;
   const now = performance.now(),
-    milestone = Math.floor(shift.pay / MILESTONE) * MILESTONE;
+    milestone = milestoneReached(shift.pay);
   const chips = [
     {kind: 'cash', text: formatMoney(paid.pay)},
     paid.mult > 1.001 && {kind: 'streak', text: `×${paid.mult < 10 ? paid.mult.toFixed(2) : Math.round(paid.mult)}`},
@@ -6289,9 +6295,13 @@ function drawRadar(clear = true) {
   // the sweep: a fading wedge behind a bright leading edge
   const sweepAngle = game.time * 1.1,
     sweepGradient = ctx.createConicGradient(sweepAngle - 1.2, AIRPORT_X, AIRPORT_Y);
+  // a phosphor afterglow: bright at the leading edge, dying away fast behind it
+  const trail = 1.2 / (2 * Math.PI);
   sweepGradient.addColorStop(0, 'rgba(126,224,168,0)');
-  sweepGradient.addColorStop(1.2 / (2 * Math.PI), 'rgba(126,224,168,.16)');
-  sweepGradient.addColorStop(1.2 / (2 * Math.PI) + 1e-4, 'rgba(126,224,168,0)');
+  sweepGradient.addColorStop(trail * 0.55, 'rgba(126,224,168,.025)');
+  sweepGradient.addColorStop(trail * 0.85, 'rgba(126,224,168,.07)');
+  sweepGradient.addColorStop(trail, 'rgba(126,224,168,.17)');
+  sweepGradient.addColorStop(trail + 1e-4, 'rgba(126,224,168,0)');
   ctx.fillStyle = sweepGradient;
   ctx.beginPath();
   ctx.moveTo(AIRPORT_X, AIRPORT_Y);
