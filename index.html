@@ -4303,7 +4303,7 @@ function executeOrder(words) {
     plane.state = 'hold';
     plane.holdFix = null;
     plane.holdCentre = spotHoldCentre(plane);
-    return `${name}: orbiting right here, until you turn it (or land, inside a landing circle)${wasCleared ? CLEARANCE_CANCELLED : ''}`;
+    return `${name}: orbiting right here, until you turn it (or land, ${plane.type.heli ? 'on a helipad' : 'inside a landing circle'})${wasCleared ? CLEARANCE_CANCELLED : ''}`;
   }
   if (plane.type.heli && action === 'land') {
     // straight to a helipad (the one named, else the nearest free one), staying at low; it hovers in and sets down there
@@ -4813,6 +4813,8 @@ function joinWords(typedWords) {
   }
   return joined;
 }
+// the actions a plane can be given, as typed after its name
+const ORDER_WORDS = ['turn', 'descend', 'ascend', 'takeoff', 'hold', 'land', 'abort'];
 // reads typed words as an order: each word becomes the option it most likely means, where options depend on the words
 // before it (a plane name, then that plane's actions, then that action's arguments). Returns {words} or {err: the message}
 function readWords(typedWords) {
@@ -4823,6 +4825,14 @@ function readWords(typedWords) {
     if (!choices.length) {
       if (understood.length === 2) break;
       return {err: '!too many words: plane action [direction]'};
+    }
+    // an action typed first (hold, descend...): it needs a plane, it is not a typo of help or sound
+    const orderWordMeant =
+      ORDER_WORDS.includes(typed) ||
+      (typed.length >= 2 && ORDER_WORDS.some(word => word.startsWith(typed)) && !choices.some(choice => choice.startsWith(typed)));
+    if (!understood.length && !planeNamed(typed) && orderWordMeant) {
+      const example = game.planes.find(plane => !onGround(plane))?.name || 'heron';
+      return {err: `!which plane? the plane comes first: ${example} ${ORDER_WORDS.find(word => word.startsWith(typed))}`};
     }
     let meant = meaningOf(typed, choices);
     const shortcut = !meant && understood.length === 1 && planeNamed(understood[0]) && shortcutAfterName(typed, choices);
@@ -4838,6 +4848,11 @@ function readWords(typedWords) {
         return {err: FAVOURS[full] ? `!${typed}? (a favour is typed in full: ${full})` : `!${typed}? (to end this shift, type ${full} in full)`};
       }
     }
+    if (!meant && !understood.length && meaningOf(typed, ORDER_WORDS)) // a typo of an action typed first (lnd)
+      return {err: `!which plane? the plane comes first: ${game.planes.find(plane => !onGround(plane))?.name || 'heron'} ${meaningOf(typed, ORDER_WORDS)}`};
+    const helicopter = understood.length === 1 && planeNamed(understood[0])?.type.heli;
+    if (!meant && helicopter && meaningOf(typed, ['ascend', 'descend']))
+      return {err: `!${understood[0]} is a helicopter: it flies at low only`};
     if (!meant) return {err: `!${typed}? ${validOptions(understood).slice(0, 8).map(shortWayUpper).join(' · ')}`};
     understood.push(meant);
   }
