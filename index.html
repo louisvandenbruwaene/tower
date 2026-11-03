@@ -171,7 +171,7 @@ body.compact #brand{display:none} body.compact #tr{top:48px} body.compact #bl{bo
 <tr><td>tutorial · speed</td><td>a guided first landing, departure and hold, between shifts (<b>skip</b> leaves it) · time 1×, 2×, 4×, 8× (<b>speed 4</b> picks one; both also buttons top right)</td></tr>
 <tr><td>groundstop</td><td>a <b>favour</b> from the shop, typed in full, used once: <b>groundstop</b> (no new traffic 30 s) · <b>expedite heron</b> (lands now) · <b>vector</b> (arrivals turn to their circles) · <b>standby</b> (no patience lost 60 s) · <b>freeze</b> (10 s slow motion) · <b>cleanup</b> (a write-up struck) · <b>double heron</b> (pays ×2) · <b>tailwind</b> (20% faster 30 s)</td></tr>
 <tr><td>pause</td><td>with the Pause skills: a tactical pause, the radar stays and orders work · <b>pause 3</b> stops intern screen 3 alone. <b>Esc</b> is the plain pause: it hides the radar and takes no orders</td></tr>
-<tr><td>supervisor</td><td>every screen has its own call signs (birds, trees, rivers, stars, stones, fish): type any plane on any screen. An order to a plane an intern forgot fixes the mistake</td></tr>
+<tr><td>supervisor</td><td>every screen has its own call signs (birds, trees, rivers, stars, stones, fish): type any plane on any screen. An order to a plane an intern forgot fixes the mistake, and an intern leaves a plane you ordered alone for a while</td></tr>
 </table>
 <p>Faded text in the prompt is a suggestion: <b>→</b> takes all of it, <b>Tab</b> takes one word. Capitals don't matter. Typos are fixed for you (<b>nt</b> = north): the reply shows what was understood. <b>Esc</b> pauses, <b>help</b> shows this card.</p></section>
 <section class="pg"><h2>Traffic</h2><table>
@@ -749,6 +749,7 @@ const FAVOUR_SLOTS = 2;
    forgetting a plane, reacting late, a slip of the tongue. A mistake is only made when what it costs is INTERN_WINDOW
    game s away (shorter: the intern catches it itself), so the supervisor always gets that long to fix it. */
 const INTERN_THINK_EVERY = 1.2; // game s between an intern's orders
+const INTERN_LEAVES_YOUR_PLANE_SECONDS = 20; // game s an intern gives no order to a plane the supervisor just ordered (it still flies around it)
 const INTERN_MISTAKE_EVERY = 45; // game s between one intern's mistakes, on average
 const INTERN_WINDOW = [8, 12]; // game s from a mistake to what it costs
 const INTERN_LATE = [5, 15]; // game s a slow reaction holds an order back
@@ -3631,7 +3632,7 @@ function checkWakeTrail(airborne) {
          orders from the intern until you give it one (a fix) or the cost comes. When nothing fits, the mistake is a slow
          reaction: an order held back INTERN_LATE game s.
    ===================================================================================================================== */
-const freshIntern = () => ({cool: new Map(), lapses: new Map(), held: [], thinkIn: Math.random() * INTERN_THINK_EVERY, mistakeIn: 0});
+const freshIntern = () => ({cool: new Map(), lapses: new Map(), yours: new Map(), held: [], thinkIn: Math.random() * INTERN_THINK_EVERY, mistakeIn: 0});
 const nextMistakeIn = () => (-Math.log(1 - Math.random()) * INTERN_MISTAKE_EVERY) / (rules.mistakeRate || 1);
 const randomIn = ([low, high]) => low + Math.random() * (high - low);
 // one tick of an intern: lapses that are over, held orders, a mistake when one is due, else the next order
@@ -3651,7 +3652,8 @@ function internTick(seconds) {
   for (const held of [...intern.held])
     if ((held.at -= seconds) <= 0) {
       intern.held.splice(intern.held.indexOf(held), 1);
-      if (planeNamed(held.words[0]) && !intern.lapses.has(held.words[0])) executeOrder(held.words);
+      if (planeNamed(held.words[0]) && !intern.lapses.has(held.words[0]) && !((intern.yours.get(held.words[0]) || 0) > game.time))
+        executeOrder(held.words);
     }
   intern.mistakeIn -= seconds;
   if (intern.mistakeIn <= 0 && quietMistake(soonest)) intern.mistakeIn = nextMistakeIn();
@@ -3660,6 +3662,7 @@ function internTick(seconds) {
   const decision = decide();
   if (!decision) return;
   const [words, , kind] = decision;
+  if ((intern.yours.get(words[0]) || 0) > game.time) return; // the supervisor just gave that plane an order: it stands
   if (intern.mistakeIn <= 0 && orderMistake(words, kind, soonest)) {
     intern.mistakeIn = nextMistakeIn();
     return;
@@ -4948,7 +4951,10 @@ function runOne(typed, later) {
   reply[0] === '!' ? sound.err() : plane ? sound.radio() : sound.ok();
   if (plane && reply[0] !== '!') {
     typing.lastPlane = plane.name;
-    if (game.intern) fixLapse(plane);
+    if (game.intern) {
+      fixLapse(plane);
+      game.intern.yours.set(plane.name, game.time + INTERN_LEAVES_YOUR_PLANE_SECONDS);
+    }
     if (later) plane.then = plane.name + ' ' + later;
   }
   const readAs = parsed.words.map(shortWayUpper).join(' '),
