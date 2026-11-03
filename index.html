@@ -52,7 +52,7 @@ main{flex:1;min-height:0;display:flex}
 #guide dd b{color:var(--gold);font-weight:400} #guide dt.all{grid-column:1/-1}
 #ready{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12.5px}
 #ready b{font-weight:500;padding:1px 9px;border-radius:99px;background:rgba(242,201,76,.08);border:1px solid rgba(242,201,76,.35)} #ready .busy{color:#f2a03c}
-#hist{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:7px;padding:10px 0;overflow:hidden;min-height:0;border-top:1px solid var(--line);margin-top:8px}
+#term.between :is(#guide,.srow){display:none} #hist{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:7px;padding:10px 0;overflow:hidden;min-height:0;border-top:1px solid var(--line);margin-top:8px}
 #hist .h{line-height:1.35} #hist .c{color:var(--fg)} #hist .c::before{content:'› ';color:var(--acc)} #hist .r{color:var(--dim);font-size:12.5px;padding-left:16px} #hist .bad .r{color:var(--bad)}
 #hint{min-height:2.6em;color:var(--acc);font-size:13px;line-height:1.4;padding:8px 0 2px;border-top:1px solid var(--line)}
 #out{min-height:1.3em;color:var(--dim);font-size:13px;padding-bottom:8px} #out.bad{color:var(--bad)}
@@ -350,8 +350,10 @@ const TYPE_MIX = {light: 0.22, bizjet: 0.13, jet: 0.36, heavy: 0.12, cargo: 0.1,
 const SPAWN_EDGE_INSET = 6; // px: new planes appear this far inside the edge of your area
 const ARRIVAL_AIM_SPREAD_DEG = 40; // a new arrival heads at the airport, up to half this many degrees off either way
 const OVERFLIGHT_AIM_SPREAD = 200; // px: an overflight aims at a point up to half this far from the airport centre, either way
-const SPAWN_TRIES = 40; // how many random edge points to try for a new plane before taking the last one
-const SPAWN_CLEAR_DISTANCE = 180; // px: a new plane prefers an edge point at least this far from every plane in the air
+const SPAWN_TRIES = 40; // how many random edge points to try for a new plane before taking the roomiest of them
+const SPAWN_CLEAR_DISTANCE = 180, // px: a new plane prefers an edge point at least this far from every plane in the air
+  SPAWN_LOOK_AHEAD_SECONDS = 20, // ... now and over this many seconds, both flying straight on (else the roomiest point)
+  SPAWN_INBOUND_KT = 250; // the speed that look-ahead assumes for the new plane, flying straight at the airport
 const TRAFFIC_LONGEST_GAP = 120; // game s: never longer than this between two new planes
 const OVERFLIGHT_SHARE = 0.22; // once overflights are on: a share of the new planes that are overflights
 const DEPARTURE_SHARE = 0.38; // the share of new planes that are departures (a random roll below this)
@@ -1817,6 +1819,24 @@ function stormInSlice(bearing) {
     });
   });
 }
+// how much room a new plane would have entering at compass bearing b (degrees) and flying inbound: the closest any plane
+// in the air comes to it over the next SPAWN_LOOK_AHEAD_SECONDS, both flying straight on (px)
+function roomAtEdge(bearing) {
+  const angle = degreesToRadians(bearing),
+    x = AIRPORT_X + Math.cos(angle) * areaRadius,
+    y = AIRPORT_Y + Math.sin(angle) * areaRadius,
+    inboundX = -Math.cos(angle) * SPAWN_INBOUND_KT * PX_PER_KT,
+    inboundY = -Math.sin(angle) * SPAWN_INBOUND_KT * PX_PER_KT;
+  let room = Infinity;
+  for (const plane of game.planes) {
+    if (onGround(plane)) continue;
+    const velocityX = Math.cos(plane.heading) * plane.speed,
+      velocityY = Math.sin(plane.heading) * plane.speed;
+    for (let t = 0; t <= SPAWN_LOOK_AHEAD_SECONDS; t += 1)
+      room = Math.min(room, Math.hypot(plane.x + velocityX * t - x - inboundX * t, plane.y + velocityY * t - y - inboundY * t));
+  }
+  return room;
+}
 // an arrival or overflight enters at a random point of the edge, away from other traffic if it can, and never through a
 // slice with a storm in it; false when every slice has one (try again later)
 function spawnPlane(kind, typeName) {
@@ -1824,14 +1844,17 @@ function spawnPlane(kind, typeName) {
     spawnDeparture(Object.keys(HEADINGS)[(trafficRandom() * 8) | 0]);
     return true;
   }
-  let spot = null;
+  let spot = null,
+    spotRoom = -1;
   for (let attempt = 0; attempt < SPAWN_TRIES; attempt++) {
-    const bearing = trafficRandom() * 360,
-      x = AIRPORT_X + Math.cos(degreesToRadians(bearing)) * areaRadius,
-      y = AIRPORT_Y + Math.sin(degreesToRadians(bearing)) * areaRadius;
+    const bearing = trafficRandom() * 360;
     if (stormInSlice(bearing)) continue;
-    spot = bearing;
-    if (!game.planes.some(plane => !onGround(plane) && Math.hypot(plane.x - x, plane.y - y) < SPAWN_CLEAR_DISTANCE)) break;
+    const room = roomAtEdge(bearing);
+    if (room > spotRoom) {
+      spot = bearing;
+      spotRoom = room;
+    }
+    if (room >= SPAWN_CLEAR_DISTANCE) break;
   }
   if (spot === null) return false;
   kind === 'ovf' ? spawnOverflight(spot) : spawnArrival(spot, typeName);
@@ -7792,10 +7815,10 @@ function reviewHtml() {
       .sort((first, second) => second[1] - first[1]),
     gradeShown = shownTotal >= shift.total,
     rows = [
-      ['planes', `${shift.handled} · ${Math.round(shift.onTimeShare * 100)}% on time`],
+      ['planes', shift.handled ? `${shift.handled} · ${Math.round(shift.onTimeShare * 100)}% on time` : '0'],
       ...(shift.bestStreak > 1 ? [['best streak', `×${shift.bestStreak}`]] : []),
       ...shift.lines.map(line => [escapeHtml(line.label), money(line.amount)]),
-      ...shift.log.map(label => ['<i class="x">✕</i>', `<i class="x">${escapeHtml(label)}</i>`]),
+      ...countedLines(shift.log).map(label => ['<i class="x">✕</i>', `<i class="x">${escapeHtml(label)}</i>`]),
     ];
   const glowing = Object.fromEntries(contributions.map(([id], i) => [id, i]));
   return `<div class="${career.tattoos.length ? 'cols' : ''}">${career.tattoos.length ? `<div>${skinHtml({glowing, onlyInked: true})}</div>` : ''}<div class="col">
@@ -7810,6 +7833,12 @@ function reviewHtml() {
     <small>${shift.fired ? escapeHtml(shift.fired) : shift.sentHome ? escapeHtml(shift.sentHome) : gradeText()}</small>
     <div class="cash">cash <b>${money(career.cash)}</b> · rent ${money(rentNow())}</div>
     ${button('next', 'Enter')}</div></div>`;
+}
+// the same line more than once becomes one line with a count ("the supervisor took robin ×3"), in first-seen order
+function countedLines(lines) {
+  const counts = new Map();
+  for (const line of lines) counts.set(line, (counts.get(line) || 0) + 1);
+  return [...counts].map(([line, count]) => (count > 1 ? `${line} ×${count}` : line));
 }
 const contributionName = id => (TATTOOS[id] ? TATTOOS[id].name : STYLES[id] ? STYLES[id].name + ' mark' : {streak: 'streak', salary: 'salary', supervisor: 'supervisor', double: 'double favour'}[id] || id);
 function gradeText() {
@@ -8054,7 +8083,9 @@ function updatePanels() {
       ? 'tutorial'
       : game.admin
         ? `admin${game.sweep ? ` · sweep ${game.sweep.log.length + 1}/${game.sweep.log.length + game.sweep.list.length + 1}` : ''}`
-        : careerShift && career.phase !== 'shift'
+        : careerShift && career.ended
+          ? 'career over'
+          : careerShift && career.phase !== 'shift'
           ? `${airportNow().name} · week ${career.week}`
           : careerShift
           ? `${airportNow().name} · week ${career.week} · ${Math.min(SHIFTS_PER_WEEK, career.shiftOfWeek + 1)}/${SHIFTS_PER_WEEK} · ${clock > 0 ? formatTime(clock) : 'handover'}`
@@ -8063,7 +8094,7 @@ function updatePanels() {
   const streak = game.streak > 1 && !game.over ? ` · <b style="background:#ff7a45;color:#04140b">×${game.streak} streak</b>` : '';
   writeHtml(
     elementById('todo'),
-    moneyHtml(!careerShift
+    moneyHtml(!careerShift || career.ended
       ? ''
       : `shift <b style="${bumpStyle(bumpedAt.score, '#86d48a')}">${formatMoney(shown.score)}</b>${streak} · cash ${formatMoney(career.cash)} · rent ${formatMoney(rentNow())}${career.favours.length ? ` · <span class="fav">${career.favours.join(' ')}</span>` : ''}${shift.groundstop > 0 ? ` · groundstop ${Math.ceil(shift.groundstop)}` : ''}`),
   );
@@ -8083,6 +8114,7 @@ function updatePanels() {
   const betweenShifts = career && career.phase !== 'shift' && !game.practice && !game.admin && !game.tutorial && (career.phase !== 'review' || overScreenUp());
   const show = betweenShifts || game.paused || (game.over && (game.practice || game.admin) && overScreenUp());
   overlay.style.display = show ? 'grid' : 'none';
+  terminalEl.classList.toggle('between', betweenShifts); // between shifts the terminal drops the order guide and the lists
   // the notes go where they cover nothing: over the radar during a shift, in the terminal above the hint between shifts
   if (show && toastEl.parentElement !== terminalEl) terminalEl.insertBefore(toastEl, hintEl);
   if (!show && toastEl.parentElement !== viewEl) viewEl.insertBefore(toastEl, overlay);
