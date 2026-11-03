@@ -7928,7 +7928,7 @@ function weekHtml() {
   const choices = career.soulDue
     ? (career.canRetire ? button('retire', '<b>retire</b><small>keep your soul</small>', ' card gold') : '') +
       button('collect', '<b>the devil collects</b><small>your soul was due this week</small>', ' card blood')
-    : (career.canRetire ? button('retire', `<b>retire</b><small>${formatTime(career.playSeconds)}</small>`, ' card gold') : '') +
+    : (career.canRetire ? button('retire', `<b>retire</b><small>after ${formatTime(career.playSeconds)} played</small>`, ' card gold') : '') +
       button('next', `<b>${career.canRetire ? 'keep working' : 'next week'}</b>`, ' card');
   return `<h1>week ${career.week - 1} done</h1><div class="tally">${rows.map(([label, value]) => `<span>${label}</span><span>${value}</span>`).join('')}</div><div class="cards">${choices}</div>`;
 }
