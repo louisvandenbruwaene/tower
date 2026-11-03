@@ -8157,7 +8157,7 @@ function updatePanels() {
           : careerShift && career.phase !== 'shift'
           ? `${airportNow().name} · week ${career.week}`
           : careerShift
-          ? `${airportNow().name} · week ${career.week} · ${Math.min(SHIFTS_PER_WEEK, career.shiftOfWeek + 1)}/${SHIFTS_PER_WEEK} · ${clock > 0 ? formatTime(clock) : 'handover'}`
+          ? `${airportNow().name} · week ${career.week} · ${Math.min(SHIFTS_PER_WEEK, career.shiftOfWeek + 1)}/${SHIFTS_PER_WEEK} · ${clock > 0 ? formatTime(clock) : `handover ${formatTime(Math.max(0, SHIFT_SECONDS + SHIFT_HANDOVER_SECONDS - worlds[0].game.time))}`}`
           : 'practice',
   );
   if (nameChanged) fitCorners();
