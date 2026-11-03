@@ -2550,7 +2550,18 @@ const stormOverCircle = circleName =>
 const hasTailwind = circleName => tailwindFor(CIRCLES[circleName].landHeading);
 const circleOpen = circleName => !stormOverCircle(circleName) && !hasTailwind(circleName);
 const whyClosed = circleName =>
-  stormOverCircle(circleName) ? 'a storm is over it' : `the wind is from the ${windWord()}: land heading ${windWord()}`;
+  stormOverCircle(circleName) ? 'a storm is over it' : `wind from the ${windWord()}, planes land heading ${windWord()}`;
+// the closed circles grouped by reason, each reason once: "east and east 2 closed: wind from the E · southwest closed: storm"
+function closedCirclesText() {
+  const closed = Object.keys(CIRCLES).filter(circleName => !circleOpen(circleName)),
+    list = names => names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0],
+    stormy = closed.filter(stormOverCircle),
+    windy = closed.filter(circleName => !stormOverCircle(circleName));
+  return [
+    windy.length && `${list(windy)} closed: wind from the ${windWord()}`,
+    stormy.length && `${list(stormy)} closed: storm`,
+  ].filter(Boolean).join(' · ');
+}
 // the landing circle a plane is inside, if any
 const circleAt = plane =>
   Object.keys(CIRCLES).find(
@@ -4642,10 +4653,7 @@ function hintFor(name) {
   return `${fuel}${plane.name} must fly into ${
     Object.keys(CIRCLES).every(circleOpen)
       ? 'a landing circle'
-      : `the ${circleToFly} landing circle (${Object.keys(CIRCLES)
-          .filter(circleName => !circleOpen(circleName))
-          .map(circleName => `${circleName}: ${whyClosed(circleName)}`)
-          .join(', ')})`
+      : `the ${circleToFly} landing circle (${closedCirclesText()})`
   } → ${plane.name} turn ${shortWayUpper(way)}`;
 }
 
