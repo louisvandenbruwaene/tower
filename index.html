@@ -1357,7 +1357,25 @@ const META_KEY = 'tower-career-meta',
 const freshMeta = () => ({careers: 0, points: 0, skills: {}, milestones: {}, bestRetireSeconds: null, bestWeeks: 0});
 let meta = {...freshMeta(), ...loadJson(META_KEY, {})},
   career = loadJson(CAREER_KEY, null);
-  if (career) career.kit ||= [];
+// a saved career that cannot be played on (broken, or from a much older version) is kept aside under its own key and
+// left out, so the game always starts
+const careerLooksPlayable = saved =>
+  !!saved && typeof saved === 'object' && !Array.isArray(saved) && !!AIRPORTS[saved.airport] && !!RANKS[saved.rank] &&
+  typeof saved.phase === 'string';
+// a saved career from before a field existed gets that field's new-career value (careerTemplate, § 15)
+function fillMissingCareerFields(saved) {
+  const template = careerTemplate(!!saved.daily, Math.random, false);
+  for (const [field, value] of Object.entries(template)) if (saved[field] === undefined || saved[field] === null && value !== null) saved[field] = value;
+  for (const field of ['stats', 'open']) saved[field] = {...template[field], ...saved[field]};
+  if (!Array.isArray(saved.offers)) saved.offers = [];
+}
+function setAsideCareer() {
+  storage(CAREER_KEY + '-set-aside', storage(CAREER_KEY) || '');
+  storage(CAREER_KEY, '');
+  career = null;
+}
+if (career && !careerLooksPlayable(career)) setAsideCareer();
+if (career) fillMissingCareerFields(career);
 const saveGame = () => {
   storage(META_KEY, JSON.stringify(meta));
   if (career && !career.daily) storage(CAREER_KEY, JSON.stringify(career));
@@ -7332,10 +7350,9 @@ function reachMilestone(id) {
 }
 
 /* --- the career: starting one, the end of a shift --------------------------------------------------------------------- */
-function newCareer(daily = false) {
-  const random = daily ? seededRandom(hashText('daily:' + todayDate())) : Math.random;
-  if (!daily) meta.careers++;
-  career = {
+// a new career's fields; also what an old save is filled up with (skills: false when read at load, before they exist)
+function careerTemplate(daily, random, skills = true) {
+  return {
     v: 1,
     daily,
     seed: daily ? 'daily:' + todayDate() : String(Math.random()),
@@ -7343,7 +7360,7 @@ function newCareer(daily = false) {
     playSeconds: 0,
     week: 1,
     shiftOfWeek: 0,
-    cash: hasSkill('rentpaid') && !daily ? RENT_WEEK_ONE : 0,
+    cash: skills && hasSkill('rentpaid') && !daily ? RENT_WEEK_ONE : 0,
     airport: FIRST_AIRPORTS[(random() * FIRST_AIRPORTS.length) | 0],
     season: 'quiet',
     rank: meta.careers <= INTERN_CAREERS && !daily ? 'intern' : 'controller',
@@ -7358,7 +7375,7 @@ function newCareer(daily = false) {
     newest: null,
     blood: 0,
     sacrifices: {},
-    open: {neck: hasSkill('neckopen') && !daily, back: false},
+    open: {neck: skills && hasSkill('neckopen') && !daily, back: false},
     favours: [],
     marks: 0,
     skull: 0,
@@ -7367,12 +7384,17 @@ function newCareer(daily = false) {
     bestLevel: 0,
     rankBeforeFiring: null,
     devilVisits: 0,
-    rentFree: hasSkill('rentpaid') && !daily,
+    rentFree: skills && hasSkill('rentpaid') && !daily,
     milestonesNow: [],
     stats: {planes: 0, earned: 0, airports: [], fixes: 0},
     queue: [],
     phase: 'shift',
   };
+}
+function newCareer(daily = false) {
+  const random = daily ? seededRandom(hashText('daily:' + todayDate())) : Math.random;
+  if (!daily) meta.careers++;
+  career = careerTemplate(daily, random);
   career.stats.airports.push(career.airport);
   career.bestLevel = RANKS[career.rank].level;
   if (hasSkill('freetattoo') && !daily) {
@@ -8266,6 +8288,8 @@ function resumeCareer() {
   }
   if (career.phase === 'review') careerNext();
   if (career.phase === 'devil' && !career.devil) openDevil();
+  if (career.phase === 'shop' && !career.shop?.kit) openShop(); // a screen saved without its content gets it again
+  if (career.phase === 'jobs' && !career.offers.length) career.offers = jobOffers();
 }
 
 /* =====================================================================================================================
@@ -8388,7 +8412,15 @@ speedButton.addEventListener('click', event => {
 showSpeed();
 addEventListener('keydown', sound.init, true);
 addEventListener('mousedown', sound.init, true);
-resumeCareer();
+try {
+  resumeCareer();
+} catch (error) {
+  // a save that passed the check but still cannot be resumed: set it aside and start a new career (skills are kept)
+  setAsideCareer();
+  worlds = [];
+  worldNow = null;
+  newCareer();
+}
 document.getElementById('actable').innerHTML = aircraftSheet();
 for (const page of HELP_PAGES) page.innerHTML = moneyHtml(page.innerHTML); // amounts in the help card as banknotes
 addEventListener('resize', resize);
