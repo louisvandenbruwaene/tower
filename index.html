@@ -97,18 +97,23 @@ main{flex:1;min-height:0;display:flex}
 #over .shelves{display:flex;gap:22px;margin-top:6px} #over .shelf>small{text-transform:uppercase;letter-spacing:.14em;font-size:11px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
 #over .shelf .rack{display:flex;gap:10px;padding:8px;margin:-8px} #over .shelf:first-child{flex:3} #over .shelf:last-child{flex:2}
 #over .pip{display:inline-block;width:8px;height:8px;transform:rotate(45deg);border:1.5px solid var(--blue);margin-left:2px} #over .pip.on{background:var(--blue)}
-#over .ware{--tone:var(--gold);flex:1;min-width:0;height:196px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding:14px 8px 10px;border-radius:12px;border-color:color-mix(in srgb,var(--tone) 28%,var(--line));background:linear-gradient(color-mix(in srgb,var(--tone) 9%,#0a1711),#08130e 70%);transition:transform .12s,border-color .12s,box-shadow .12s}
-#over .ware.favour{--tone:var(--blue)} #over .ware .icon{width:46px;height:46px;flex:none;margin-bottom:4px;fill:none;stroke:var(--tone);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 6px color-mix(in srgb,var(--tone) 45%,transparent))}
-#over .ware>b{font-size:14px;color:var(--fg);line-height:1.2} #over .ware .fx{font-size:12px;color:var(--dim);line-height:1.35} #over .ware .fx.catch{color:var(--bad)}
-#over .ware>em{float:none;margin:auto 0 0;font-size:15px} #over .ware.poor>em,#over .ware.poor>em b{color:var(--bad)} #over .ware.poor .icon,#over .ware.full .icon{opacity:.45}
-#over .ware.sel{border-color:var(--tone);transform:translateY(-6px) scale(1.03);box-shadow:0 10px 24px rgba(0,0,0,.5),0 0 0 1px var(--tone),0 0 22px color-mix(in srgb,var(--tone) 25%,transparent)}
-#over .ware.sold{border:2px dashed var(--line);background:none;justify-content:center;box-shadow:none} #over .ware .icon.gone{opacity:.15;stroke:var(--dim);filter:none}
-#over b.mult{font-size:11.5px;font-weight:700;color:#2a0d08;background:#ff8a5c;border-radius:4px;padding:0 4px;white-space:nowrap} #over .ware .fx b.money{color:#86d48a}
-#over .screen.shop>p.detail{height:2.9em;margin:12px auto 0;max-width:none;text-align:center;color:var(--fg);font-size:13.5px;overflow:hidden}
+#over .tile{--tone:var(--acc);flex:1;min-width:0;min-height:150px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding:14px 8px 10px;border-radius:12px;border-color:color-mix(in srgb,var(--tone) 28%,var(--line));background:linear-gradient(color-mix(in srgb,var(--tone) 9%,#0a1711),#08130e 70%);transition:transform .12s,border-color .12s,box-shadow .12s}
+#over .shop .tile{height:196px} #over .tile:is(.kit,.gold){--tone:var(--gold)} #over .tile:is(.favour,.blue){--tone:var(--blue)} #over .tile.blood{--tone:#e0443a} #over .tile.dim{--tone:var(--dim)} #over .tile .icon{width:46px;height:46px;flex:none;margin-bottom:4px;fill:none;stroke:var(--tone);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 6px color-mix(in srgb,var(--tone) 45%,transparent))}
+#over .tile>b{font-size:14px;color:var(--fg);line-height:1.2} #over .tile .fx{font-size:12px;color:var(--dim);line-height:1.35} #over .tile .fx.catch{color:var(--bad)}
+#over .tile>em{float:none;margin:auto 0 0;font-size:15px} #over .tile.poor>em,#over .tile.poor>em b{color:var(--bad)} #over .tile.poor .icon,#over .tile.full .icon{opacity:.45}
+#over .tile.sel{border-color:var(--tone);transform:translateY(-6px) scale(1.03);box-shadow:0 10px 24px rgba(0,0,0,.5),0 0 0 1px var(--tone),0 0 22px color-mix(in srgb,var(--tone) 25%,transparent)}
+#over .tile.sold{border:2px dashed var(--line);background:none;justify-content:center;box-shadow:none} #over .tile .icon.gone{opacity:.15;stroke:var(--dim);filter:none}
+#over b.mult{font-size:11.5px;font-weight:700;color:#2a0d08;background:#ff8a5c;border-radius:4px;padding:0 4px;white-space:nowrap} #over .tile .fx b.money{color:#86d48a}
+#over :is(.screen,.col)>p.detail{height:2.9em;margin:12px auto 0;max-width:none;text-align:center;color:var(--fg);font-size:13.5px;overflow:hidden}
 #over .shopfoot{display:flex;align-items:center;gap:10px;margin-top:6px} #over .owned{display:flex;flex-wrap:wrap;gap:4px;margin-right:auto}
 #over .owned .icon{width:22px;height:22px;fill:none;stroke:var(--gold);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.75}
 #over .iconbtn{display:flex;align-items:center;gap:8px} #over .iconbtn .icon{width:18px;height:18px;fill:none;stroke:var(--fg);stroke-width:2;stroke-linecap:round;stroke-linejoin:round} #over .iconbtn em{margin:0}
-#over .iconbtn{height:40px;box-sizing:border-box;font-weight:600} #over .iconbtn.ahead .icon{fill:var(--acc);stroke:var(--acc)}
+#over .iconbtn{height:40px;box-sizing:border-box;font-weight:600} #over .tiles{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:12px} #over .tiles>.tile{flex:1 1 150px;max-width:230px}
+#over .tile.plain{border:2px solid color-mix(in srgb,var(--tone) 28%,var(--line));cursor:default} #over .tile .pair .btn{padding:4px 8px;font-size:12px} #over .tile.sketch{align-items:center} #over .tile .art{width:64px;height:64px;flex:none;fill:none;stroke-linecap:round;stroke-linejoin:round} #over .tile .art path{stroke:#c9a184;stroke-width:4} #over .tile .tag{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--blue)} #over .tile .stars{color:var(--gold);letter-spacing:.15em;font-size:13px}
+#over .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px;margin-top:10px} #over .stats>div{padding:8px 10px;border-radius:9px;background:#0a1711;border:1px solid var(--line)}
+#over .stats small{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase} #over .stats b{font-size:17px;color:var(--fg)}
+#over .goal{height:8px;border-radius:4px;background:#0a1711;border:1px solid var(--line);margin-top:12px;overflow:hidden} #over .goal i{display:block;height:100%;background:linear-gradient(90deg,#86d48a,var(--gold))}
+#over .iconbtn.ahead .icon{fill:var(--acc);stroke:var(--acc)}
 #over .devil{--blood:#c42a20} #over .devil .btn{background:#140806;border-color:#3d1410;box-shadow:0 3px 0 #070202} #over .devil .btn.sel{border-color:#ff6b5e}
 #over .sketch{align-items:flex-start} #over .sketch .art{width:64px;height:64px} #over .sketch .art path{stroke:#c9a184;stroke-width:4} #over .rar{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
 #over .rar.u{color:var(--blue)} #over .rar.r{color:var(--gold)} #over .rar.l{color:#ff7ab8} #over .catch{color:#ff8a7e}
@@ -549,7 +554,8 @@ const SOUL_DUE_WEEK = 4; // the Soul Contract: the devil collects at the end of 
 const SUPERVISOR_SAVE_SHARE = 0.15; // an intern's crash caught by the supervisor costs this share of the shift's pay
 const SUPERVISOR_SAVE_FREEZE = 1.4; // real s the radar stands still while the supervisor steps in
 const SUPERVISOR_WATCH_EVERY = 1; // game s between the supervisor's looks at an intern's radar
-const SUPERVISOR_STEP_IN_SECONDS = 12; // he steps in when two planes would touch within this many game s (or one hits a storm)
+const SUPERVISOR_STEP_IN_SECONDS = 6; // he steps in only when two planes would touch within this many game s: the last moment his order still works
+const SUPERVISOR_STORM_SECONDS = 5; // ... or a plane would fly into a storm cell (or closed airspace) within this many game s
 const SUPERVISOR_EDGE_MARGIN = 45; // ... or an arrival is this close (px) to the edge and flying out
 const SUPERVISOR_STEP_IN_SHARE = 0.03; // each time he gives an order himself it costs this share of the shift's plane pay
 const SUPERVISOR_BASE_PLANES = 8; // a supervisor's salary: this many of the airport's average fares, times the rank's base and the tier's pay
@@ -642,11 +648,11 @@ const DEVIL_EVERY_WEEKS = 2; // the devil comes at the end of every 2nd week: ta
 const SHOP_KIT_CARDS = 3, // kit for sale after each shift
   SHOP_FAVOUR_CARDS = 2; // favours for sale after each shift
 const RESTOCK_SHARE = 0.04; // restocking the shop costs this share of the rent (Coupon: half)
-/* each shop card's icon (24x24 strokes; 'c x y r' is a circle) and its short line: a few words and the numbers. '+0.5×' is
+/* the icons on the cards between shifts (24x24 strokes; 'c x y r' is a circle), and for the shop's cards a short line: a few words and the numbers. '+0.5×' is
    a Mult chip, ¤ money, '!' starts the catch. The card's full sentence (TATTOOS[].gives, FAVOURS[].what) shows only under
    the selected card. */
 // prettier-ignore
-const SHOP_ICONS = {
+const UI_ICONS = {
   cleansheet:     [['M6 4h12v17H6z', 'M9 4V2h6v2', 'M9 13l2 2 4-5'],                        'streak plane ¤100'],
   stopwatch:      [['c 12 14 7', 'M12 14v-4', 'M10 3h4', 'M12 3v4', 'M18 7l1.5-1.5'],       'under par +0.5×'],
   greenlight:     [['M3 20h18', 'M4 16l14-8', 'M14 6l4 2-2 4'],                             'departure +0.5×'],
@@ -676,6 +682,22 @@ const SHOP_ICONS = {
   double:         [['M4 9h11v11H4z', 'M9 4h11v11'],                                          'one plane pays ×2'],
   tailwind:       [['M3 8h11a3 3 0 1 0-3-3', 'M3 12h15a3 3 0 1 1-3 3', 'M3 16h7'],          'all planes +20% speed 30 s'],
   restock:        [['M20 12a8 8 0 1 1-2.3-5.7', 'M20 3v4h-4']],
+  airport:        [['M10 21l1-11h2l1 11', 'M7 10h10l-1.5-4h-7z', 'M12 6V3', 'M5 21h14']],
+  stay:           [['M4 11l8-7 8 7', 'M6 10v10h12V10', 'M10 20v-5h4v5']],
+  rank:           [['M6 9l6-4 6 4', 'M6 14l6-4 6 4', 'M6 19l6-4 6 4']],
+  screens:        [['M3 5h8v6H3z', 'M13 5h8v6h-8z', 'M3 13h8v6H3z', 'M13 13h8v6h-8z']],
+  decline:        [['c 12 12 9', 'M8 12h8']],
+  cash:           [['M3 7h18v10H3z', 'c 12 12 2.5', 'M6 10v4', 'M18 10v4']],
+  sketch:         [['M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11z']],
+  retire:         [['c 12 12 4', 'M12 3v2', 'M12 19v2', 'M3 12h2', 'M19 12h2', 'M5.6 5.6L7 7', 'M17 17l1.4 1.4', 'M5.6 18.4L7 17', 'M17 7l1.4-1.4']],
+  career:         [['M21 4L3 11l7 2 2 7z', 'M10 13L21 4']],
+  daily:          [['M4 6h16v14H4z', 'M4 10h16', 'M8 3v4', 'M16 3v4']],
+  collect:        [['M5 11a7 7 0 0 1 14 0v4h-3v4H8v-4H5z', 'c 9.5 11 1.5', 'c 14.5 11 1.5']],
+  skills:         [['c 5 12 2', 'c 19 5 2', 'c 19 12 2', 'c 19 19 2', 'M7 12h10', 'M7 12c5 0 5-7 10-7', 'M7 12c5 0 5 7 10 7']],
+  back:           [['M15 5l-7 7 7 7']],
+  burn:           [['M12 3c1 4 6 6 6 11a6 6 0 0 1-12 0c0-3 2-4 3-6 1 2 2 3 3 3 0-3-1-5 0-8z']],
+  open:           [['M6 11h12v10H6z', 'M8 11V7a4 4 0 0 1 8 0']],
+  leave:          [['M6 3h10v18H6z', 'c 13 12 1']],
   next:           [['M7 4l12 8-12 8z']],
 };
 const BANKRUPT_CONFIRM_SECONDS = 3; // 'declare bankruptcy' asks 'sure?' and waits this long for the second click
@@ -2069,7 +2091,7 @@ function supervisorWatch(seconds) {
     urgent = new Set();
   for (const a of air)
     for (const b of air) if (a !== b && meetsAt(a, b, a.targetLevel, b.targetLevel, SUPERVISOR_STEP_IN_SECONDS) !== null) urgent.add(a.name);
-  for (const plane of air) if (stormAhead(plane)) urgent.add(plane.name);
+  for (const plane of air) if (stormAhead(plane, undefined, SUPERVISOR_STORM_SECONDS)) urgent.add(plane.name);
   for (const plane of air)
     if (plane.kind === 'arr' && plane.state === 'fly' && distanceFromAirport(plane) > areaRadius - SUPERVISOR_EDGE_MARGIN &&
         Math.cos(plane.targetHeading - Math.atan2(plane.y - AIRPORT_Y, plane.x - AIRPORT_X)) > 0)
@@ -3917,10 +3939,10 @@ const levelCmd = (plane, level) =>
       ? [plane.name, 'descend']
       : [plane.name, level > plane.targetLevel ? 'ascend' : 'descend', LEVEL_NAMES[level]];
 // would this plane, flying straight on (or that way), run into a storm cell in the next 14 s
-const stormAhead = (plane, d) => {
+const stormAhead = (plane, d, horizon = 14) => {
   const otherPlane = d ? {...plane, state: 'fly', targetHeading: degreesToRadians(HEADINGS[d])} : plane;
   return [...game.storms, ...game.zones.map(zone => ({x: zone.x, y: zone.y, radius: zone.r, vx: 0, vy: 0}))].some(s => {
-    for (let t = 0; t <= 14; t++) {
+    for (let t = 0; t <= horizon; t++) {
       const [x, y, , r] = future(otherPlane, t);
       if (Math.hypot(x - s.x - s.vx * t, y - s.y - s.vy * t) < s.radius + 14 + r) return true;
     }
@@ -7874,23 +7896,32 @@ function shopChoose(key) {
   sound.tab();
   saveGame();
 }
-// a shop icon as inline SVG (SHOP_ICONS), stroked in the card's colour
-const shopIcon = (id, extra = '') =>
-  `<svg class="icon${extra}" viewBox="0 0 24 24">${(SHOP_ICONS[id]?.[0] || []).map(stroke => `<path d="${artPath(stroke)}"/>`).join('')}</svg>`;
+// a shop icon as inline SVG (UI_ICONS), stroked in the card's colour
+const uiIcon = (id, extra = '') =>
+  `<svg class="icon${extra}" viewBox="0 0 24 24">${(UI_ICONS[id]?.[0] || []).map(stroke => `<path d="${artPath(stroke)}"/>`).join('')}</svg>`;
 // a card's short line: Mult numbers ('+0.5×', '×2') become chips, the part after '!' is the catch
-function shopShortHtml(id) {
-  const [gain, catchText] = (SHOP_ICONS[id]?.[1] || '').split('!'),
+function shortLineHtml(id) {
+  const [gain, catchText] = (UI_ICONS[id]?.[1] || '').split('!'),
     chips = text => escapeHtml(text.replace(/(\d) s\b/g, '$1\u00a0s')).replace(/([+−-]?[\d.]+×|×\d+)/g, '<b class="mult">$1</b>');
   return `<span class="fx">${chips(gain.trim())}</span>${catchText ? `<span class="fx catch">${chips(catchText.trim())}</span>` : ''}`;
 }
+// a card between shifts: an icon (or a tattoo's art), a name, short lines, something at its foot. tone: its colour
+const tile = (key, {icon, art = '', title, lines = '', foot = '', tone = ''}) =>
+  button(key, `${art || uiIcon(icon)}<b>${title}</b>${lines}${foot ? `<em>${foot}</em>` : ''}`, ` tile ${tone}`);
+const tiles = cards => `<div class="tiles">${cards.join('')}</div>`;
+// the line under the cards: the selected card's full sentence (a fixed height, so nothing moves while choosing)
+const detailHtml = sentences => `<p class="detail">${escapeHtml(sentences[screenState.choice] || '')}</p>`;
+// numbers shown as small tiles, not as a table
+const statsHtml = rows => `<div class="stats">${rows.map(([label, value]) => `<div><small>${label}</small><b>${value}</b></div>`).join('')}</div>`;
+const pipsHtml = (filled, total) => Array.from({length: total}, (_, i) => `<i class="pip${i < filled ? ' on' : ''}"></i>`).join('');
 function shopHtml() {
   const shop = career.shop,
     slotsFull = career.favours.length >= favourSlots(),
     ware = (key, id, name, price, kind) => {
       const blocked = career.cash < price ? ' poor' : kind === 'favour' && slotsFull ? ' full' : '';
-      return button(key, `${shopIcon(id)}<b>${escapeHtml(name)}</b>${shopShortHtml(id)}<em>${costHtml(price)}</em>`, ` ware ${kind}${blocked}`);
+      return button(key, `${uiIcon(id)}<b>${escapeHtml(name)}</b>${shortLineHtml(id)}<em>${costHtml(price)}</em>`, ` tile ${kind}${blocked}`);
     },
-    sold = kind => `<div class="ware sold ${kind}">${shopIcon('next', ' gone')}</div>`;
+    sold = kind => `<div class="tile sold ${kind}">${uiIcon('next', ' gone')}</div>`;
   const kit = shop.kit.map((id, i) => (id ? ware('kit:' + i, id, TATTOOS[id].name, kitPrice(id), 'kit') : sold('kit'))),
     favours = shop.favours.map((name, i) => (name ? ware('favour:' + i, name, name[0].toUpperCase() + name.slice(1), favourPrice(name), 'favour') : sold('favour')));
   // the selected card's full sentence, in a line of fixed height under the shelves
@@ -7901,14 +7932,14 @@ function shopHtml() {
       : kind === 'kit'
         ? TATTOOS[chosen].gives + (TATTOOS[chosen].catch ? ` · but ${TATTOOS[chosen].catch}` : '')
         : FAVOURS[chosen].what + (slotsFull ? ' · your favour slots are full' : '');
-  const pips = Array.from({length: favourSlots()}, (_, i) => `<i class="pip${i < career.favours.length ? ' on' : ''}"></i>`).join(''),
-    owned = career.kit.map(id => `<span title="${escapeHtml(TATTOOS[id].name)}">${shopIcon(id)}</span>`).join('');
+  const pips = pipsHtml(career.favours.length, favourSlots()),
+    owned = career.kit.map(id => `<span title="${escapeHtml(TATTOOS[id].name)}">${uiIcon(id)}</span>`).join('');
   return `<div class="shophead"><h1>shop</h1><span class="purse">${money(career.cash)}</span></div>
     <div class="shelves"><div class="shelf"><small>kit</small><div class="rack">${kit.join('')}</div></div>
     <div class="shelf"><small>favours ${pips}</small><div class="rack">${favours.join('')}</div></div></div>
     <p class="detail">${escapeHtml(detail)}</p>
     <div class="shopfoot"><div class="owned">${owned}</div>
-    ${button('restock', `${shopIcon('restock')}<em>${costHtml(restockPrice())}</em>`, ' iconbtn')}${button('next', `${shopIcon('next')}Enter`, ' iconbtn ahead')}</div>`;
+    ${button('restock', `${uiIcon('restock')}<em>${costHtml(restockPrice())}</em>`, ' iconbtn')}${button('next', `${uiIcon('next')}Enter`, ' iconbtn ahead')}</div>`;
 }
 // choosing the place for a tattoo, then the devil draws it
 function startInking(id, free) {
@@ -8056,79 +8087,102 @@ function gradeMissed() {
 }
 function firedHtml() {
   return `<h1 class="bad">fired</h1><p>${escapeHtml(shift.fired || career.firedFor || '')}</p>
-    <div class="cards">${FIRST_AIRPORTS.map(id => button(id, `<b>${AIRPORTS[id].name}</b><small>as intern</small>`, ' card')).join('')}</div>`;
+    ${tiles(FIRST_AIRPORTS.map(id => tile(id, {icon: 'airport', title: AIRPORTS[id].name, lines: '<span class="fx">as intern</span>'})))}`;
 }
 function bonusHtml() {
-  const amount = bonusAmount();
   return `<h1 class="gold">performance bonus</h1>
-    <div class="cards">${button('cash', `<b>${money(amount)}</b><small>cash now</small>`, ' card')}${button('sketch', `<b>a rare tattoo</b><small>free</small>`, ' card blood')}</div>`;
+    ${tiles([
+      tile('cash', {icon: 'cash', title: money(bonusAmount()), lines: '<span class="fx">cash now</span>', tone: 'gold'}),
+      tile('sketch', {icon: 'sketch', title: 'rare tattoo', lines: '<span class="fx">free</span>', tone: 'blood'}),
+    ])}`;
 }
 function promotionHtml() {
   const level = rankNow().level + 1,
     options = career.rank === 'intern' ? ['controller'] : [rankAtLevel('senior', level), rankAtLevel('super', level)],
     forced = tattooStrength('snake') > 0;
-  const describe = id => {
-    const rank = RANKS[id];
+  const chips = id => {
+    const rank = RANKS[id],
+      chip = text => `<b class="mult">${text}</b>`;
     return rank.screens > 1
-      ? `${rank.screens} intern screens · salary + their planes`
-      : `pay ×${rank.pay}${rank.traffic > 1 ? ` · traffic +${Math.round((rank.traffic - 1) * 100)}%` : ''}${rank.priority ? ` · priority ×${rank.priority}` : ''}`;
+      ? `<span class="fx">${chip(rank.screens + ' screens')}</span>`
+      : `<span class="fx">pay ${chip('×' + rank.pay)}</span>${rank.traffic > 1 ? `<span class="fx">traffic ${chip('+' + Math.round((rank.traffic - 1) * 100) + '%')}</span>` : ''}${rank.priority ? `<span class="fx">priority ${chip('×' + rank.priority)}</span>` : ''}`;
   };
+  const sentences = Object.fromEntries(
+    options.map(id => [id, RANKS[id].screens > 1 ? `${RANKS[id].screens} intern screens: a salary plus their planes` : `pay ×${RANKS[id].pay}, more and harder traffic`]),
+  );
+  sentences.decline = `stay ${rankNow().name}`;
   return `<h1 class="gold">promotion</h1>
-    <div class="cards">${options.map(id => button(id, `<b>${RANKS[id].name}</b><small>${describe(id)}</small>`, ' card')).join('')}${forced ? '' : button('decline', `<b>stay ${rankNow().name}</b>`, ' card')}</div>
-`;
+    ${tiles([
+      ...options.map(id => tile(id, {icon: RANKS[id].screens > 1 ? 'screens' : 'rank', title: RANKS[id].name, lines: chips(id), tone: 'gold'})),
+      forced ? '' : tile('decline', {icon: 'decline', title: `stay ${rankNow().name}`, tone: 'dim'}),
+    ])}${detailHtml(sentences)}`;
 }
 function weekHtml() {
-  const rows = [
-    ['rent', career.weekRent ? money(-career.weekRent) : 'paid by your skill'],
-    ...(career.weekInterest ? [['Coin Purse', '+' + money(career.weekInterest)]] : []),
-    ['cash', money(career.cash)],
-    ['next rent', money(rentNow())],
-    ['retire at', money(RETIRE_WEEKS_OF_RENT * rentOfWeek(career.week - 1))],
-  ];
+  const retireAt = RETIRE_WEEKS_OF_RENT * rentOfWeek(career.week - 1),
+    stats = [
+      ['rent', career.weekRent ? money(-career.weekRent) : 'skill paid'],
+      ...(career.weekInterest ? [['Coin Purse', '+' + money(career.weekInterest)]] : []),
+      ['cash', money(career.cash)],
+      ['next rent', money(rentNow())],
+    ];
   const choices = career.soulDue
-    ? (career.canRetire ? button('retire', '<b>retire</b><small>keep your soul</small>', ' card gold') : '') +
-      button('collect', '<b>the devil collects</b><small>your soul was due this week</small>', ' card blood')
-    : (career.canRetire ? button('retire', `<b>retire</b><small>after ${formatTime(career.playSeconds)} played</small>`, ' card gold') : '') +
-      button('next', `<b>${career.canRetire ? 'keep working' : 'next week'}</b>`, ' card');
-  return `<h1>week ${career.week - 1} done</h1><div class="tally">${rows.map(([label, value]) => `<span>${label}</span><span>${value}</span>`).join('')}</div><div class="cards">${choices}</div>`;
+    ? [
+        career.canRetire ? tile('retire', {icon: 'retire', title: 'retire', lines: '<span class="fx">keep your soul</span>', tone: 'gold'}) : '',
+        tile('collect', {icon: 'collect', title: 'the devil collects', lines: '<span class="fx">your soul was due</span>', tone: 'blood'}),
+      ]
+    : [
+        career.canRetire ? tile('retire', {icon: 'retire', title: 'retire', lines: `<span class="fx">${formatTime(career.playSeconds)} played</span>`, tone: 'gold'}) : '',
+        tile('next', {icon: 'next', title: career.canRetire ? 'keep working' : 'next week'}),
+      ];
+  return `<h1>week ${career.week - 1} done</h1>${statsHtml(stats)}
+    <div class="goal"><i style="width:${Math.min(100, (100 * Math.max(0, career.cash)) / retireAt).toFixed(1)}%"></i></div>
+    <small>retire at ${money(retireAt)}</small>${tiles(choices)}`;
 }
 const formatTime = seconds => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
 function jobsHtml() {
   const wolf = tattooStrength('wolf') > 0,
-    reach = 1 + Math.floor(career.reputation / REPUTATION_PER_TIER);
+    reach = 1 + Math.floor(career.reputation / REPUTATION_PER_TIER),
+    sentences = {stay: `stay at ${airportNow().name}`};
   const offer = (job, i) => {
     const airport = AIRPORTS[job.airport],
       season = SEASONS[job.season],
-      head = `<b>${airport.name}</b><small>tier ${airport.tier} · pay ×${tierPay(airport.tier).toFixed(2)}</small>${season.what ? `<small class="season">${season.name}</small>` : ''}`;
+      lines = `<span class="stars">${'★'.repeat(airport.tier)}</span><span class="fx">pay <b class="mult">×${tierPay(airport.tier).toFixed(2)}</b></span>${season.what ? `<span class="tag">${season.name}</span>` : ''}`;
+    for (const key of wolf ? [i + ':senior1', i + ':super2'] : [i + ':controller']) sentences[key] = `${airport.name}, tier ${airport.tier}${season.what ? ' · ' + season.what : ''}`;
     return wolf
-      ? `<div class="card plain">${head}<div class="pair">${button(i + ':senior1', 'as Senior I')}${button(i + ':super2', 'as Supervisor')}</div></div>`
-      : button(i + ':controller', head, ' card');
+      ? `<div class="tile plain">${uiIcon('airport')}<b>${airport.name}</b>${lines}<div class="pair">${button(i + ':senior1', 'Senior I')}${button(i + ':super2', 'Supervisor')}</div></div>`
+      : tile(i + ':controller', {icon: 'airport', title: airport.name, lines});
   };
-  return `<h1>job board</h1><p>reputation ${career.reputation} · up to tier ${reach}</p>
-    <div class="cards">${career.offers.map(offer).join('')}${button('stay', `<b>stay</b><small>${escapeHtml(airportNow().name)}</small>`, ' card')}</div>`;
+  return `<h1>job board</h1><p>reputation <b>${career.reputation}</b> · up to <span class="stars">${'★'.repeat(reach)}</span></p>
+    ${tiles([...career.offers.map(offer), tile('stay', {icon: 'stay', title: 'stay', lines: `<span class="fx">${escapeHtml(airportNow().name)}</span>`, tone: 'dim'})])}${detailHtml(sentences)}`;
 }
 function devilHtml() {
   const visit = career.devil;
+  const sentences = {burn: 'burn a tattoo off your skin, free', leave: 'walk away'};
   const sketch = (id, i) => {
     const tattoo = TATTOOS[id],
       catchText = tattoo.sac ? `takes ${SACRIFICES[tattoo.sac].name}: ${SACRIFICES[tattoo.sac].what}` : tattoo.catch;
-    return button(
-      'sketch:' + i,
-      `${tattooSvg(id, 'sk')}<b>${tattoo.name}</b><span class="rar ${tattoo.rarity}">${STYLES[tattoo.style].name}${tattoo.kind === 'bless' ? ' · blessing' : tattoo.kind === 'slow' ? ' · slow' : ''}</span>
-       <small>${escapeHtml(tattoo.gives)}</small>${catchText ? `<small class="catch">catch: ${escapeHtml(catchText)}</small>` : ''}`,
-      ' card sketch',
-    );
+    sentences['sketch:' + i] = catchText ? `catch: ${catchText}` : 'no catch';
+    return tile('sketch:' + i, {
+      art: tattooSvg(id, 'sk'),
+      title: tattoo.name,
+      lines: `<span class="rar ${tattoo.rarity}">${STYLES[tattoo.style].name}${tattoo.kind === 'bless' ? ' · blessing' : tattoo.kind === 'slow' ? ' · slow' : ''}</span>
+        <span class="fx">${escapeHtml(tattoo.gives)}</span>${catchText ? '<span class="fx catch">⚠ catch</span>' : ''}`,
+      tone: 'blood sketch',
+    });
   };
   const extras = [
-    career.tattoos.length ? button('burn', visit.burning ? 'stop burning' : 'burn one off') : '',
+    career.tattoos.length ? button('burn', `${uiIcon('burn')}${visit.burning ? 'stop' : 'burn one off'}`, ' iconbtn') : '',
     ...Object.entries(BODY_OPENS)
       .filter(([place]) => !career.open[place])
-      .map(([place, key]) => button('open:' + place, `open your ${place} <em class="catch">${SACRIFICES[key].name}</em>`)),
-    button('leave', 'walk away'),
+      .map(([place, key]) => {
+        sentences['open:' + place] = `open your ${place} for a tattoo: the devil takes ${SACRIFICES[key].name} (${SACRIFICES[key].what})`;
+        return button('open:' + place, `${uiIcon('open')}${place} <em class="catch">${SACRIFICES[key].name}</em>`, ' iconbtn');
+      }),
+    button('leave', `${uiIcon('leave')}walk away`, ' iconbtn'),
   ].join('');
-  return `<div class="devil"><div class="cols"><div>${skinHtml({burning: visit.burning})}<small>${career.blood} Blood · favours ${career.favours.join(', ') || 'none'} (${favourSlots()} slots)</small></div>
+  return `<div class="devil"><div class="cols"><div>${skinHtml({burning: visit.burning})}<small>${career.blood} Blood · favours ${pipsHtml(career.favours.length, favourSlots())}</small></div>
     <div class="col"><h1 class="blood">the devil</h1><p>choose ${visit.picks > 1 ? visit.picks : 'one'}</p>
-    <div class="cards">${visit.sketches.map(sketch).join('')}</div><div class="extras">${extras}</div>${styleLegend()}</div></div></div>`;
+    ${tiles(visit.sketches.map(sketch))}${detailHtml(sentences)}<div class="extras">${extras}</div>${styleLegend()}</div></div></div>`;
 }
 function styleLegend() {
   const counts = Object.keys(STYLES)
@@ -8164,9 +8218,15 @@ function cvHtml() {
       .map(run => `${run.how === 'retired' ? 'retired ' + formatTime(run.seconds) : run.how + ' week ' + run.week}`)
       .join(' · ');
   return `<div class="${career.tattoos.length ? 'cols' : ''}">${career.tattoos.length ? `<div>${skinHtml({onlyInked: true})}</div>` : ''}<div class="col"><h1 class="${how === 'retired' ? 'gold' : 'bad'}">${title}</h1><small>${career.daily ? 'daily career ' + todayDate() : 'career ' + career.number}</small>
-    <div class="tally">${rows.map(([label, value]) => `<span>${label}</span><span>${escapeHtml(String(value))}</span>`).join('')}</div>
-    <small>${meta.points} skill points · best: ${meta.bestWeeks} weeks${best}</small>${dailies ? `<small>today's daily: ${dailies}</small>` : ''}
-    <div class="cards">${button('skills', '<b>skill tree</b><small>spend skill points</small>', ' card')}${button('career', '<b>new career</b>', ' card gold')}${button('daily', `<b>daily career</b><small>${todayDate()} · the same for everyone, no skills</small>`, ' card')}</div></div></div>`;
+    ${statsHtml(rows.filter(([label]) => label !== 'airports' && label !== '★').map(([label, value]) => [label, escapeHtml(String(value))]))}
+    <small>${escapeHtml(career.stats.airports.map(id => AIRPORTS[id].name).join(' · '))}</small>
+    ${career.milestonesNow.map(id => `<small class="stars">★ ${escapeHtml(MILESTONES[id][0])} +${MILESTONES[id][1]}</small>`).join('')}
+    <small>best: ${meta.bestWeeks} weeks${best}</small>${dailies ? `<small>today's daily: ${dailies}</small>` : ''}
+    ${tiles([
+      tile('skills', {icon: 'skills', title: 'skill tree', foot: `${meta.points} points`}),
+      tile('career', {icon: 'career', title: 'new career', tone: 'gold'}),
+      tile('daily', {icon: 'daily', title: 'daily career', lines: `<span class="fx">${todayDate()}</span>`, tone: 'blue'}),
+    ])}${detailHtml({skills: 'spend skill points', career: 'a new career, with your skills', daily: 'the same career for everyone today, no skills'})}</div></div></div>`;
 }
 // the skill tree as a graph, left to right: you, the six branches, then each path as a chain of skills. A skill shows
 // once the one before it is yours (the first of a path always shows), so deeper ones stay hidden until then
@@ -8210,7 +8270,7 @@ function skillsHtml() {
       <div class="node root" style="left:0;top:${height / 2}px"><b>you</b></div>
       ${hubs.map(hub => `<div class="node hub" style="left:${branchX}px;top:${hub.y}px"><b>${hub.branch.name}</b></div>`).join('')}
       ${nodes.join('')}
-    </div><div class="cards">${button('back', '<b>back</b>', ' card')}${button('career', '<b>new career</b>', ' card gold')}</div>`;
+    </div><div class="shopfoot">${button('back', `${uiIcon('back')}back`, ' iconbtn')}${button('career', `${uiIcon('career')}new career`, ' iconbtn ahead')}</div>`;
 }
 
 /* --- the body and the tattoos, drawn ----------------------------------------------------------------------------------- */
