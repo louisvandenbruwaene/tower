@@ -92,6 +92,23 @@ main{flex:1;min-height:0;display:flex}
 @keyframes pop{0%{transform:scale(.4);opacity:0}70%{transform:scale(1.15)}100%{transform:none;opacity:1}}
 #over .grade{font-size:44px;font-weight:800;opacity:0;transform:scale(2.5);transition:all .35s cubic-bezier(.3,1.6,.5,1)} #over .grade.on{opacity:1;transform:none}
 #over .grade.gA{color:#86d48a} #over .grade.gB{color:var(--gold)} #over .grade.gC{color:var(--bad)} #over .cash{color:var(--dim);font-size:14px} #over .cash b{color:var(--fg)}
+/* the shop: two shelves of cards (kit gold, favours blue), each an icon, a name, a short line and the price */
+#over .shop{width:820px} #over .shophead{display:flex;align-items:baseline;justify-content:space-between} #over .purse{font-size:22px;font-weight:700}
+#over .shelves{display:flex;gap:22px;margin-top:6px} #over .shelf>small{text-transform:uppercase;letter-spacing:.14em;font-size:11px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+#over .shelf .rack{display:flex;gap:10px;padding:8px;margin:-8px} #over .shelf:first-child{flex:3} #over .shelf:last-child{flex:2}
+#over .pip{display:inline-block;width:8px;height:8px;transform:rotate(45deg);border:1.5px solid var(--blue);margin-left:2px} #over .pip.on{background:var(--blue)}
+#over .ware{--tone:var(--gold);flex:1;min-width:0;height:196px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding:14px 8px 10px;border-radius:12px;border-color:color-mix(in srgb,var(--tone) 28%,var(--line));background:linear-gradient(color-mix(in srgb,var(--tone) 9%,#0a1711),#08130e 70%);transition:transform .12s,border-color .12s,box-shadow .12s}
+#over .ware.favour{--tone:var(--blue)} #over .ware .icon{width:46px;height:46px;flex:none;margin-bottom:4px;fill:none;stroke:var(--tone);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 6px color-mix(in srgb,var(--tone) 45%,transparent))}
+#over .ware>b{font-size:14px;color:var(--fg);line-height:1.2} #over .ware .fx{font-size:12px;color:var(--dim);line-height:1.35} #over .ware .fx.catch{color:var(--bad)}
+#over .ware>em{float:none;margin:auto 0 0;font-size:15px} #over .ware.poor>em,#over .ware.poor>em b{color:var(--bad)} #over .ware.poor .icon,#over .ware.full .icon{opacity:.45}
+#over .ware.sel{border-color:var(--tone);transform:translateY(-6px) scale(1.03);box-shadow:0 10px 24px rgba(0,0,0,.5),0 0 0 1px var(--tone),0 0 22px color-mix(in srgb,var(--tone) 25%,transparent)}
+#over .ware.sold{border:2px dashed var(--line);background:none;justify-content:center;box-shadow:none} #over .ware .icon.gone{opacity:.15;stroke:var(--dim);filter:none}
+#over b.mult{font-size:11.5px;font-weight:700;color:#2a0d08;background:#ff8a5c;border-radius:4px;padding:0 4px;white-space:nowrap} #over .ware .fx b.money{color:#86d48a}
+#over .screen.shop>p.detail{height:2.9em;margin:12px auto 0;max-width:none;text-align:center;color:var(--fg);font-size:13.5px;overflow:hidden}
+#over .shopfoot{display:flex;align-items:center;gap:10px;margin-top:6px} #over .owned{display:flex;flex-wrap:wrap;gap:4px;margin-right:auto}
+#over .owned .icon{width:22px;height:22px;fill:none;stroke:var(--gold);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.75}
+#over .iconbtn{display:flex;align-items:center;gap:8px} #over .iconbtn .icon{width:18px;height:18px;fill:none;stroke:var(--fg);stroke-width:2;stroke-linecap:round;stroke-linejoin:round} #over .iconbtn em{margin:0}
+#over .iconbtn{height:40px;box-sizing:border-box;font-weight:600} #over .iconbtn.ahead .icon{fill:var(--acc);stroke:var(--acc)}
 #over .devil{--blood:#c42a20} #over .devil .btn{background:#140806;border-color:#3d1410;box-shadow:0 3px 0 #070202} #over .devil .btn.sel{border-color:#ff6b5e}
 #over .sketch{align-items:flex-start} #over .sketch .art{width:64px;height:64px} #over .sketch .art path{stroke:#c9a184;stroke-width:4} #over .rar{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
 #over .rar.u{color:var(--blue)} #over .rar.r{color:var(--gold)} #over .rar.l{color:#ff7ab8} #over .catch{color:#ff8a7e}
@@ -625,6 +642,42 @@ const DEVIL_EVERY_WEEKS = 2; // the devil comes at the end of every 2nd week: ta
 const SHOP_KIT_CARDS = 3, // kit for sale after each shift
   SHOP_FAVOUR_CARDS = 2; // favours for sale after each shift
 const RESTOCK_SHARE = 0.04; // restocking the shop costs this share of the rent (Coupon: half)
+/* each shop card's icon (24x24 strokes; 'c x y r' is a circle) and its short line: a few words and the numbers. '+0.5×' is
+   a Mult chip, ¤ money, '!' starts the catch. The card's full sentence (TATTOOS[].gives, FAVOURS[].what) shows only under
+   the selected card. */
+// prettier-ignore
+const SHOP_ICONS = {
+  cleansheet:     [['M6 4h12v17H6z', 'M9 4V2h6v2', 'M9 13l2 2 4-5'],                        'streak plane ¤100'],
+  stopwatch:      [['c 12 14 7', 'M12 14v-4', 'M10 3h4', 'M12 3v4', 'M18 7l1.5-1.5'],       'under par +0.5×'],
+  greenlight:     [['M3 20h18', 'M4 16l14-8', 'M14 6l4 2-2 4'],                             'departure +0.5×'],
+  wakerider:      [['M3 9c3-3 6 3 9 0s6 3 9 0', 'M3 15c3-3 6 3 9 0s6 3 9 0'],              'heavy +0.75×'],
+  freight:        [['M4 8l8-4 8 4v9l-8 4-8-4z', 'M4 8l8 4 8-4', 'M12 12v9'],                'every 4th freighter ¤400'],
+  redcarpet:      [['M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4l-5.3 3 1.2-6-4.5-4.1 6-.7z'], 'VIP ¤1,500'],
+  siren:          [['M6 18a6 6 0 0 1 12 0', 'M4 18h16v3H4z', 'M12 4v3', 'M5 7l2 2', 'M19 7l-2 2'], 'quick MEDEVAC: next 3 +1×'],
+  rotorclub:      [['M3 5h18', 'M12 5v3', 'M5 12a5 3.5 0 1 0 10 0a5 3.5 0 1 0-10 0', 'M15 12h6', 'M21 10v4', 'M7 19h8'], 'helicopter ¤800'],
+  patient:        [['M8 7h8a5 5 0 0 1 0 10H8a5 5 0 0 1 0-10z', 'M13 4l3 3-3 3'],           'hold lap ¤100'],
+  thermos:        [['M8 7h8v14H8z', 'M9 3h6v4H9z', 'M8 12h8'],                              'hold fuel −50%'],
+  fuelgauge:      [['M4 17a8 8 0 0 1 16 0', 'M12 17l4-5', 'M3 20h18'],                      'fuel shown · MAYDAY ¤1,000'],
+  gateagent:      [['M7 3h10', 'M7 21h10', 'M8 3c0 6 8 6 8 9s-8 3-8 9', 'M16 3c0 6-8 6-8 9s8 3 8 9'], '+30 s patience · ¤300'],
+  thrill:         [['M3 8h14', 'M14 5l3 3-3 3', 'M21 16H7', 'M10 13l-3 3 3 3'],             'near pass ¤200'],
+  stormchaser:    [['M7 15a4 4 0 0 1 .5-8 5 5 0 0 1 9.5 1.5 3.5 3.5 0 0 1 0 6.5', 'M12 12l-2 5h4l-2 5'], 'storm brush +0.75×'],
+  weatherradio:   [['M12 12v9', 'c 12 10 2', 'M8.5 6.5a5 5 0 0 0 0 7', 'M15.5 6.5a5 5 0 0 1 0 7', 'M5.5 3.5a9 9 0 0 0 0 13', 'M18.5 3.5a9 9 0 0 1 0 13'], 'storms 60 s early !+1 storm'],
+  foglamp:        [['M9 8l4-2v12l-4-2z', 'M4 9h5v6H4z', 'M15 8h6', 'M15 12h6', 'M15 16h6'], 'storm or wind +5% pay'],
+  clipboard:      [['M4 20l4-1L19 8l-3-3L5 16z', 'M14 7l3 3'],                              'intern fix ¤300'],
+  radiocollector: [['M4 14a8 8 0 0 1 16 0', 'M4 14h3v6H4z', 'M17 14h3v6h-3z'],             '+1 slot · +0.25× per favour'],
+  fortune:        [['c 12 12 8', 'c 12 12 4.5'],                                             '50%: free favour !1 in 6: misheard ×2'],
+  fleamarket:     [['M3 12l9-9h8v8l-9 9z', 'c 16 8 1.5'],                                    'restock half price'],
+  groundstop:     [['M8 3h8l5 5v8l-5 5H8l-5-5V8z', 'M8 12h8'],                               'no traffic 30 s'],
+  expedite:       [['M6 4l6 6 6-6', 'M6 11l6 6 6-6', 'M4 21h16'],                            'one arrival lands now'],
+  vector:         [['c 17 12 4', 'M2 12h9', 'M8 9l3 3-3 3'],                                 'arrivals turn to a circle'],
+  standby:        [['c 12 12 9', 'M10 8v8', 'M14 8v8'],                                      'patience paused 60 s'],
+  freeze:         [['M12 3v18', 'M4.2 7.5l15.6 9', 'M4.2 16.5l15.6-9'],                      'slow motion 10 s'],
+  cleanup:        [['M6 3h9l3 3v15H6z', 'M9 10h6', 'M9 14h6', 'M4 20L20 6'],                 '−1 write-up'],
+  double:         [['M4 9h11v11H4z', 'M9 4h11v11'],                                          'one plane pays ×2'],
+  tailwind:       [['M3 8h11a3 3 0 1 0-3-3', 'M3 12h15a3 3 0 1 1-3 3', 'M3 16h7'],          'all planes +20% speed 30 s'],
+  restock:        [['M20 12a8 8 0 1 1-2.3-5.7', 'M20 3v4h-4']],
+  next:           [['M7 4l12 8-12 8z']],
+};
 const BANKRUPT_CONFIRM_SECONDS = 3; // 'declare bankruptcy' asks 'sure?' and waits this long for the second click
 const DEVIL_PICKS = 1; // sketches you may take each visit; tattoos cost no money (burning one off is free too)
 const PAIR_STRENGTH = 1.5;
@@ -7821,19 +7874,41 @@ function shopChoose(key) {
   sound.tab();
   saveGame();
 }
+// a shop icon as inline SVG (SHOP_ICONS), stroked in the card's colour
+const shopIcon = (id, extra = '') =>
+  `<svg class="icon${extra}" viewBox="0 0 24 24">${(SHOP_ICONS[id]?.[0] || []).map(stroke => `<path d="${artPath(stroke)}"/>`).join('')}</svg>`;
+// a card's short line: Mult numbers ('+0.5×', '×2') become chips, the part after '!' is the catch
+function shopShortHtml(id) {
+  const [gain, catchText] = (SHOP_ICONS[id]?.[1] || '').split('!'),
+    chips = text => escapeHtml(text.replace(/(\d) s\b/g, '$1\u00a0s')).replace(/([+−-]?[\d.]+×|×\d+)/g, '<b class="mult">$1</b>');
+  return `<span class="fx">${chips(gain.trim())}</span>${catchText ? `<span class="fx catch">${chips(catchText.trim())}</span>` : ''}`;
+}
 function shopHtml() {
   const shop = career.shop,
-    card = (key, name, what, price) => button(key, `<b>${escapeHtml(name)}</b><small>${escapeHtml(what)}</small><em>${costHtml(price)}</em>`, ' card'),
-    sold = '<div class="card plain sold"><small>sold</small></div>';
-  const kit = shop.kit.map((id, i) =>
-      id ? card('kit:' + i, TATTOOS[id].name, TATTOOS[id].gives + (TATTOOS[id].catch ? ` · but ${TATTOOS[id].catch}` : ''), kitPrice(id)) : sold),
-    favours = shop.favours.map((name, i) => (name ? card('favour:' + i, name, FAVOURS[name].what, favourPrice(name)) : sold));
-  const owned = career.kit.map(id => TATTOOS[id].name).join(' · ');
-  return `<h1>shop</h1><p>cash <b>${money(career.cash)}</b></p>
-    <div class="cards">${kit.join('')}</div>
-    <div class="cards">${favours.join('')}</div>
-    ${owned ? `<small>kit: ${escapeHtml(owned)}</small>` : ''}
-    <div class="extras">${button('restock', `restock <em>${costHtml(restockPrice())}</em>`)}${button('next', 'Enter: next shift')}</div>`;
+    slotsFull = career.favours.length >= favourSlots(),
+    ware = (key, id, name, price, kind) => {
+      const blocked = career.cash < price ? ' poor' : kind === 'favour' && slotsFull ? ' full' : '';
+      return button(key, `${shopIcon(id)}<b>${escapeHtml(name)}</b>${shopShortHtml(id)}<em>${costHtml(price)}</em>`, ` ware ${kind}${blocked}`);
+    },
+    sold = kind => `<div class="ware sold ${kind}">${shopIcon('next', ' gone')}</div>`;
+  const kit = shop.kit.map((id, i) => (id ? ware('kit:' + i, id, TATTOOS[id].name, kitPrice(id), 'kit') : sold('kit'))),
+    favours = shop.favours.map((name, i) => (name ? ware('favour:' + i, name, name[0].toUpperCase() + name.slice(1), favourPrice(name), 'favour') : sold('favour')));
+  // the selected card's full sentence, in a line of fixed height under the shelves
+  const [kind, index] = (screenState.choice || '').split(':'),
+    chosen = kind === 'kit' ? shop.kit[+index] : kind === 'favour' ? shop.favours[+index] : null,
+    detail = !chosen
+      ? ''
+      : kind === 'kit'
+        ? TATTOOS[chosen].gives + (TATTOOS[chosen].catch ? ` · but ${TATTOOS[chosen].catch}` : '')
+        : FAVOURS[chosen].what + (slotsFull ? ' · your favour slots are full' : '');
+  const pips = Array.from({length: favourSlots()}, (_, i) => `<i class="pip${i < career.favours.length ? ' on' : ''}"></i>`).join(''),
+    owned = career.kit.map(id => `<span title="${escapeHtml(TATTOOS[id].name)}">${shopIcon(id)}</span>`).join('');
+  return `<div class="shophead"><h1>shop</h1><span class="purse">${money(career.cash)}</span></div>
+    <div class="shelves"><div class="shelf"><small>kit</small><div class="rack">${kit.join('')}</div></div>
+    <div class="shelf"><small>favours ${pips}</small><div class="rack">${favours.join('')}</div></div></div>
+    <p class="detail">${escapeHtml(detail)}</p>
+    <div class="shopfoot"><div class="owned">${owned}</div>
+    ${button('restock', `${shopIcon('restock')}<em>${costHtml(restockPrice())}</em>`, ' iconbtn')}${button('next', `${shopIcon('next')}Enter`, ' iconbtn ahead')}</div>`;
 }
 // choosing the place for a tattoo, then the devil draws it
 function startInking(id, free) {
@@ -8255,13 +8330,29 @@ function updatePanels() {
     animateInking();
   }
 }
-// the arrow keys move between the choices on a screen between shifts (in the order they appear)
+// the arrow keys move between the choices on a screen between shifts by where they sit: ← → along a row, ↑ ↓ to the
+// nearest choice in the row above or below. Past the edge it wraps to the other end of the same row (or column).
 function moveChoice(key) {
-  const keys = [...overlay.querySelectorAll('[data-k]')].map(element => element.dataset.k);
-  if (!keys.length) return;
-  const i = Math.max(0, keys.indexOf(screenState.choice)),
-    step = key === 'ArrowLeft' || key === 'ArrowUp' ? -1 : 1;
-  screenState.choice = keys[(i + step + keys.length) % keys.length];
+  const choices = [...overlay.querySelectorAll('[data-k]')].map(element => {
+    const box = element.getBoundingClientRect();
+    return {key: element.dataset.k, x: box.left + box.width / 2, y: box.top + box.height / 2, height: box.height};
+  });
+  if (!choices.length) return;
+  const from = choices.find(choice => choice.key === screenState.choice) || choices[0],
+    horizontal = key === 'ArrowLeft' || key === 'ArrowRight',
+    sign = key === 'ArrowLeft' || key === 'ArrowUp' ? -1 : 1,
+    along = choice => (horizontal ? choice.x - from.x : choice.y - from.y) * sign, // distance in the arrow's direction
+    across = choice => Math.abs(horizontal ? choice.y - from.y : choice.x - from.x),
+    sameLine = choice => (horizontal ? across(choice) < Math.max(from.height, choice.height) / 2 : true);
+  const ahead = choices.filter(choice => choice !== from && along(choice) > 1 && (horizontal ? sameLine(choice) : true));
+  let to = ahead.sort((first, second) => along(first) + 3 * across(first) - (along(second) + 3 * across(second)))[0];
+  if (!to) {
+    // wrap: the farthest choice behind, on the same row (← →) or nearest in line (↑ ↓)
+    const behind = choices.filter(choice => choice !== from && along(choice) < -1 && sameLine(choice));
+    to = behind.sort((first, second) => along(first) + across(first) - (along(second) + across(second)))[0];
+  }
+  if (!to) return;
+  screenState.choice = to.key;
   sound.tab();
 }
 // the tutorial is a button next to the speed button: never forced
